@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CircleCheck, CircleX, Loader2, PanelRight, PlugZap, Settings2 } from "lucide-react";
+import { CircleCheck, CircleX, Loader2, PanelRight, PlugZap, ServerCog, Settings } from "lucide-react";
 import { listCollectionIds, toAppError } from "@/lib/api";
 import { activeConnection, useStore } from "@/store";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AppSettingsDialog } from "./AppSettingsDialog";
 import { ConnectionDialog } from "./ConnectionDialog";
 
 type TestResult = { ok: true; count: number } | { ok: false; message: string } | null;
@@ -24,6 +25,7 @@ export function TopBar() {
   const detailOpen = useStore((s) => s.detailOpen);
   const setDetailOpen = useStore((s) => s.setDetailOpen);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState<TestResult>(null);
 
@@ -68,7 +70,7 @@ export function TopBar() {
         </SelectContent>
       </Select>
       <Button variant="ghost" size="icon-sm" title="接続の管理" onClick={() => setDialogOpen(true)}>
-        <Settings2 />
+        <ServerCog />
       </Button>
       <Button variant="outline" size="sm" disabled={!conn || testing} onClick={runTest}>
         {testing ? <Loader2 className="animate-spin" /> : <PlugZap />}
@@ -111,8 +113,12 @@ export function TopBar() {
       >
         <PanelRight />
       </Button>
+      <Button variant="ghost" size="icon-sm" title="設定（テーマ・フォント）" onClick={() => setSettingsOpen(true)}>
+        <Settings />
+      </Button>
 
       <ConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <AppSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </header>
   );
 }

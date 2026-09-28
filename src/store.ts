@@ -9,7 +9,8 @@ import {
   runQuery,
   toAppError,
 } from "@/lib/api";
-import { loadSettings, saveSettings } from "@/lib/settings";
+import { type Appearance, applyAppearance, DEFAULT_APPEARANCE } from "@/lib/appearance";
+import { loadAppearance, loadSettings, saveAppearance, saveSettings } from "@/lib/settings";
 
 export const PAGE_SIZE = 50;
 
@@ -76,8 +77,10 @@ interface State {
   activeTabId: string | null;
   selectedDocPath: string | null;
   detailOpen: boolean;
+  appearance: Appearance;
 
   init(): Promise<void>;
+  setAppearance(patch: Partial<Appearance>): void;
   setActiveConnection(id: string | null): void;
   upsertConnection(conn: ConnectionConfig): void;
   deleteConnection(id: string): void;
@@ -129,11 +132,20 @@ export const useStore = create<State>((set, get) => {
     activeTabId: null,
     selectedDocPath: null,
     detailOpen: true,
+    appearance: DEFAULT_APPEARANCE,
 
     async init() {
-      const settings = await loadSettings();
-      set({ ...settings, ready: true });
+      const [settings, appearance] = await Promise.all([loadSettings(), loadAppearance()]);
+      applyAppearance(appearance);
+      set({ ...settings, appearance, ready: true });
       if (activeConnection(get())) void get().loadRootCollections();
+    },
+
+    setAppearance(patch) {
+      const appearance = { ...get().appearance, ...patch };
+      applyAppearance(appearance);
+      set({ appearance });
+      void saveAppearance(appearance);
     },
 
     setActiveConnection(id) {

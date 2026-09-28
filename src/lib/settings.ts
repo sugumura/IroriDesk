@@ -1,5 +1,6 @@
 import { load, type Store } from "@tauri-apps/plugin-store";
 import type { ConnectionConfig } from "./api";
+import { type Appearance, normalizeAppearance } from "./appearance";
 
 const FILE = "settings.json";
 
@@ -40,6 +41,16 @@ export async function loadSettings(): Promise<PersistedSettings> {
     };
   }
   return { connections, activeConnectionId: activeConnectionId ?? null };
+}
+
+export async function loadAppearance(): Promise<Appearance> {
+  const s = await store();
+  return normalizeAppearance(await s.get<Partial<Appearance>>("appearance"));
+}
+
+export async function saveAppearance(appearance: Appearance): Promise<void> {
+  const s = await store();
+  await s.set("appearance", appearance);
 }
 
 export async function saveSettings(settings: PersistedSettings): Promise<void> {

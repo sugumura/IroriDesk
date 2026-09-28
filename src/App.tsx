@@ -64,7 +64,7 @@ function App() {
           <MainPanes detailOpen={detailOpen} />
         ) : (
           <div className="flex flex-1 items-center justify-center text-muted-foreground">
-            上部の歯車ボタンから接続を追加してください
+            左上の接続の管理ボタンから接続を追加してください
           </div>
         )}
       </div>
