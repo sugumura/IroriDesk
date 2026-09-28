@@ -5,6 +5,7 @@ import { useStore } from "@/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "./CopyButton";
+import { JsonCode } from "./JsonCode";
 
 function Row({ label, value, mono, copy }: { label: string; value: React.ReactNode; mono?: boolean; copy?: string }) {
   return (
@@ -83,7 +84,7 @@ export function UserDetail({ user }: { user: DisplayUser }) {
             {claims && <CopyButton text={claims} />}
           </div>
           {claims ? (
-            <pre className="overflow-auto rounded-md border bg-muted/40 p-2 font-mono text-xs select-text">{claims}</pre>
+            <JsonCode text={claims} className="overflow-auto rounded-md border bg-muted/40 p-2" />
           ) : (
             <div className="text-xs text-muted-foreground">なし</div>
           )}
@@ -95,7 +96,7 @@ export function UserDetail({ user }: { user: DisplayUser }) {
           </summary>
           <div className="relative mt-1">
             <CopyButton text={raw} className="absolute top-1 right-1" />
-            <pre className="overflow-auto rounded-md border bg-muted/40 p-2 font-mono text-xs select-text">{raw}</pre>
+            <JsonCode text={raw} className="overflow-auto rounded-md border bg-muted/40 p-2" />
           </div>
         </details>
       </div>

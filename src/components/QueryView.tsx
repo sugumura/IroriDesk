@@ -22,6 +22,7 @@ import { useColumnLayout } from "@/lib/useColumnLayout";
 import { ColumnSettings } from "./ColumnSettings";
 import { ExportMenu } from "./ExportMenu";
 import { FieldInput } from "./FieldInput";
+import { JsonCode } from "./JsonCode";
 import { ResultsView, ViewToggle } from "./ResultsView";
 
 const OPS: WhereOp[] = [
@@ -312,9 +313,7 @@ function SentQuery({ query }: { query: unknown }) {
         送信した structuredQuery
       </button>
       {open && (
-        <pre className="max-h-48 overflow-auto px-3 pb-2 font-mono text-xs select-text">
-          {JSON.stringify(query, null, 2)}
-        </pre>
+        <JsonCode text={JSON.stringify(query, null, 2)} className="max-h-48 overflow-auto px-3 pb-2" />
       )}
     </div>
   );

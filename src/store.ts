@@ -119,6 +119,8 @@ interface State {
   /** 詳細ペインに表示中のユーザー（ドキュメントの選択とは排他） */
   selectedUser: DisplayUser | null;
   detailOpen: boolean;
+  /** 詳細パネルのドキュメント表示（ドキュメントを選び直しても保つ） */
+  detailView: "tree" | "json";
   treeOpen: boolean;
   appearance: Appearance;
   columnConfigs: Record<string, ColumnConfig>;
@@ -155,6 +157,7 @@ interface State {
   loadUsers(tabId: string, reset: boolean): Promise<void>;
   searchUsers(tabId: string, kind: UserLookupKind, value: string): Promise<void>;
   setDetailOpen(open: boolean): void;
+  setDetailView(view: "tree" | "json"): void;
   setTreeOpen(open: boolean): void;
 }
 
@@ -224,6 +227,7 @@ export const useStore = create<State>((set, get) => {
     selectedDocPath: null,
     selectedUser: null,
     detailOpen: true,
+    detailView: "tree",
     treeOpen: true,
     appearance: DEFAULT_APPEARANCE,
     columnConfigs: {},
@@ -570,6 +574,10 @@ export const useStore = create<State>((set, get) => {
 
     setDetailOpen(open) {
       set({ detailOpen: open });
+    },
+
+    setDetailView(view) {
+      set({ detailView: view });
     },
 
     setTreeOpen(open) {

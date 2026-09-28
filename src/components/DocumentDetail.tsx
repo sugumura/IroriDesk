@@ -12,6 +12,7 @@ import { activeConnection, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "./CopyButton";
 import { ErrorBox } from "./ErrorBox";
+import { JsonCode } from "./JsonCode";
 import { JsonTree } from "./JsonTree";
 
 interface DetailState {
@@ -43,6 +44,8 @@ export function DocumentDetail() {
   const select = useStore((s) => s.selectDocument);
   const setDetailOpen = useStore((s) => s.setDetailOpen);
   const openCollection = useStore((s) => s.openCollection);
+  const view = useStore((s) => s.detailView);
+  const setView = useStore((s) => s.setDetailView);
   const [state, setState] = useState<DetailState>(initial);
 
   useEffect(() => {
@@ -78,6 +81,13 @@ export function DocumentDetail() {
       <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
         <span className="font-medium">ドキュメント</span>
         <div className="flex-1" />
+        <div className="flex rounded-md border p-0.5">
+          {(["tree", "json"] as const).map((v) => (
+            <Button key={v} size="xs" variant={view === v ? "secondary" : "ghost"} onClick={() => setView(v)}>
+              {v === "tree" ? "ツリー" : "JSON"}
+            </Button>
+          ))}
+        </div>
         <Button variant="ghost" size="icon-sm" onClick={() => setDetailOpen(false)} title="閉じる">
           <X />
         </Button>
@@ -143,11 +153,21 @@ export function DocumentDetail() {
           )}
           {state.subError && <ErrorBox error={state.subError} className="m-3" />}
 
-          {state.doc && (
-            <div className="p-2">
-              <JsonTree fields={state.doc.fields} />
-            </div>
-          )}
+          {state.doc &&
+            (view === "tree" ? (
+              <div className="p-2">
+                <JsonTree fields={state.doc.fields} />
+              </div>
+            ) : (
+              <div className="relative p-2">
+                <CopyButton
+                  text={() => JSON.stringify(state.doc!.fields, null, 2)}
+                  label="フィールドをJSONでコピー"
+                  className="absolute top-3 right-3"
+                />
+                <JsonCode text={JSON.stringify(state.doc.fields, null, 2)} className="overflow-auto px-1" />
+              </div>
+            ))}
         </div>
       )}
       {path && (

@@ -4,6 +4,7 @@ import { toExportObject } from "@/lib/display";
 import { type Tab, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { DocumentTable } from "./DocumentTable";
+import { JsonCode } from "./JsonCode";
 
 export function ViewToggle({ tab }: { tab: Tab }) {
   const setView = useStore((s) => s.setView);
@@ -25,11 +26,7 @@ export function ViewToggle({ tab }: { tab: Tab }) {
 
 function JsonList({ docs }: { docs: DisplayDocument[] }) {
   const text = useMemo(() => JSON.stringify(docs.map(toExportObject), null, 2), [docs]);
-  return (
-    <pre className="h-full overflow-auto p-3 font-mono text-xs leading-relaxed select-text">
-      {text}
-    </pre>
-  );
+  return <JsonCode text={text} className="h-full overflow-auto p-3" />;
 }
 
 /**
