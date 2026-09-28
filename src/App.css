@@ -1,0 +1,69 @@
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --border: #d1d9e0;
+  --error-bg: #ffebe9;
+  --error-fg: #82071e;
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", sans-serif;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --fg: #e6edf3;
+    --muted: #9198a1;
+    --border: #3d444d;
+    --error-bg: #3c1618;
+    --error-fg: #ffa198;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+label {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  align-items: center;
+  color: var(--muted);
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 4px 8px;
+}
+
+.error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.error pre {
+  white-space: pre-wrap;
+  margin: 8px 0 0;
+}
