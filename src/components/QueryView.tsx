@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Loader2, Play, Plus, X } from "lucide-react";
 import type { OrderClause, QuerySpec, QueryValueType, WhereClause, WhereOp } from "@/lib/api";
 import { formatTimestamp } from "@/lib/display";
+import type { FieldInfo } from "@/lib/fields";
+import { useFieldSuggestions } from "@/lib/useFieldSuggestions";
 import { type QueryTab, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ErrorBox } from "./ErrorBox";
+import { FieldInput } from "./FieldInput";
 import { ResultsView, ViewToggle } from "./ResultsView";
 
 const OPS: WhereOp[] = [
@@ -83,21 +86,40 @@ function SmallSelect<T extends string>({
   );
 }
 
+interface SuggestionProps {
+  fields: FieldInfo[];
+  loading: boolean;
+}
+
+/** 候補を選んだとき、値が未入力なら型と演算子をサンプルに合わせる */
+function applyPickedField(clause: WhereClause, f: FieldInfo): WhereClause {
+  const next = { ...clause, field: f.path };
+  if (clause.value.trim() !== "") return next;
+  if (f.valueType && f.valueType !== "null") next.valueType = f.valueType;
+  if (f.typeLabel === "array" && clause.op === "==") next.op = "array-contains";
+  return next;
+}
+
 function WhereRow({
   clause,
   onChange,
   onRemove,
+  suggestions,
 }: {
   clause: WhereClause;
   onChange: (c: WhereClause) => void;
   onRemove: () => void;
+  suggestions: SuggestionProps;
 }) {
   const set = <K extends keyof WhereClause>(k: K, v: WhereClause[K]) => onChange({ ...clause, [k]: v });
   return (
-    <div className="flex items-center gap-1.5">
-      <Input
+    <div className="flex flex-wrap items-center gap-1.5">
+      <FieldInput
         value={clause.field}
-        onChange={(e) => set("field", e.target.value)}
+        onChange={(v) => set("field", v)}
+        onPick={(f) => onChange(applyPickedField(clause, f))}
+        suggestions={suggestions.fields}
+        loading={suggestions.loading}
         placeholder="フィールド（profile.city / __name__）"
         className="h-7 w-56 font-mono text-xs"
       />
@@ -122,7 +144,7 @@ function WhereRow({
           value={clause.value}
           onChange={(e) => set("value", e.target.value)}
           placeholder={placeholder(clause)}
-          className="h-7 flex-1 font-mono text-xs"
+          className="h-7 min-w-48 flex-1 font-mono text-xs"
         />
       )}
       <Button variant="ghost" size="icon-xs" onClick={onRemove} title="条件を削除">
@@ -136,16 +158,20 @@ function OrderRow({
   clause,
   onChange,
   onRemove,
+  suggestions,
 }: {
   clause: OrderClause;
   onChange: (c: OrderClause) => void;
   onRemove: () => void;
+  suggestions: SuggestionProps;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <Input
+    <div className="flex flex-wrap items-center gap-1.5">
+      <FieldInput
         value={clause.field}
-        onChange={(e) => onChange({ ...clause, field: e.target.value })}
+        onChange={(v) => onChange({ ...clause, field: v })}
+        suggestions={suggestions.fields}
+        loading={suggestions.loading}
         placeholder="フィールド"
         className="h-7 w-56 font-mono text-xs"
       />
@@ -173,6 +199,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
 
   const replaceAt = <T,>(arr: T[], i: number, v: T) => arr.map((x, j) => (j === i ? v : x));
   const removeAt = <T,>(arr: T[], i: number) => arr.filter((_, j) => j !== i);
+  const suggestions = useFieldSuggestions(tab);
 
   return (
     <form
@@ -188,7 +215,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
         }
       }}
     >
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <SmallSelect
           value={spec.targetKind}
           options={[
@@ -202,7 +229,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
           value={spec.target}
           onChange={(e) => set({ target: e.target.value })}
           placeholder={spec.targetKind === "collection" ? "コレクションパス（users/alice/orders）" : "コレクションID（orders）"}
-          className="h-7 flex-1 font-mono text-xs"
+          className="h-7 min-w-48 flex-1 font-mono text-xs"
         />
         <span className="ml-2 text-xs text-muted-foreground">limit</span>
         <Input
@@ -227,6 +254,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
             clause={w}
             onChange={(c) => set((s) => ({ where: replaceAt(s.where, i, c) }))}
             onRemove={() => set((s) => ({ where: removeAt(s.where, i) }))}
+            suggestions={suggestions}
           />
         ))}
         <Button
@@ -249,6 +277,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
             clause={o}
             onChange={(c) => set((s) => ({ orderBy: replaceAt(s.orderBy, i, c) }))}
             onRemove={() => set((s) => ({ orderBy: removeAt(s.orderBy, i) }))}
+            suggestions={suggestions}
           />
         ))}
         <Button
