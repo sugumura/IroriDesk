@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Loader2, Play, Plus, X } from "lucide-react";
 import type { OrderClause, QuerySpec, QueryValueType, WhereClause, WhereOp } from "@/lib/api";
 import { formatTimestamp } from "@/lib/display";
@@ -14,8 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useDefaultLayout } from "react-resizable-panels";
-import { layoutStorage } from "@/lib/layoutStorage";
+import { sharedLayout } from "@/lib/layoutStorage";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ErrorBox } from "./ErrorBox";
 import { columnScope } from "@/lib/columns";
@@ -323,22 +322,25 @@ function SentQuery({ query }: { query: unknown }) {
 
 export function QueryView({ tab }: { tab: QueryTab }) {
   const ran = tab.ranSpec !== null;
-  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
-    id: "query-layout",
-    storage: layoutStorage,
-  });
+  // 分割表示で複数のクエリタブが同時に出るため、パネル ID はタブごとに一意にする
+  const formId = `form-${tab.id}`;
+  const resultsId = `results-${tab.id}`;
+  const { defaultLayout, onLayoutChanged } = useMemo(
+    () => sharedLayout("query", { form: formId, results: resultsId }),
+    [formId, resultsId],
+  );
   return (
     <ResizablePanelGroup
-      id="query-layout"
+      id={`query-${tab.id}`}
       orientation="vertical"
       defaultLayout={defaultLayout}
       onLayoutChanged={onLayoutChanged}
     >
-      <ResizablePanel id="form" defaultSize="35" minSize={60}>
+      <ResizablePanel id={formId} defaultSize="35" minSize={60}>
         <QueryForm tab={tab} />
       </ResizablePanel>
       <ResizableHandle />
-      <ResizablePanel id="results" minSize={120}>
+      <ResizablePanel id={resultsId} minSize={120}>
         <QueryResults tab={tab} ran={ran} />
       </ResizablePanel>
     </ResizablePanelGroup>
@@ -357,7 +359,7 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
     ),
   );
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="@container flex h-full min-h-0 flex-col">
       {tab.error && <ErrorBox error={tab.error} className="m-3" />}
       {ran && tab.structuredQuery !== null && <SentQuery query={tab.structuredQuery} />}
       <div className="min-h-0 flex-1">
@@ -371,7 +373,7 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
       </div>
       <div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
         {ran && <span>{tab.docs.length} 件</span>}
-        {tab.readTime && <span title={tab.readTime}>readTime: {formatTimestamp(tab.readTime)}</span>}
+        {tab.readTime && <span className="hidden @xl:inline" title={tab.readTime}>readTime: {formatTimestamp(tab.readTime)}</span>}
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
         {ran && (

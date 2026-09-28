@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Folder, Loader2, RefreshCw } from "lucide-react";
 import { isCollectionPath, splitPath } from "@/lib/display";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/store";
+import { focusedTab, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorBox } from "./ErrorBox";
@@ -38,7 +38,7 @@ export function CollectionTree() {
   const reload = useStore((s) => s.loadRootCollections);
   const openCollection = useStore((s) => s.openCollection);
   const activePath = useStore((s) => {
-    const tab = s.tabs.find((t) => t.id === s.activeTabId);
+    const tab = focusedTab(s);
     return tab?.kind === "browse" ? tab.collectionPath : null;
   });
   const activeRoot = activePath ? splitPath(activePath)[0] : null;

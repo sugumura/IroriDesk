@@ -29,7 +29,8 @@ export function ColumnSettings({ layout }: { layout: ColumnLayout }) {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="xs" title="表示する列の設定">
           <Columns3 />
-          列{hiddenCount > 0 && <span className="text-muted-foreground">（{hiddenCount} 件非表示）</span>}
+          <span className="hidden @lg:inline">列</span>
+          {hiddenCount > 0 && <span className="text-muted-foreground">（{hiddenCount}<span className="hidden @lg:inline"> 件非表示</span>）</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">

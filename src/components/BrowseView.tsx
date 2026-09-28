@@ -57,7 +57,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
   const missingCount = tab.docs.filter((d) => d.missing).length;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="@container flex h-full min-h-0 flex-col">
       <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
         <Breadcrumb path={tab.collectionPath} />
         <div className="flex-1" />
@@ -67,7 +67,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
           title="このコレクションを対象にクエリタブを開く"
           onClick={() => openQuery(emptyQuerySpec(tab.collectionPath))}
         >
-          <Search /> クエリ
+          <Search /> <span className="hidden @lg:inline">クエリ</span>
         </Button>
         {tab.view === "table" && <ColumnSettings layout={layout} />}
         <ViewToggle tab={tab} />
@@ -93,16 +93,17 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
       </div>
 
       <div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
-        <span>
-          {tab.docs.length} 件読み込み済み
-          {missingCount > 0 && `（うち実体なし ${missingCount} 件）`}
+        <span className="min-w-0 truncate">
+          {tab.docs.length} 件<span className="hidden @md:inline">読み込み済み</span>
+          {missingCount > 0 && <span className="hidden @xl:inline">（うち実体なし {missingCount} 件）</span>}
         </span>
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
         <ExportMenu docs={tab.docs} fields={layout.visible} baseName={tab.collectionPath} />
         {tab.nextPageToken && (
           <Button size="xs" variant="outline" disabled={tab.loading} onClick={() => loadPage(tab.id, false)}>
-            さらに読み込む
+            <span className="@md:hidden">続き</span>
+            <span className="hidden @md:inline">さらに読み込む</span>
           </Button>
         )}
       </div>

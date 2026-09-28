@@ -22,9 +22,14 @@ import {
 
 export const PAGE_SIZE = 50;
 
+/** 分割表示のグループ。0 = 左（上）、1 = 右（下） */
+export type GroupIndex = 0 | 1;
+export type SplitMode = "none" | "horizontal" | "vertical";
+
 export interface BrowseTab {
   id: string;
   kind: "browse";
+  group: GroupIndex;
   collectionPath: string;
   docs: DisplayDocument[];
   nextPageToken: string | null;
@@ -38,6 +43,7 @@ export interface BrowseTab {
 export interface QueryTab {
   id: string;
   kind: "query";
+  group: GroupIndex;
   spec: QuerySpec;
   /** 最後に実行したときの spec（結果と対応） */
   ranSpec: QuerySpec | null;
@@ -82,7 +88,11 @@ interface State {
   activeConnectionId: string | null;
   rootCollections: RootCollections;
   tabs: Tab[];
-  activeTabId: string | null;
+  /** グループごとの選択中のタブ */
+  activeTabIds: [string | null, string | null];
+  /** 最後に操作したグループ。新しいタブはここに開く */
+  focusedGroup: GroupIndex;
+  split: SplitMode;
   selectedDocPath: string | null;
   detailOpen: boolean;
   appearance: Appearance;
@@ -101,6 +111,10 @@ interface State {
   loadPage(tabId: string, reset: boolean): Promise<void>;
   setActiveTab(id: string): void;
   closeTab(id: string): void;
+  focusGroup(group: GroupIndex): void;
+  setSplit(mode: SplitMode): void;
+  /** タブをもう一方のグループへ移す（分割していなければ左右に分割する） */
+  moveTabToOtherGroup(id: string): void;
   setView(tabId: string, view: Tab["view"]): void;
 
   openQuery(spec?: QuerySpec): void;
@@ -119,6 +133,24 @@ export function activeConnection(s: Pick<State, "connections" | "activeConnectio
   return s.connections.find((c) => c.id === s.activeConnectionId) ?? null;
 }
 
+/** フォーカス中のグループで選択されているタブ */
+export function focusedTab(s: Pick<State, "tabs" | "activeTabIds" | "focusedGroup">): Tab | null {
+  const id = s.activeTabIds[s.focusedGroup];
+  return s.tabs.find((t) => t.id === id) ?? null;
+}
+
+const otherGroup = (g: GroupIndex): GroupIndex => (g === 0 ? 1 : 0);
+
+function withActive(
+  ids: [string | null, string | null],
+  group: GroupIndex,
+  id: string | null,
+): [string | null, string | null] {
+  const next: [string | null, string | null] = [ids[0], ids[1]];
+  next[group] = id;
+  return next;
+}
+
 const emptyRoot: RootCollections = { ids: null, loading: false, error: null };
 
 export const useStore = create<State>((set, get) => {
@@ -132,7 +164,20 @@ export const useStore = create<State>((set, get) => {
 
   /** 接続を切り替えたら閲覧状態をすべて捨てる */
   const resetBrowsing = () =>
-    set({ rootCollections: emptyRoot, tabs: [], activeTabId: null, selectedDocPath: null });
+    set({
+      rootCollections: emptyRoot,
+      tabs: [],
+      activeTabIds: [null, null],
+      focusedGroup: 0,
+      selectedDocPath: null,
+    });
+
+  /** フォーカス中のグループにタブを追加して選択する */
+  const addTab = (tab: Tab) =>
+    set((s) => ({
+      tabs: [...s.tabs, { ...tab, group: s.focusedGroup }],
+      activeTabIds: withActive(s.activeTabIds, s.focusedGroup, tab.id),
+    }));
 
   return {
     ready: false,
@@ -140,7 +185,9 @@ export const useStore = create<State>((set, get) => {
     activeConnectionId: null,
     rootCollections: emptyRoot,
     tabs: [],
-    activeTabId: null,
+    activeTabIds: [null, null],
+    focusedGroup: 0,
+    split: "none",
     selectedDocPath: null,
     detailOpen: true,
     appearance: DEFAULT_APPEARANCE,
@@ -220,11 +267,13 @@ export const useStore = create<State>((set, get) => {
     },
 
     openCollection(path, opts) {
-      const { tabs, activeTabId } = get();
+      const { tabs } = get();
       // クエリタブは上書きせず、閲覧タブのときだけ現在のタブを再利用する
-      const current = tabs.find((t) => t.id === activeTabId && t.kind === "browse");
+      const focused = focusedTab(get());
+      const current = focused?.kind === "browse" ? focused : null;
       const base: Omit<BrowseTab, "id"> = {
         kind: "browse",
+        group: get().focusedGroup,
         collectionPath: path,
         docs: [],
         nextPageToken: null,
@@ -239,9 +288,8 @@ export const useStore = create<State>((set, get) => {
         set({ tabs: tabs.map((t) => (t.id === id ? { ...base, id, requestSeq: t.requestSeq } : t)) });
       } else {
         id = newTabId();
-        set({ tabs: [...tabs, { ...base, id }], activeTabId: id });
+        addTab({ ...base, id });
       }
-      set({ activeTabId: id });
       void get().loadPage(id, true);
     },
 
@@ -278,17 +326,72 @@ export const useStore = create<State>((set, get) => {
     },
 
     setActiveTab(id) {
-      set({ activeTabId: id });
+      const tab = get().tabs.find((t) => t.id === id);
+      if (!tab) return;
+      set((s) => ({ focusedGroup: tab.group, activeTabIds: withActive(s.activeTabIds, tab.group, id) }));
     },
 
     closeTab(id) {
-      const { tabs, activeTabId } = get();
-      const idx = tabs.findIndex((t) => t.id === id);
-      const rest = tabs.filter((t) => t.id !== id);
+      const { tabs, activeTabIds } = get();
+      const tab = tabs.find((t) => t.id === id);
+      if (!tab) return;
+      const sameGroup = tabs.filter((t) => t.group === tab.group);
+      const idx = sameGroup.findIndex((t) => t.id === id);
+      const rest = sameGroup.filter((t) => t.id !== id);
+      const nextActive =
+        activeTabIds[tab.group] === id
+          ? (rest[Math.min(idx, rest.length - 1)]?.id ?? null)
+          : activeTabIds[tab.group];
       set({
-        tabs: rest,
-        activeTabId:
-          activeTabId === id ? (rest[Math.min(idx, rest.length - 1)]?.id ?? null) : activeTabId,
+        tabs: tabs.filter((t) => t.id !== id),
+        activeTabIds: withActive(activeTabIds, tab.group, nextActive),
+      });
+    },
+
+    focusGroup(group) {
+      if (get().focusedGroup !== group) set({ focusedGroup: group });
+    },
+
+    setSplit(mode) {
+      const s = get();
+      if (mode === "none") {
+        // 右（下）のタブは左（上）へ戻す
+        const moved = s.tabs.map((t) => (t.group === 1 ? { ...t, group: 0 as const } : t));
+        set({
+          split: "none",
+          tabs: moved,
+          focusedGroup: 0,
+          activeTabIds: [s.activeTabIds[s.focusedGroup] ?? s.activeTabIds[0] ?? s.activeTabIds[1], null],
+        });
+        return;
+      }
+      set({ split: mode });
+      if (s.split !== "none") return;
+      // 分割を始めたとき、もう一方が空なら表示中のタブを複製して並べる
+      const source = focusedTab(s);
+      if (!source || s.tabs.some((t) => t.group === 1)) return;
+      const clone: Tab = { ...source, id: newTabId(), group: 1, loading: false, requestSeq: 0 };
+      set((st) => ({
+        tabs: [...st.tabs, clone],
+        activeTabIds: withActive(st.activeTabIds, 1, clone.id),
+        focusedGroup: 1,
+      }));
+      if (source.loading && clone.kind === "browse") void get().loadPage(clone.id, true);
+    },
+
+    moveTabToOtherGroup(id) {
+      const tab = get().tabs.find((t) => t.id === id);
+      if (!tab) return;
+      if (get().split === "none") set({ split: "horizontal" });
+      const to = otherGroup(tab.group);
+      const { tabs, activeTabIds } = get();
+      const fromRest = tabs.filter((t) => t.group === tab.group && t.id !== id);
+      let ids = withActive(activeTabIds, to, id);
+      if (activeTabIds[tab.group] === id) ids = withActive(ids, tab.group, fromRest[fromRest.length - 1]?.id ?? null);
+      set({
+        tabs: tabs.map((t) => (t.id === id ? { ...t, group: to } : t)),
+        activeTabIds: ids,
+        focusedGroup: to,
       });
     },
 
@@ -301,6 +404,7 @@ export const useStore = create<State>((set, get) => {
       const tab: QueryTab = {
         id,
         kind: "query",
+        group: get().focusedGroup,
         spec: spec ?? emptyQuerySpec(),
         ranSpec: null,
         docs: [],
@@ -311,7 +415,7 @@ export const useStore = create<State>((set, get) => {
         view: "table",
         requestSeq: 0,
       };
-      set((s) => ({ tabs: [...s.tabs, tab], activeTabId: id }));
+      addTab(tab);
     },
 
     patchQuerySpec(tabId, patch) {

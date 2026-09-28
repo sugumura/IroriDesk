@@ -72,7 +72,7 @@ export function ExportMenu({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="xs" disabled={busy || count === 0} title="読み込み済みの結果を保存">
             {busy ? <Loader2 className="animate-spin" /> : <Download />}
-            エクスポート
+            <span className="hidden @md:inline">エクスポート</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
