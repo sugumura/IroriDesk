@@ -59,24 +59,29 @@ function quote(text: string, delimiter: string): string {
 }
 
 /**
- * CSV / TSV。列はテーブル表示と同じ（__id、__path、トップレベルのフィールド名の和集合）
+ * CSV / TSV。列は __id、__path と、fields（テーブルの列設定。省略時はフィールド名の和集合）
  */
-export function toDelimited(docs: DisplayDocument[], delimiter: "," | "\t"): string {
+export function toDelimited(
+  docs: DisplayDocument[],
+  delimiter: "," | "\t",
+  fields?: string[],
+): string {
   const rows = exportable(docs);
-  const fields = unionFieldNames(rows);
+  fields ??= unionFieldNames(rows);
   const header = ["__id", "__path", ...fields.map(displayKey)];
   const lines = [header, ...rows.map((d) => [d.id, d.path, ...fields.map((f) => cellText(d.fields[f]))])];
   return BOM + lines.map((cols) => cols.map((c) => quote(c, delimiter)).join(delimiter)).join(EOL) + EOL;
 }
 
-export function exportContents(docs: DisplayDocument[], format: ExportFormat): string {
+/** fields は CSV/TSV の列（テーブルの列設定）。JSON は型情報を保つため常に全フィールド */
+export function exportContents(docs: DisplayDocument[], format: ExportFormat, fields?: string[]): string {
   switch (format) {
     case "json":
       return toJson(docs);
     case "csv":
-      return toDelimited(docs, ",");
+      return toDelimited(docs, ",", fields);
     case "tsv":
-      return toDelimited(docs, "\t");
+      return toDelimited(docs, "\t", fields);
   }
 }
 

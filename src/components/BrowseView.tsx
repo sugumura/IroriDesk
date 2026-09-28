@@ -4,6 +4,9 @@ import { splitPath } from "@/lib/display";
 import { type BrowseTab, emptyQuerySpec, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "./ErrorBox";
+import { columnScope } from "@/lib/columns";
+import { useColumnLayout } from "@/lib/useColumnLayout";
+import { ColumnSettings } from "./ColumnSettings";
 import { ExportMenu } from "./ExportMenu";
 import { ResultsView, ViewToggle } from "./ResultsView";
 
@@ -47,6 +50,10 @@ function Breadcrumb({ path }: { path: string }) {
 export function BrowseView({ tab }: { tab: BrowseTab }) {
   const loadPage = useStore((s) => s.loadPage);
   const openQuery = useStore((s) => s.openQuery);
+  const layout = useColumnLayout(
+    tab.docs,
+    columnScope({ kind: "collection", path: tab.collectionPath }),
+  );
   const missingCount = tab.docs.filter((d) => d.missing).length;
 
   return (
@@ -62,6 +69,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
         >
           <Search /> クエリ
         </Button>
+        {tab.view === "table" && <ColumnSettings layout={layout} />}
         <ViewToggle tab={tab} />
         <Button
           variant="ghost"
@@ -80,7 +88,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
         {tab.docs.length === 0 && !tab.loading && !tab.error ? (
           <div className="p-4 text-muted-foreground">ドキュメントはありません</div>
         ) : (
-          <ResultsView docs={tab.docs} view={tab.view} />
+          <ResultsView docs={tab.docs} fields={layout.visible} view={tab.view} />
         )}
       </div>
 
@@ -91,7 +99,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
         </span>
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
-        <ExportMenu docs={tab.docs} baseName={tab.collectionPath} />
+        <ExportMenu docs={tab.docs} fields={layout.visible} baseName={tab.collectionPath} />
         {tab.nextPageToken && (
           <Button size="xs" variant="outline" disabled={tab.loading} onClick={() => loadPage(tab.id, false)}>
             さらに読み込む

@@ -32,12 +32,20 @@ function JsonList({ docs }: { docs: DisplayDocument[] }) {
   );
 }
 
-/** 閲覧とクエリで共通の結果表示（テーブル / JSON） */
-export function ResultsView({ docs, view }: { docs: DisplayDocument[]; view: Tab["view"] }) {
+/** 閲覧とクエリで共通の結果表示（テーブル / JSON）。fields はテーブルに出す列 */
+export function ResultsView({
+  docs,
+  fields,
+  view,
+}: {
+  docs: DisplayDocument[];
+  fields: string[];
+  view: Tab["view"];
+}) {
   const selectedPath = useStore((s) => s.selectedDocPath);
   const select = useStore((s) => s.selectDocument);
   return view === "table" ? (
-    <DocumentTable docs={docs} selectedPath={selectedPath} onSelect={(d) => select(d.path)} />
+    <DocumentTable docs={docs} fields={fields} selectedPath={selectedPath} onSelect={(d) => select(d.path)} />
   ) : (
     <JsonList docs={docs} />
   );

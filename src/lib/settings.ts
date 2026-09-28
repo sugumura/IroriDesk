@@ -1,6 +1,7 @@
 import { load, type Store } from "@tauri-apps/plugin-store";
 import type { ConnectionConfig } from "./api";
 import { type Appearance, normalizeAppearance } from "./appearance";
+import type { ColumnConfig } from "./columns";
 
 const FILE = "settings.json";
 
@@ -51,6 +52,17 @@ export async function loadAppearance(): Promise<Appearance> {
 export async function saveAppearance(appearance: Appearance): Promise<void> {
   const s = await store();
   await s.set("appearance", appearance);
+}
+
+/** 接続×コレクションごとの列設定 */
+export async function loadColumnConfigs(): Promise<Record<string, ColumnConfig>> {
+  const s = await store();
+  return (await s.get<Record<string, ColumnConfig>>("columns")) ?? {};
+}
+
+export async function saveColumnConfigs(configs: Record<string, ColumnConfig>): Promise<void> {
+  const s = await store();
+  await s.set("columns", configs);
 }
 
 export async function saveSettings(settings: PersistedSettings): Promise<void> {

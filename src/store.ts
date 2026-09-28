@@ -10,7 +10,15 @@ import {
   toAppError,
 } from "@/lib/api";
 import { type Appearance, applyAppearance, DEFAULT_APPEARANCE } from "@/lib/appearance";
-import { loadAppearance, loadSettings, saveAppearance, saveSettings } from "@/lib/settings";
+import type { ColumnConfig } from "@/lib/columns";
+import {
+  loadAppearance,
+  loadColumnConfigs,
+  loadSettings,
+  saveAppearance,
+  saveColumnConfigs,
+  saveSettings,
+} from "@/lib/settings";
 
 export const PAGE_SIZE = 50;
 
@@ -78,9 +86,12 @@ interface State {
   selectedDocPath: string | null;
   detailOpen: boolean;
   appearance: Appearance;
+  columnConfigs: Record<string, ColumnConfig>;
 
   init(): Promise<void>;
   setAppearance(patch: Partial<Appearance>): void;
+  /** config が null なら設定を削除（既定に戻す） */
+  setColumnConfig(key: string, config: ColumnConfig | null): void;
   setActiveConnection(id: string | null): void;
   upsertConnection(conn: ConnectionConfig): void;
   deleteConnection(id: string): void;
@@ -133,11 +144,16 @@ export const useStore = create<State>((set, get) => {
     selectedDocPath: null,
     detailOpen: true,
     appearance: DEFAULT_APPEARANCE,
+    columnConfigs: {},
 
     async init() {
-      const [settings, appearance] = await Promise.all([loadSettings(), loadAppearance()]);
+      const [settings, appearance, columnConfigs] = await Promise.all([
+        loadSettings(),
+        loadAppearance(),
+        loadColumnConfigs(),
+      ]);
       applyAppearance(appearance);
-      set({ ...settings, appearance, ready: true });
+      set({ ...settings, appearance, columnConfigs, ready: true });
       if (activeConnection(get())) void get().loadRootCollections();
     },
 
@@ -146,6 +162,14 @@ export const useStore = create<State>((set, get) => {
       applyAppearance(appearance);
       set({ appearance });
       void saveAppearance(appearance);
+    },
+
+    setColumnConfig(key, config) {
+      const next = { ...get().columnConfigs };
+      if (config) next[key] = config;
+      else delete next[key];
+      set({ columnConfigs: next });
+      void saveColumnConfigs(next);
     },
 
     setActiveConnection(id) {

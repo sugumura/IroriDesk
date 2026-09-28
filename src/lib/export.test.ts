@@ -75,6 +75,14 @@ describe("toDelimited", () => {
     expect(bob.startsWith("bob\tusers/bob\tBob\t")).toBe(true);
   });
 
+  it("uses the configured columns in order", () => {
+    const csv = toDelimited(docs, ",", ["age", "name", "unknown"]).slice(1);
+    const [header, alice, bob] = csv.split("\r\n");
+    expect(header).toBe("__id,__path,age,name,unknown");
+    expect(alice).toBe('alice,users/alice,30,"Alice, ""A""",');
+    expect(bob).toBe("bob,users/bob,,Bob,");
+  });
+
   it("handles an empty result", () => {
     expect(toDelimited([], ",")).toBe("\uFEFF__id,__path\r\n");
   });

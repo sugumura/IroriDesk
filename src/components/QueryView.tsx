@@ -18,6 +18,9 @@ import { useDefaultLayout } from "react-resizable-panels";
 import { layoutStorage } from "@/lib/layoutStorage";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ErrorBox } from "./ErrorBox";
+import { columnScope } from "@/lib/columns";
+import { useColumnLayout } from "@/lib/useColumnLayout";
+import { ColumnSettings } from "./ColumnSettings";
 import { ExportMenu } from "./ExportMenu";
 import { FieldInput } from "./FieldInput";
 import { ResultsView, ViewToggle } from "./ResultsView";
@@ -343,6 +346,16 @@ export function QueryView({ tab }: { tab: QueryTab }) {
 }
 
 function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
+  // 列設定は実行したクエリの対象ごと（コレクションは閲覧タブと共通）
+  const target = tab.ranSpec ?? tab.spec;
+  const layout = useColumnLayout(
+    tab.docs,
+    columnScope(
+      target.targetKind === "collectionGroup"
+        ? { kind: "collectionGroup", id: target.target.trim() }
+        : { kind: "collection", path: target.target },
+    ),
+  );
   return (
     <div className="flex h-full min-h-0 flex-col">
       {tab.error && <ErrorBox error={tab.error} className="m-3" />}
@@ -353,7 +366,7 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
         ) : tab.docs.length === 0 ? (
           <div className="p-4 text-muted-foreground">該当するドキュメントはありません</div>
         ) : (
-          <ResultsView docs={tab.docs} view={tab.view} />
+          <ResultsView docs={tab.docs} fields={layout.visible} view={tab.view} />
         )}
       </div>
       <div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
@@ -364,9 +377,11 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
         {ran && (
           <ExportMenu
             docs={tab.docs}
+            fields={layout.visible}
             baseName={`query_${tab.ranSpec?.targetKind === "collectionGroup" ? "group_" : ""}${tab.ranSpec?.target ?? ""}`}
           />
         )}
+        {ran && tab.view === "table" && <ColumnSettings layout={layout} />}
         <ViewToggle tab={tab} />
       </div>
     </div>

@@ -19,7 +19,16 @@ const FORMAT_HINTS: Record<ExportFormat, string> = {
 };
 
 /** 表示中の結果（読み込み済みの分）を保存する */
-export function ExportMenu({ docs, baseName }: { docs: DisplayDocument[]; baseName: string }) {
+export function ExportMenu({
+  docs,
+  fields,
+  baseName,
+}: {
+  docs: DisplayDocument[];
+  /** CSV/TSV に出す列（テーブルの列設定） */
+  fields: string[];
+  baseName: string;
+}) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ ok: true; path: string } | { ok: false; error: AppError } | null>(null);
   const count = docs.filter((d) => !d.missing).length;
@@ -33,7 +42,7 @@ export function ExportMenu({ docs, baseName }: { docs: DisplayDocument[]; baseNa
         defaultFileName(baseName, format),
         f.filterName,
         f.extension,
-        exportContents(docs, format),
+        exportContents(docs, format, fields),
       );
       if (path) {
         setStatus({ ok: true, path });

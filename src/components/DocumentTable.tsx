@@ -7,29 +7,31 @@ import {
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { DisplayDocument } from "@/lib/api";
-import { displayKey, unionFieldNames } from "@/lib/display";
+import { displayKey } from "@/lib/display";
 import { cn } from "@/lib/utils";
 import { ValueView } from "./ValueView";
 
 const ROW_HEIGHT = 28;
 
+const ID_COLUMN = "__id";
+
 export function DocumentTable({
   docs,
+  fields: fieldNames,
   selectedPath,
   onSelect,
 }: {
   docs: DisplayDocument[];
+  /** 表示するフィールド（列設定を反映済み）。先頭には常に Doc ID 列を固定表示する */
+  fields: string[];
   selectedPath: string | null;
   onSelect: (doc: DisplayDocument) => void;
 }) {
-  // 先頭は ID、以降はトップレベルのフィールド名の和集合（CSV エクスポートと同じ列構成）
-  const fieldNames = useMemo(() => unionFieldNames(docs), [docs]);
-
   const columns = useMemo<ColumnDef<DisplayDocument>[]>(
     () => [
       {
-        id: "__id",
-        header: "ID",
+        id: ID_COLUMN,
+        header: "Doc ID",
         size: 200,
         cell: ({ row }) => (
           <span className={cn("font-mono", row.original.missing && "text-muted-foreground italic")}>
@@ -70,11 +72,15 @@ export function DocumentTable({
   return (
     <div ref={scrollRef} className="h-full overflow-auto">
       <div style={{ width: totalWidth, minWidth: "100%" }}>
-        <div className="sticky top-0 z-10 flex border-b bg-muted/80 backdrop-blur">
+        <div className="sticky top-0 z-20 flex border-b bg-muted">
           {table.getHeaderGroups()[0].headers.map((h) => (
             <div
               key={h.id}
-              className="relative flex h-7 shrink-0 items-center truncate border-r px-2 text-xs font-medium"
+              className={cn(
+                "relative flex h-7 shrink-0 items-center truncate border-r px-2 text-xs font-medium",
+                // Doc ID 列は横スクロールしても左端に固定する
+                h.id === ID_COLUMN && "sticky left-0 z-10 bg-muted shadow-[1px_0_0_var(--border)]",
+              )}
               style={{ width: h.getSize() }}
               title={typeof h.column.columnDef.header === "string" ? h.column.columnDef.header : undefined}
             >
@@ -98,7 +104,7 @@ export function DocumentTable({
               <div
                 key={row.id}
                 className={cn(
-                  "absolute left-0 flex w-full cursor-pointer border-b hover:bg-muted/60",
+                  "group/row absolute left-0 flex w-full cursor-pointer border-b bg-background hover:bg-muted",
                   selected && "bg-accent hover:bg-accent",
                 )}
                 style={{ top: vr.start, height: ROW_HEIGHT }}
@@ -108,7 +114,15 @@ export function DocumentTable({
                 {row.getVisibleCells().map((cell) => (
                   <div
                     key={cell.id}
-                    className="flex shrink-0 items-center truncate border-r px-2 font-mono text-xs"
+                    className={cn(
+                      "flex shrink-0 items-center truncate border-r px-2 font-mono text-xs",
+                      // 固定列は下の列が透けないよう行と同じ不透明な背景にする
+                      cell.column.id === ID_COLUMN &&
+                        cn(
+                          "sticky left-0 z-[1] bg-background shadow-[1px_0_0_var(--border)] group-hover/row:bg-muted",
+                          selected && "bg-accent group-hover/row:bg-accent",
+                        ),
+                    )}
                     style={{ width: cell.column.getSize() }}
                   >
                     <span className="truncate">
