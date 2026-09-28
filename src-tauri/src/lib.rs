@@ -98,9 +98,34 @@ async fn lookup_auth_users(
     state.auth_client(&connection)?.lookup(kind, &value).await
 }
 
+/// 旧名（Firestore Viewer）の識別子で保存された設定を、初回起動時に引き継ぐ
+fn migrate_legacy_settings(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    const LEGACY_IDENTIFIER: &str = "dev.sugumura.firestore-viewer";
+    const SETTINGS_FILE: &str = "settings.json";
+    let Ok(dir) = app.path().app_data_dir() else {
+        return;
+    };
+    let target = dir.join(SETTINGS_FILE);
+    let Some(legacy) = dir.parent().map(|p| p.join(LEGACY_IDENTIFIER).join(SETTINGS_FILE)) else {
+        return;
+    };
+    if target.exists() || !legacy.exists() {
+        return;
+    }
+    // 失敗しても起動は続ける（既定の設定で動く）
+    if std::fs::create_dir_all(&dir).is_ok() {
+        let _ = std::fs::copy(&legacy, &target);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            migrate_legacy_settings(app.handle());
+            Ok(())
+        })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())

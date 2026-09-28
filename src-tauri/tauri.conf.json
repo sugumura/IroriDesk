@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Firestore Viewer",
+  "productName": "Irori Desk",
   "version": "0.1.0",
-  "identifier": "dev.sugumura.firestore-viewer",
+  "identifier": "dev.sugumura.iroridesk",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Firestore Viewer",
+        "title": "Irori Desk",
         "width": 1280,
         "height": 800
       }
