@@ -1,8 +1,24 @@
-// Firestore Emulator にテストデータを投入する（アプリ本体は書き込みを行わない）
-// 使い方: pnpm seed   （Emulator を起動しておくこと）
+// Firestore にテストデータを投入する（アプリ本体は書き込みを行わない）
+//
+// Emulator:  pnpm seed                       （Emulator を起動しておくこと）
+// 本番:      pnpm seed --project <projectId> [--database <dbId>] [--quota-project <id>]
+//            ADC（gcloud auth application-default login）の認証で書き込む。
+//            既存のドキュメントは上書きしない（同じパスがあれば全体が失敗する）
+import { execFileSync } from "node:child_process";
+import { parseArgs } from "node:util";
+
+const { values: args } = parseArgs({
+  options: {
+    project: { type: "string" },
+    database: { type: "string", default: "(default)" },
+    "quota-project": { type: "string" },
+  },
+});
+
+const PROD = args.project !== undefined;
 const HOST = process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080";
-const PROJECT = process.env.PROJECT_ID ?? "demo-firestore-viewer";
-const DB = `projects/${PROJECT}/databases/(default)`;
+const PROJECT = args.project ?? process.env.PROJECT_ID ?? "demo-firestore-viewer";
+const DB = `projects/${PROJECT}/databases/${PROD ? args.database : "(default)"}`;
 const DOCS = `${DB}/documents`;
 
 const v = {
@@ -75,15 +91,40 @@ for (let i = 0; i < 120; i++) {
 
 const writes = Object.entries(docs).map(([path, fields]) => ({
   update: { name: `${DOCS}/${path}`, fields },
+  // 本番では既存データを壊さないよう、存在しない場合のみ作成する
+  ...(PROD ? { currentDocument: { exists: false } } : {}),
 }));
 
-const res = await fetch(`http://${HOST}/v1/${DB}/documents:commit`, {
+function adcToken() {
+  try {
+    return execFileSync("gcloud", ["auth", "application-default", "print-access-token"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch {
+    console.error("ADC のアクセストークンを取得できません。gcloud auth application-default login を実行してください。");
+    process.exit(1);
+  }
+}
+
+const baseUrl = PROD ? "https://firestore.googleapis.com" : `http://${HOST}`;
+const headers = {
+  Authorization: `Bearer ${PROD ? adcToken() : "owner"}`,
+  "Content-Type": "application/json",
+  ...(args["quota-project"] ? { "x-goog-user-project": args["quota-project"] } : {}),
+};
+
+const res = await fetch(`${baseUrl}/v1/${DB}/documents:commit`, {
   method: "POST",
-  headers: { Authorization: "Bearer owner", "Content-Type": "application/json" },
+  headers,
   body: JSON.stringify({ writes }),
 });
 if (!res.ok) {
-  console.error(res.status, await res.text());
+  const text = await res.text();
+  console.error(res.status, text);
+  if (PROD && text.includes("ALREADY_EXISTS")) {
+    console.error("テストデータのパスにドキュメントがすでにあります。上書きはしません（全件未書き込み）。");
+  }
   process.exit(1);
 }
-console.log(`seeded ${writes.length} documents into ${PROJECT} @ ${HOST}`);
+console.log(`seeded ${writes.length} documents into ${DB} @ ${PROD ? "production" : HOST}`);
