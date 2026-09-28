@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # 署名・公証付きの macOS 版（Apple Silicon + Intel の Universal）をビルドする
 # 使い方: ./scripts/release-mac.sh   （事前に .env.signing を用意する。.env.signing.example を参照）
+#         BUNDLES=app ./scripts/release-mac.sh   （.dmg を作らない。Finder を操作できない環境向け）
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -43,14 +44,18 @@ for t in aarch64-apple-darwin x86_64-apple-darwin; do
 done
 
 # Tauri が署名 → 公証 → チケットの添付まで行う
-pnpm tauri build --target universal-apple-darwin --bundles app,dmg
+BUNDLES="${BUNDLES:-app,dmg}"
+pnpm tauri build --target universal-apple-darwin --bundles "$BUNDLES"
 
 BUNDLE=src-tauri/target/universal-apple-darwin/release/bundle
 APP="$BUNDLE/macos/Irori Desk.app"
-DMG=$(ls "$BUNDLE"/dmg/*.dmg | head -n 1)
 
 echo "--- 確認"
 codesign --verify --deep --strict --verbose=2 "$APP"
 spctl --assess --type execute --verbose=2 "$APP"
 xcrun stapler validate "$APP"
-echo "配布用: $DMG"
+if DMG=$(ls "$BUNDLE"/dmg/*.dmg 2>/dev/null | head -n 1) && [[ -n "$DMG" ]]; then
+  echo "配布用: $DMG"
+else
+  echo "配布用: $APP（.dmg は作っていません）"
+fi
