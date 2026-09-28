@@ -160,7 +160,7 @@ fn parse_error_body(text: String) -> (String, String) {
 }
 
 /// 非2xxレスポンスを AppError に変換する
-async fn check_status(res: Response) -> AppResult<Response> {
+pub(crate) async fn check_status(res: Response) -> AppResult<Response> {
     let http_status = res.status();
     if http_status.is_success() {
         return Ok(res);
@@ -332,6 +332,7 @@ mod tests {
             read_only: true,
             kind,
             emulator_host: None,
+            auth_emulator_host: None,
         };
         RestClient::from_connection(&conn, reqwest::Client::new(), Arc::default()).unwrap()
     }
@@ -392,6 +393,7 @@ mod emulator_tests {
             emulator_host: Some(
                 std::env::var("FIRESTORE_EMULATOR_HOST").unwrap_or("127.0.0.1:8080".into()),
             ),
+            auth_emulator_host: None,
         };
         RestClient::from_connection(&conn, build_http_client(), Arc::default()).unwrap()
     }

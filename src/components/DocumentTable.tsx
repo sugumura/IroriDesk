@@ -20,8 +20,11 @@ export function DocumentTable({
   fields: fieldNames,
   selectedPath,
   onSelect,
+  idLabel = "Doc ID",
 }: {
   docs: DisplayDocument[];
+  /** 固定列の見出し（Authentication では UID） */
+  idLabel?: string;
   /** 表示するフィールド（列設定を反映済み）。先頭には常に Doc ID 列を固定表示する */
   fields: string[];
   selectedPath: string | null;
@@ -31,7 +34,7 @@ export function DocumentTable({
     () => [
       {
         id: ID_COLUMN,
-        header: "Doc ID",
+        header: idLabel,
         size: 200,
         cell: ({ row }) => (
           <span className={cn("font-mono", row.original.missing && "text-muted-foreground italic")}>
@@ -47,7 +50,7 @@ export function DocumentTable({
           key in row.original.fields ? <ValueView value={row.original.fields[key]} /> : null,
       })),
     ],
-    [fieldNames],
+    [fieldNames, idLabel],
   );
 
   const table = useReactTable({

@@ -8,6 +8,7 @@ import {
   Search,
   SquareSplitHorizontal,
   Table2,
+  Users,
   X,
 } from "lucide-react";
 import { layoutStorage } from "@/lib/layoutStorage";
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { BrowseView } from "./BrowseView";
+import { AuthView } from "./AuthView";
 import { QueryView } from "./QueryView";
 
 function SplitMenu() {
@@ -103,7 +105,13 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
             onAuxClick={(e) => e.button === 1 && close(t.id)}
             title={tabTitle(t)}
           >
-            {t.kind === "browse" ? <Table2 className="size-3.5 shrink-0" /> : <Search className="size-3.5 shrink-0" />}
+            {t.kind === "browse" ? (
+              <Table2 className="size-3.5 shrink-0" />
+            ) : t.kind === "auth" ? (
+              <Users className="size-3.5 shrink-0" />
+            ) : (
+              <Search className="size-3.5 shrink-0" />
+            )}
             <span className="truncate font-mono">{tabTitle(t)}</span>
             <button
               type="button"
@@ -150,6 +158,8 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
           <BrowseView tab={active} />
         ) : active?.kind === "query" ? (
           <QueryView key={active.id} tab={active} />
+        ) : active?.kind === "auth" ? (
+          <AuthView key={active.id} tab={active} />
         ) : (
           <div className="flex h-full items-center justify-center p-4 text-center text-muted-foreground">
             左のコレクションを選択するか、「+ クエリ」でクエリタブを開いてください

@@ -3,7 +3,7 @@ import { useDefaultLayout } from "react-resizable-panels";
 import { useStore } from "./store";
 import { layoutStorage } from "./lib/layoutStorage";
 import { CollectionTree } from "./components/CollectionTree";
-import { DocumentDetail } from "./components/DocumentDetail";
+import { DetailPane } from "./components/DetailPane";
 import { TabsArea } from "./components/TabsArea";
 import { TopBar } from "./components/TopBar";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -40,7 +40,7 @@ function MainPanes({ treeOpen, detailOpen }: { treeOpen: boolean; detailOpen: bo
         <>
           <ResizableHandle />
           <ResizablePanel id="detail" defaultSize={420} minSize={260} maxSize="60">
-            <DocumentDetail />
+            <DetailPane />
           </ResizablePanel>
         </>
       )}

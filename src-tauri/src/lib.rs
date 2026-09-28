@@ -2,6 +2,7 @@ mod auth;
 mod connection;
 mod error;
 mod export;
+mod firebase_auth;
 mod firestore;
 
 use std::sync::Arc;
@@ -9,6 +10,7 @@ use std::sync::Arc;
 use auth::AdcTokenSource;
 use connection::ConnectionConfig;
 use error::AppResult;
+use firebase_auth::{AuthClient, DisplayUser, LookupKind, UserPage};
 use firestore::document::{DisplayDocument, DocumentPage, QueryResult};
 use firestore::query::QuerySpec;
 use firestore::{FirestoreApi, RestClient};
@@ -21,6 +23,10 @@ struct AppState {
 impl AppState {
     fn client(&self, conn: &ConnectionConfig) -> AppResult<RestClient> {
         RestClient::from_connection(conn, self.http.clone(), self.adc.clone())
+    }
+
+    fn auth_client(&self, conn: &ConnectionConfig) -> AppResult<AuthClient> {
+        AuthClient::from_connection(conn, self.http.clone(), self.adc.clone())
     }
 }
 
@@ -69,6 +75,29 @@ async fn run_query(
     state.client(&connection)?.run_query(&spec).await
 }
 
+#[tauri::command]
+async fn list_auth_users(
+    state: tauri::State<'_, AppState>,
+    connection: ConnectionConfig,
+    page_size: u32,
+    page_token: Option<String>,
+) -> AppResult<UserPage> {
+    state
+        .auth_client(&connection)?
+        .list_users(page_size, page_token.as_deref())
+        .await
+}
+
+#[tauri::command]
+async fn lookup_auth_users(
+    state: tauri::State<'_, AppState>,
+    connection: ConnectionConfig,
+    kind: LookupKind,
+    value: String,
+) -> AppResult<Vec<DisplayUser>> {
+    state.auth_client(&connection)?.lookup(kind, &value).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -84,7 +113,9 @@ pub fn run() {
             get_document,
             list_documents,
             run_query,
-            export::save_text_file
+            export::save_text_file,
+            list_auth_users,
+            lookup_auth_users
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

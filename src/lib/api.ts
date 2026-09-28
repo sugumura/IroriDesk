@@ -11,6 +11,8 @@ export interface ConnectionConfig {
   readOnly: boolean;
   kind: ConnectionKind;
   emulatorHost?: string;
+  /** Firebase Auth Emulator のホスト（Emulator 接続のみ） */
+  authEmulatorHost?: string;
 }
 
 /** Rust 側 AppError のシリアライズ形式 */
@@ -135,4 +137,45 @@ export function saveTextFile(
   contents: string,
 ): Promise<string | null> {
   return invoke("save_text_file", { defaultName, filterName, extension, contents });
+}
+
+/** Firebase Authentication のユーザー（パスワードのハッシュ等は Rust 側で除去済み） */
+export interface DisplayUser {
+  uid: string;
+  email: string | null;
+  emailVerified: boolean;
+  displayName: string | null;
+  phoneNumber: string | null;
+  photoUrl: string | null;
+  disabled: boolean;
+  providers: string[];
+  createdAt: string | null;
+  lastLoginAt: string | null;
+  lastRefreshAt: string | null;
+  customClaims: unknown;
+  tenantId: string | null;
+  raw: Record<string, unknown>;
+}
+
+export interface UserPage {
+  users: DisplayUser[];
+  nextPageToken: string | null;
+}
+
+export type UserLookupKind = "uid" | "email" | "phone";
+
+export function listAuthUsers(
+  connection: ConnectionConfig,
+  pageSize: number,
+  pageToken?: string | null,
+): Promise<UserPage> {
+  return invoke("list_auth_users", { connection, pageSize, pageToken });
+}
+
+export function lookupAuthUsers(
+  connection: ConnectionConfig,
+  kind: UserLookupKind,
+  value: string,
+): Promise<DisplayUser[]> {
+  return invoke("lookup_auth_users", { connection, kind, value });
 }

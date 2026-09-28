@@ -32,20 +32,35 @@ function JsonList({ docs }: { docs: DisplayDocument[] }) {
   );
 }
 
-/** 閲覧とクエリで共通の結果表示（テーブル / JSON）。fields はテーブルに出す列 */
+/**
+ * 閲覧・クエリ・Authentication で共通の結果表示（テーブル / JSON）。fields はテーブルに出す列。
+ * 行の選択は既定でドキュメントを詳細ペインに表示する
+ */
 export function ResultsView({
   docs,
   fields,
   view,
+  selectedPath: selectedOverride,
+  onSelect,
+  idLabel,
 }: {
   docs: DisplayDocument[];
   fields: string[];
   view: Tab["view"];
+  selectedPath?: string | null;
+  onSelect?: (doc: DisplayDocument) => void;
+  idLabel?: string;
 }) {
-  const selectedPath = useStore((s) => s.selectedDocPath);
+  const selectedDoc = useStore((s) => s.selectedDocPath);
   const select = useStore((s) => s.selectDocument);
   return view === "table" ? (
-    <DocumentTable docs={docs} fields={fields} selectedPath={selectedPath} onSelect={(d) => select(d.path)} />
+    <DocumentTable
+      docs={docs}
+      fields={fields}
+      selectedPath={selectedOverride !== undefined ? selectedOverride : selectedDoc}
+      onSelect={onSelect ?? ((d) => select(d.path))}
+      idLabel={idLabel}
+    />
   ) : (
     <JsonList docs={docs} />
   );

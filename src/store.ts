@@ -3,8 +3,12 @@ import {
   type AppError,
   type ConnectionConfig,
   type DisplayDocument,
+  type DisplayUser,
+  listAuthUsers,
   listCollectionIds,
   listDocuments,
+  lookupAuthUsers,
+  type UserLookupKind,
   type QuerySpec,
   runQuery,
   toAppError,
@@ -56,7 +60,24 @@ export interface QueryTab {
   requestSeq: number;
 }
 
-export type Tab = BrowseTab | QueryTab;
+/** Firebase Authentication のユーザー一覧 */
+export interface AuthTab {
+  id: string;
+  kind: "auth";
+  group: GroupIndex;
+  users: DisplayUser[];
+  nextPageToken: string | null;
+  /** 検索中なら条件（結果は users に入り、ページングはしない） */
+  search: { kind: UserLookupKind; value: string } | null;
+  loading: boolean;
+  error: AppError | null;
+  view: "table" | "json";
+  requestSeq: number;
+}
+
+export type Tab = BrowseTab | QueryTab | AuthTab;
+
+export const USER_PAGE_SIZE = 100;
 
 export const DEFAULT_QUERY_LIMIT = 100;
 
@@ -72,6 +93,7 @@ export function emptyQuerySpec(collectionPath = ""): QuerySpec {
 
 export function tabTitle(t: Tab): string {
   if (t.kind === "browse") return t.collectionPath;
+  if (t.kind === "auth") return "Authentication";
   const target = t.spec.target || "(未指定)";
   return t.spec.targetKind === "collectionGroup" ? `クエリ: group(${target})` : `クエリ: ${target}`;
 }
@@ -94,6 +116,8 @@ interface State {
   focusedGroup: GroupIndex;
   split: SplitMode;
   selectedDocPath: string | null;
+  /** 詳細ペインに表示中のユーザー（ドキュメントの選択とは排他） */
+  selectedUser: DisplayUser | null;
   detailOpen: boolean;
   treeOpen: boolean;
   appearance: Appearance;
@@ -124,6 +148,12 @@ interface State {
   executeQuery(tabId: string): Promise<void>;
 
   selectDocument(path: string | null): void;
+  selectUser(user: DisplayUser | null): void;
+
+  /** フォーカス中のグループに Authentication タブを開く（既にあれば選択する） */
+  openAuth(): void;
+  loadUsers(tabId: string, reset: boolean): Promise<void>;
+  searchUsers(tabId: string, kind: UserLookupKind, value: string): Promise<void>;
   setDetailOpen(open: boolean): void;
   setTreeOpen(open: boolean): void;
 }
@@ -172,6 +202,7 @@ export const useStore = create<State>((set, get) => {
       activeTabIds: [null, null],
       focusedGroup: 0,
       selectedDocPath: null,
+      selectedUser: null,
     });
 
   /** フォーカス中のグループにタブを追加して選択する */
@@ -191,6 +222,7 @@ export const useStore = create<State>((set, get) => {
     focusedGroup: 0,
     split: "none",
     selectedDocPath: null,
+    selectedUser: null,
     detailOpen: true,
     treeOpen: true,
     appearance: DEFAULT_APPEARANCE,
@@ -316,7 +348,8 @@ export const useStore = create<State>((set, get) => {
           reset ? null : tab.nextPageToken,
         );
         if (!isCurrent()) return;
-        const prev = reset ? [] : (get().tabs.find((t) => t.id === tabId)?.docs ?? []);
+        const latest = get().tabs.find((t) => t.id === tabId);
+        const prev = reset || latest?.kind !== "browse" ? [] : latest.docs;
         updateTab<BrowseTab>(tabId, {
           docs: [...prev, ...page.documents],
           nextPageToken: page.nextPageToken,
@@ -453,7 +486,86 @@ export const useStore = create<State>((set, get) => {
     },
 
     selectDocument(path) {
-      set({ selectedDocPath: path, ...(path ? { detailOpen: true } : {}) });
+      set({ selectedDocPath: path, selectedUser: null, ...(path ? { detailOpen: true } : {}) });
+    },
+
+    selectUser(user) {
+      set({ selectedUser: user, selectedDocPath: null, ...(user ? { detailOpen: true } : {}) });
+    },
+
+    openAuth() {
+      const { tabs, focusedGroup } = get();
+      const existing = tabs.find((t) => t.kind === "auth" && t.group === focusedGroup);
+      if (existing) {
+        get().setActiveTab(existing.id);
+        return;
+      }
+      const id = newTabId();
+      addTab({
+        id,
+        kind: "auth",
+        group: focusedGroup,
+        users: [],
+        nextPageToken: null,
+        search: null,
+        loading: false,
+        error: null,
+        view: "table",
+        requestSeq: 0,
+      });
+      void get().loadUsers(id, true);
+    },
+
+    async loadUsers(tabId, reset) {
+      const conn = activeConnection(get());
+      const tab = get().tabs.find((t) => t.id === tabId);
+      if (!conn || tab?.kind !== "auth") return;
+      const seq = tab.requestSeq + 1;
+      updateTab<AuthTab>(tabId, {
+        loading: true,
+        error: null,
+        requestSeq: seq,
+        ...(reset ? { users: [], nextPageToken: null, search: null } : {}),
+      });
+      const isCurrent = () => get().tabs.find((t) => t.id === tabId)?.requestSeq === seq;
+      try {
+        const page = await listAuthUsers(conn, USER_PAGE_SIZE, reset ? null : tab.nextPageToken);
+        if (!isCurrent()) return;
+        const latest = get().tabs.find((t) => t.id === tabId);
+        const prev = reset || latest?.kind !== "auth" ? [] : latest.users;
+        updateTab<AuthTab>(tabId, {
+          users: [...prev, ...page.users],
+          nextPageToken: page.nextPageToken,
+          loading: false,
+        });
+      } catch (e) {
+        if (!isCurrent()) return;
+        updateTab<AuthTab>(tabId, { loading: false, error: toAppError(e) });
+      }
+    },
+
+    async searchUsers(tabId, kind, value) {
+      const conn = activeConnection(get());
+      const tab = get().tabs.find((t) => t.id === tabId);
+      if (!conn || tab?.kind !== "auth") return;
+      const seq = tab.requestSeq + 1;
+      updateTab<AuthTab>(tabId, {
+        loading: true,
+        error: null,
+        requestSeq: seq,
+        search: { kind, value },
+        users: [],
+        nextPageToken: null,
+      });
+      const isCurrent = () => get().tabs.find((t) => t.id === tabId)?.requestSeq === seq;
+      try {
+        const users = await lookupAuthUsers(conn, kind, value);
+        if (!isCurrent()) return;
+        updateTab<AuthTab>(tabId, { users, loading: false });
+      } catch (e) {
+        if (!isCurrent()) return;
+        updateTab<AuthTab>(tabId, { loading: false, error: toAppError(e) });
+      }
     },
 
     setDetailOpen(open) {

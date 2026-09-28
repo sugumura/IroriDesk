@@ -29,6 +29,7 @@ export const DEFAULT_EMULATOR_CONNECTION: ConnectionConfig = {
   readOnly: true,
   kind: "emulator",
   emulatorHost: "127.0.0.1:8080",
+  authEmulatorHost: "127.0.0.1:9099",
 };
 
 export async function loadSettings(): Promise<PersistedSettings> {

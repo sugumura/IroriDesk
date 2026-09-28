@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Folder, Loader2, RefreshCw, X } from "lucide-react";
+import { Folder, Loader2, RefreshCw, Users, X } from "lucide-react";
 import { isCollectionPath, splitPath } from "@/lib/display";
 import { cn } from "@/lib/utils";
 import { focusedTab, useStore } from "@/store";
@@ -38,11 +38,14 @@ export function CollectionTree() {
   const reload = useStore((s) => s.loadRootCollections);
   const openCollection = useStore((s) => s.openCollection);
   const setTreeOpen = useStore((s) => s.setTreeOpen);
+  const openAuth = useStore((s) => s.openAuth);
+  const authActive = useStore((s) => focusedTab(s)?.kind === "auth");
   const activePath = useStore((s) => {
     const tab = focusedTab(s);
     return tab?.kind === "browse" ? tab.collectionPath : null;
   });
   const activeRoot = activePath ? splitPath(activePath)[0] : null;
+
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -77,6 +80,20 @@ export function CollectionTree() {
             <span className="truncate">{id}</span>
           </button>
         ))}
+      </div>
+      <div className="shrink-0 border-t p-1">
+        <div className="px-2 pt-1 pb-0.5 text-xs font-medium text-muted-foreground">Authentication</div>
+        <button
+          type="button"
+          className={cn(
+            "flex w-full items-center gap-1.5 rounded px-2 py-1 text-left hover:bg-muted",
+            authActive && "bg-accent font-medium",
+          )}
+          onClick={() => openAuth()}
+        >
+          <Users className="size-3.5 shrink-0 text-muted-foreground" />
+          ユーザー
+        </button>
       </div>
     </div>
   );

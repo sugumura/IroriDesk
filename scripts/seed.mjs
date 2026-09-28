@@ -128,3 +128,72 @@ if (!res.ok) {
   process.exit(1);
 }
 console.log(`seeded ${writes.length} documents into ${DB} @ ${PROD ? "production" : HOST}`);
+
+// Auth Emulator のユーザー（Emulator のときのみ。本番の Authentication には書き込まない）
+if (!PROD) {
+  const AUTH_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST ?? "127.0.0.1:9099";
+  const t0 = Date.UTC(2026, 0, 1);
+  const users = [
+    {
+      localId: "alice-uid",
+      email: "alice@example.com",
+      emailVerified: true,
+      displayName: "Alice",
+      customAttributes: JSON.stringify({ admin: true, plan: "pro" }),
+      providerUserInfo: [{ providerId: "password", email: "alice@example.com", rawId: "alice@example.com" }],
+      createdAt: String(t0),
+      lastLoginAt: String(t0 + 86_400_000),
+    },
+    {
+      localId: "bob-uid",
+      email: "bob@example.com",
+      displayName: "Bob",
+      providerUserInfo: [{ providerId: "google.com", email: "bob@example.com", rawId: "1234567890", displayName: "Bob" }],
+      createdAt: String(t0 + 3_600_000),
+    },
+    {
+      localId: "carol-uid",
+      phoneNumber: "+81901234567",
+      displayName: "Carol（無効）",
+      disabled: true,
+      providerUserInfo: [{ providerId: "phone", phoneNumber: "+81901234567", rawId: "+81901234567" }],
+      createdAt: String(t0 + 7_200_000),
+    },
+    ...Array.from({ length: 30 }, (_, i) => ({
+      localId: `user-${String(i).padStart(3, "0")}`,
+      email: `user${i}@example.com`,
+      displayName: `User ${i}`,
+      providerUserInfo: [{ providerId: "password", email: `user${i}@example.com`, rawId: `user${i}@example.com` }],
+      createdAt: String(t0 + i * 60_000),
+    })),
+  ];
+  const authRes = await fetch(
+    `http://${AUTH_HOST}/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:batchCreate`,
+    {
+      method: "POST",
+      headers: { Authorization: "Bearer owner", "Content-Type": "application/json" },
+      body: JSON.stringify({ users, allowOverwrite: true }),
+    },
+  ).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }));
+  if (!authRes.ok) {
+    console.error("Auth Emulator へのユーザー投入に失敗しました（Auth Emulator は起動していますか？）", authRes.status, await authRes.text());
+    process.exit(1);
+  }
+  // batchCreate はハッシュなしの password プロバイダを無視するため、パスワードは個別に設定する
+  const withPassword = users.filter((u) => u.providerUserInfo.some((p) => p.providerId === "password"));
+  for (const u of withPassword) {
+    const r = await fetch(
+      `http://${AUTH_HOST}/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:update`,
+      {
+        method: "POST",
+        headers: { Authorization: "Bearer owner", "Content-Type": "application/json" },
+        body: JSON.stringify({ localId: u.localId, password: "password123" }),
+      },
+    );
+    if (!r.ok) {
+      console.error("パスワードの設定に失敗しました", u.localId, r.status, await r.text());
+      process.exit(1);
+    }
+  }
+  console.log(`seeded ${users.length} auth users @ ${AUTH_HOST}`);
+}

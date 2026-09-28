@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_DATABASE_ID: &str = "(default)";
 pub const DEFAULT_EMULATOR_HOST: &str = "localhost:8080";
+pub const DEFAULT_AUTH_EMULATOR_HOST: &str = "localhost:9099";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -27,6 +28,9 @@ pub struct ConnectionConfig {
     pub kind: ConnectionKind,
     #[serde(default)]
     pub emulator_host: Option<String>,
+    /// Firebase Auth Emulator のホスト（Emulator 接続のみ）
+    #[serde(default)]
+    pub auth_emulator_host: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -48,5 +52,9 @@ impl ConnectionConfig {
 
     pub fn emulator_host(&self) -> &str {
         non_empty(&self.emulator_host).unwrap_or(DEFAULT_EMULATOR_HOST)
+    }
+
+    pub fn auth_emulator_host(&self) -> &str {
+        non_empty(&self.auth_emulator_host).unwrap_or(DEFAULT_AUTH_EMULATOR_HOST)
     }
 }

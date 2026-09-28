@@ -33,6 +33,7 @@ function blankConnection(): ConnectionConfig {
     readOnly: true,
     kind: "production",
     emulatorHost: "localhost:8080",
+    authEmulatorHost: "localhost:9099",
   };
 }
 
@@ -152,13 +153,22 @@ export function ConnectionDialog({
               />
             </Field>
             {draft.kind === "emulator" ? (
-              <Field label="Emulator ホスト">
-                <Input
-                  value={draft.emulatorHost ?? ""}
-                  placeholder="localhost:8080"
-                  onChange={(e) => update("emulatorHost", e.target.value)}
-                />
-              </Field>
+              <>
+                <Field label="Emulator ホスト" hint="Firestore Emulator">
+                  <Input
+                    value={draft.emulatorHost ?? ""}
+                    placeholder="localhost:8080"
+                    onChange={(e) => update("emulatorHost", e.target.value)}
+                  />
+                </Field>
+                <Field label="Auth Emulator" hint="Authentication Emulator（ユーザー一覧に使用）">
+                  <Input
+                    value={draft.authEmulatorHost ?? ""}
+                    placeholder="localhost:9099"
+                    onChange={(e) => update("authEmulatorHost", e.target.value)}
+                  />
+                </Field>
+              </>
             ) : (
               <Field
                 label="quota project"

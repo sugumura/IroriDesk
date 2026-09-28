@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "typecheck": "tsc --noEmit",
-    "emulator": "firebase emulators:start --only firestore --project demo-firestore-viewer",
+    "emulator": "firebase emulators:start --only firestore,auth --project demo-firestore-viewer",
     "seed": "node scripts/seed.mjs",
     "test": "vitest run"
   },

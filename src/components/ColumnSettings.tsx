@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 /** テーブルに表示する列の選択と並べ替え（接続×コレクションごとに保存） */
-export function ColumnSettings({ layout }: { layout: ColumnLayout }) {
+export function ColumnSettings({ layout, idLabel = "Doc ID" }: { layout: ColumnLayout; idLabel?: string }) {
   const setColumnConfig = useStore((s) => s.setColumnConfig);
   const [filter, setFilter] = useState("");
   const { fieldNames, config, key } = layout;
@@ -60,8 +60,8 @@ export function ColumnSettings({ layout }: { layout: ColumnLayout }) {
         </div>
 
         <div className="max-h-80 overflow-auto p-1">
-          <div className="flex h-7 items-center gap-2 px-2 text-xs text-muted-foreground" title="Doc ID 列は常に先頭に表示されます">
-            <Pin className="size-3.5" /> Doc ID（固定）
+          <div className="flex h-7 items-center gap-2 px-2 text-xs text-muted-foreground" title={`${idLabel} 列は常に先頭に表示されます`}>
+            <Pin className="size-3.5" /> {idLabel}（固定）
           </div>
           {shown.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">該当するフィールドはありません</div>}
           {shown.map((k) => {
