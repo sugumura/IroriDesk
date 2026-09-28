@@ -13,9 +13,7 @@ export const ja = {
   query: "クエリ",
   emptyHint: "左のコレクションを選択するか、「+ クエリ」でクエリタブを開いてください",
   /** タブの見出し（tabTitle） */
-  queryTitle: "クエリ: {target}",
-  queryGroupTitle: "クエリ: group({target})",
-  unspecified: "(未指定)",
+  newQuery: "新しいクエリ",
 };
 
 export const en: typeof ja = {
@@ -31,7 +29,5 @@ export const en: typeof ja = {
   newQueryTab: "New query tab",
   query: "Query",
   emptyHint: "Select a collection on the left, or open a query tab with “+ Query”",
-  queryTitle: "Query: {target}",
-  queryGroupTitle: "Query: group({target})",
-  unspecified: "(not set)",
+  newQuery: "New query",
 };

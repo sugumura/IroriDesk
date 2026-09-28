@@ -18,7 +18,7 @@ import { type Appearance, applyAppearance, DEFAULT_APPEARANCE } from "@/lib/appe
 import { resolveLang } from "@/i18n";
 import type { TFunction } from "@/i18n";
 import type { ColumnConfig } from "@/lib/columns";
-import { addToHistory, type HistoryEntry } from "@/lib/queryHistory";
+import { addToHistory, type HistoryEntry, summarizeQuery, whereText } from "@/lib/queryHistory";
 import {
   loadAppearance,
   loadColumnConfigs,
@@ -97,11 +97,38 @@ export function emptyQuerySpec(collectionPath = ""): QuerySpec {
 }
 
 /** タブの見出し。tr は呼び出し側の翻訳関数（useT） */
+/**
+ * タブの名前。クエリは短く「対象 · 最初の条件 +残り数」にする（アイコンでクエリとわかるため接頭辞は付けない）。
+ * 実行済みなら実行した条件、未実行なら入力中の対象を使う
+ */
 export function tabTitle(t: Tab, tr: TFunction): string {
   if (t.kind === "browse") return t.collectionPath;
   if (t.kind === "auth") return "Authentication";
-  const target = t.spec.target || tr("tabs.unspecified");
-  return tr(t.spec.targetKind === "collectionGroup" ? "tabs.queryGroupTitle" : "tabs.queryTitle", { target });
+  const spec = t.ranSpec ?? t.spec;
+  const target = spec.target.trim();
+  if (!target) return tr("tabs.newQuery");
+  const head = spec.targetKind === "collectionGroup" ? `group(${target})` : target;
+  const where = t.ranSpec ? t.ranSpec.where.filter((w) => w.field.trim()) : [];
+  if (where.length === 0) return head;
+  return `${head} · ${whereText(where[0])}${where.length > 1 ? ` +${where.length - 1}` : ""}`;
+}
+
+/** タブのツールチップ。クエリは条件をすべて含む要約 */
+export function tabTooltip(t: Tab, tr: TFunction): string {
+  if (t.kind !== "query" || !t.ranSpec) return tabTitle(t, tr);
+  return summarizeQuery(t.ranSpec, tr("query.history.noTarget"));
+}
+
+/** 何も入力・実行していないクエリタブ（「+ クエリ」で使い回す） */
+function isBlankQuery(t: Tab): boolean {
+  return (
+    t.kind === "query" &&
+    !t.ranSpec &&
+    !t.loading &&
+    !t.spec.target.trim() &&
+    t.spec.where.every((w) => !w.field.trim()) &&
+    t.spec.orderBy.every((o) => !o.field.trim())
+  );
 }
 
 interface RootCollections {
@@ -463,6 +490,14 @@ export const useStore = create<State>((set, get) => {
     },
 
     openQuery(spec) {
+      // 条件の指定がなければ、同じグループの空のクエリタブを使い回す
+      if (!spec) {
+        const blank = get().tabs.find((t) => t.group === get().focusedGroup && isBlankQuery(t));
+        if (blank) {
+          get().setActiveTab(blank.id);
+          return;
+        }
+      }
       const id = newTabId();
       const tab: QueryTab = {
         id,

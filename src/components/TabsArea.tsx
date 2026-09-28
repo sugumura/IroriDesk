@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { layoutStorage } from "@/lib/layoutStorage";
 import { cn } from "@/lib/utils";
-import { type GroupIndex, type SplitMode, tabTitle, useStore } from "@/store";
+import { type GroupIndex, type SplitMode, tabTitle, tabTooltip, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -132,7 +132,7 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
               )}
               onClick={() => setActive(t.id)}
               onAuxClick={(e) => e.button === 1 && close(t.id)}
-              title={tabTitle(t, tr)}
+              title={tabTooltip(t, tr)}
             >
               {t.kind === "browse" ? (
                 <Table2 className="size-3.5 shrink-0" />

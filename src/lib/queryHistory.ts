@@ -31,7 +31,7 @@ export function addToHistory(history: HistoryEntry[], spec: QuerySpec, now = new
   return [entry, ...history.filter((h) => !sameQuery(h.spec, spec))].slice(0, MAX_HISTORY);
 }
 
-function whereText(w: WhereClause): string {
+export function whereText(w: WhereClause): string {
   if (w.valueType === "null") return `${w.field} ${w.op} null`;
   const value = w.valueType === "string" && !["in", "not-in", "array-contains-any"].includes(w.op) ? `"${w.value}"` : w.value;
   return `${w.field} ${w.op} ${value}`;
