@@ -81,7 +81,13 @@ export function ConnectionDialog({
     setDraft((d) => ({ ...d, [k]: v }));
 
   const save = () => {
-    const conn = { ...draft, name: draft.name.trim(), projectId: draft.projectId.trim() };
+    // 以前の版でオフにして保存された接続も、保存時にオンへ戻す
+    const conn = {
+      ...draft,
+      name: draft.name.trim(),
+      projectId: draft.projectId.trim(),
+      readOnly: true,
+    };
     upsert(conn);
     if (isNew || !activeId) setActive(conn.id);
     onOpenChange(false);
@@ -166,7 +172,8 @@ export function ConnectionDialog({
             )}
             <Field label="読み取り専用" hint="現在のバージョンは常に読み取りのみです（書き込みは今後対応）">
               <div className="pt-1.5">
-                <Switch checked={draft.readOnly} onCheckedChange={(v) => update("readOnly", v)} />
+                {/* 書き込み機能（第2段階）までは常にオンで固定する */}
+                <Switch checked disabled aria-readonly />
               </div>
             </Field>
           </div>
