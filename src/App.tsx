@@ -1,126 +1,48 @@
-import { useState } from "react";
-import {
-  type AppError,
-  type ConnectionConfig,
-  listCollectionIds,
-  toAppError,
-} from "./lib/api";
-import "./App.css";
-
-// スパイク用の最小画面。接続管理・ツリー・一覧はステップ3で作り直す
-const initialConnection: ConnectionConfig = {
-  id: "spike",
-  name: "spike",
-  projectId: "demo-firestore-viewer",
-  databaseId: "(default)",
-  quotaProject: "",
-  readOnly: true,
-  kind: "emulator",
-  emulatorHost: "localhost:8080",
-};
+import { useEffect } from "react";
+import { useStore } from "./store";
+import { CollectionTree } from "./components/CollectionTree";
+import { DocumentDetail } from "./components/DocumentDetail";
+import { TabsArea } from "./components/TabsArea";
+import { TopBar } from "./components/TopBar";
+import { TooltipProvider } from "./components/ui/tooltip";
 
 function App() {
-  const [conn, setConn] = useState<ConnectionConfig>(initialConnection);
-  const [parentPath, setParentPath] = useState("");
-  const [ids, setIds] = useState<string[] | null>(null);
-  const [error, setError] = useState<AppError | null>(null);
-  const [loading, setLoading] = useState(false);
+  const ready = useStore((s) => s.ready);
+  const init = useStore((s) => s.init);
+  const hasConnection = useStore((s) => s.activeConnectionId !== null);
+  const detailOpen = useStore((s) => s.detailOpen);
 
-  const update = <K extends keyof ConnectionConfig>(key: K, value: ConnectionConfig[K]) =>
-    setConn((c) => ({ ...c, [key]: value }));
+  useEffect(() => {
+    void init();
+  }, [init]);
 
-  async function run(path: string) {
-    setLoading(true);
-    setError(null);
-    setIds(null);
-    try {
-      setIds(await listCollectionIds(conn, path || undefined));
-    } catch (e) {
-      setError(toAppError(e));
-    } finally {
-      setLoading(false);
-    }
-  }
+  if (!ready) return null;
 
   return (
-    <main className="container">
-      <h1>Firestore Viewer — spike</h1>
-
-      <fieldset>
-        <legend>接続</legend>
-        <label>
-          種別
-          <select
-            value={conn.kind}
-            onChange={(e) => update("kind", e.target.value as ConnectionConfig["kind"])}
-          >
-            <option value="emulator">Emulator</option>
-            <option value="production">本番 (ADC)</option>
-          </select>
-        </label>
-        <label>
-          プロジェクトID
-          <input value={conn.projectId} onChange={(e) => update("projectId", e.target.value)} />
-        </label>
-        <label>
-          データベースID
-          <input value={conn.databaseId} onChange={(e) => update("databaseId", e.target.value)} />
-        </label>
-        {conn.kind === "emulator" ? (
-          <label>
-            Emulator ホスト
-            <input
-              value={conn.emulatorHost}
-              onChange={(e) => update("emulatorHost", e.target.value)}
-            />
-          </label>
+    <TooltipProvider>
+      <div className="flex h-full flex-col">
+        <TopBar />
+        {hasConnection ? (
+          <div className="flex min-h-0 flex-1">
+            <aside className="w-60 shrink-0 border-r">
+              <CollectionTree />
+            </aside>
+            <main className="min-w-0 flex-1">
+              <TabsArea />
+            </main>
+            {detailOpen && (
+              <aside className="w-[420px] shrink-0 border-l">
+                <DocumentDetail />
+              </aside>
+            )}
+          </div>
         ) : (
-          <label>
-            quota project（任意）
-            <input
-              value={conn.quotaProject}
-              onChange={(e) => update("quotaProject", e.target.value)}
-            />
-          </label>
+          <div className="flex flex-1 items-center justify-center text-muted-foreground">
+            上部の歯車ボタンから接続を追加してください
+          </div>
         )}
-        <button disabled={loading} onClick={() => run("")}>
-          接続テスト（ルートコレクション取得）
-        </button>
-      </fieldset>
-
-      <fieldset>
-        <legend>サブコレクション</legend>
-        <label>
-          ドキュメントパス
-          <input
-            placeholder="users/alice"
-            value={parentPath}
-            onChange={(e) => setParentPath(e.target.value)}
-          />
-        </label>
-        <button disabled={loading || !parentPath} onClick={() => run(parentPath)}>
-          取得
-        </button>
-      </fieldset>
-
-      {loading && <p>読み込み中…</p>}
-      {error && (
-        <div className="error">
-          <strong>[{error.code}]</strong> {error.message}
-          {error.detail && <pre>{error.detail}</pre>}
-        </div>
-      )}
-      {ids && (
-        <div>
-          <p>{ids.length} 件</p>
-          <ul>
-            {ids.map((id) => (
-              <li key={id}>{id}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </main>
+      </div>
+    </TooltipProvider>
   );
 }
 

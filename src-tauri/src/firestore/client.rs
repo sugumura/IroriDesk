@@ -5,14 +5,15 @@ use reqwest::{Method, RequestBuilder, Response, Url};
 use serde::Deserialize;
 use serde_json::json;
 
-use super::document::{DisplayDocument, RestDocument};
-use super::path::document_segments;
+use super::document::{DisplayDocument, DocumentPage, RestDocument};
+use super::path::{collection_segments, document_segments};
 use crate::auth::{AdcTokenSource, EmulatorTokenSource, TokenSource};
 use crate::connection::{ConnectionConfig, ConnectionKind};
 use crate::error::{AppError, AppResult, ADC_LOGIN_HINT};
 
 const PRODUCTION_BASE_URL: &str = "https://firestore.googleapis.com";
 const LIST_COLLECTION_IDS_PAGE_SIZE: u32 = 300;
+const MAX_LIST_DOCUMENTS_PAGE_SIZE: u32 = 300;
 
 /// Firestore への読み取り操作。本番と Emulator は同じ実装（RestClient）で扱う
 #[async_trait::async_trait]
@@ -22,6 +23,14 @@ pub trait FirestoreApi: Send + Sync {
 
     /// ドキュメントを1件取得する。`path` は `users/alice` のような相対パス
     async fn get_document(&self, path: &str) -> AppResult<DisplayDocument>;
+
+    /// コレクション直下のドキュメントを1ページ取得する。実体のない親ドキュメントも含む
+    async fn list_documents(
+        &self,
+        collection_path: &str,
+        page_size: u32,
+        page_token: Option<&str>,
+    ) -> AppResult<DocumentPage>;
 }
 
 pub struct RestClient {
@@ -79,9 +88,9 @@ impl RestClient {
         })
     }
 
-    /// `v1/projects/{p}/databases/{db}/documents/{docPath...}{suffix}` を組み立てる。
+    /// `v1/projects/{p}/databases/{db}/documents/{path...}{suffix}` を組み立てる。
     /// セグメントごとにパーセントエンコードされる
-    fn documents_url(&self, doc_segments: &[&str], suffix: &str) -> Url {
+    fn documents_url(&self, segments: &[&str], suffix: &str) -> Url {
         let mut url = self.base_url.clone();
         {
             let mut segs = url.path_segments_mut().expect("base URL は http(s)");
@@ -92,7 +101,7 @@ impl RestClient {
                 "databases",
                 &self.database_id,
             ]);
-            match doc_segments.split_last() {
+            match segments.split_last() {
                 None => {
                     segs.push(&format!("documents{suffix}"));
                 }
@@ -166,6 +175,15 @@ struct ListCollectionIdsResponse {
     next_page_token: Option<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ListDocumentsResponse {
+    #[serde(default)]
+    documents: Vec<RestDocument>,
+    #[serde(default)]
+    next_page_token: Option<String>,
+}
+
 #[async_trait::async_trait]
 impl FirestoreApi for RestClient {
     async fn list_collection_ids(&self, parent_document: &str) -> AppResult<Vec<String>> {
@@ -204,6 +222,37 @@ impl FirestoreApi for RestClient {
         let res = self.request(Method::GET, url).await?.send().await?;
         let doc: RestDocument = check_status(res).await?.json().await?;
         DisplayDocument::from_rest(doc)
+    }
+
+    async fn list_documents(
+        &self,
+        collection_path: &str,
+        page_size: u32,
+        page_token: Option<&str>,
+    ) -> AppResult<DocumentPage> {
+        let segments = collection_segments(collection_path)?;
+        let mut url = self.documents_url(&segments, "");
+        {
+            let mut q = url.query_pairs_mut();
+            q.append_pair(
+                "pageSize",
+                &page_size.clamp(1, MAX_LIST_DOCUMENTS_PAGE_SIZE).to_string(),
+            )
+            .append_pair("showMissing", "true");
+            if let Some(t) = page_token.filter(|t| !t.is_empty()) {
+                q.append_pair("pageToken", t);
+            }
+        }
+        let res = self.request(Method::GET, url).await?.send().await?;
+        let page: ListDocumentsResponse = check_status(res).await?.json().await?;
+        Ok(DocumentPage {
+            documents: page
+                .documents
+                .into_iter()
+                .map(DisplayDocument::from_rest)
+                .collect::<AppResult<_>>()?,
+            next_page_token: page.next_page_token.filter(|t| !t.is_empty()),
+        })
     }
 }
 
@@ -327,5 +376,42 @@ mod emulator_tests {
             ),
             "{err:?}"
         );
+    }
+
+    #[tokio::test]
+    #[ignore = "Firestore Emulator が必要"]
+    async fn pages_through_documents() {
+        let c = emulator_client();
+        let mut ids = Vec::new();
+        let mut token: Option<String> = None;
+        let mut pages = 0;
+        loop {
+            let page = c
+                .list_documents("logs", 50, token.as_deref())
+                .await
+                .unwrap();
+            pages += 1;
+            ids.extend(page.documents.into_iter().map(|d| d.id));
+            match page.next_page_token {
+                Some(t) => token = Some(t),
+                None => break,
+            }
+        }
+        assert_eq!(ids.len(), 120);
+        assert!(pages >= 3);
+
+        let users = c.list_documents("users", 50, None).await.unwrap();
+        let ghost = users.documents.iter().find(|d| d.id == "ghost").unwrap();
+        assert!(ghost.missing);
+        assert!(
+            !users
+                .documents
+                .iter()
+                .find(|d| d.id == "alice")
+                .unwrap()
+                .missing
+        );
+
+        assert!(c.list_documents("users/alice", 50, None).await.is_err());
     }
 }

@@ -4,6 +4,14 @@ use serde_json::{Map, Value};
 use super::value::fields_to_display;
 use crate::error::{AppError, AppResult};
 
+/// ドキュメント一覧の1ページ
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentPage {
+    pub documents: Vec<DisplayDocument>,
+    pub next_page_token: Option<String>,
+}
+
 /// REST の Document リソース
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,6 +50,8 @@ impl DisplayDocument {
     pub fn from_rest(doc: RestDocument) -> AppResult<Self> {
         let path = relative_path(&doc.name)?.to_owned();
         let id = path.rsplit('/').next().unwrap_or_default().to_owned();
+        // showMissing で返る実体のないドキュメントには createTime がない
+        let missing = doc.create_time.is_none();
         Ok(Self {
             id,
             path,
@@ -49,7 +59,7 @@ impl DisplayDocument {
             name: doc.name,
             create_time: doc.create_time,
             update_time: doc.update_time,
-            missing: false,
+            missing,
         })
     }
 }
@@ -80,6 +90,8 @@ mod tests {
         let doc: RestDocument =
             serde_json::from_value(json!({ "name": "projects/p/databases/d/documents/a/b" }))
                 .unwrap();
-        assert!(DisplayDocument::from_rest(doc).unwrap().fields.is_empty());
+        let d = DisplayDocument::from_rest(doc).unwrap();
+        assert!(d.fields.is_empty());
+        assert!(d.missing);
     }
 }

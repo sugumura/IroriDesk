@@ -26,6 +26,17 @@ pub fn document_segments(path: &str) -> AppResult<Vec<&str>> {
     Ok(segments)
 }
 
+/// コレクションパス（セグメント数が奇数）であることを確認する
+pub fn collection_segments(path: &str) -> AppResult<Vec<&str>> {
+    let segments = split_relative(path)?;
+    if segments.len() % 2 != 1 {
+        return Err(AppError::InvalidInput(format!(
+            "コレクションパスではありません: {path}"
+        )));
+    }
+    Ok(segments)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -41,5 +52,15 @@ mod tests {
     fn document_path_must_be_even() {
         assert!(document_segments("users").is_err());
         assert_eq!(document_segments("users/u1").unwrap(), vec!["users", "u1"]);
+    }
+
+    #[test]
+    fn collection_path_must_be_odd() {
+        assert!(collection_segments("").is_err());
+        assert!(collection_segments("users/u1").is_err());
+        assert_eq!(
+            collection_segments("users/u1/orders").unwrap(),
+            vec!["users", "u1", "orders"]
+        );
     }
 }
