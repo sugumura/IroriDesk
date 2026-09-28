@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Loader2, PanelLeft, PanelRight, PlugZap, ServerCog, Settings } from "lucide-react";
 import { listCollectionIds, toAppError } from "@/lib/api";
 import { notifyError, notifySuccess } from "@/lib/notify";
+import { cn } from "@/lib/utils";
 import { activeConnection, useStore } from "@/store";
 import { useT } from "@/i18n";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { AppSettingsDialog } from "./AppSettingsDialog";
 import { ConnectionDialog } from "./ConnectionDialog";
+import { ENV_COLOR, EnvBadge, EnvDot } from "./EnvIndicator";
 
 export function TopBar() {
   const t = useT();
@@ -46,7 +47,9 @@ export function TopBar() {
   };
 
   return (
-    <header className="flex h-11 shrink-0 items-center gap-2 border-b px-3">
+    <header className="relative flex h-11 shrink-0 items-center gap-2 border-b px-3">
+      {/* 接続先がひと目でわかるよう、ヘッダーの上端に接続の種類の色を付ける */}
+      {conn && <div className={cn("absolute inset-x-0 top-0 h-[3px]", ENV_COLOR[conn.kind].bar)} />}
       <Select
         value={activeId ?? ""}
         onValueChange={(id) => setActive(id)}
@@ -57,6 +60,7 @@ export function TopBar() {
         <SelectContent>
           {connections.map((c) => (
             <SelectItem key={c.id} value={c.id}>
+              <EnvDot kind={c.kind} />
               {c.name}
               <span className="text-xs text-muted-foreground">
                 {c.projectId}
@@ -76,15 +80,8 @@ export function TopBar() {
       <div className="flex-1" />
       {conn && (
         <>
-          {conn.kind === "emulator" ? (
-            <Badge variant="secondary">Emulator</Badge>
-          ) : (
-            <Badge variant="outline">{t("topbar.production")}</Badge>
-          )}
-          {/* MVP では常に読み取りのみ */}
-          <Badge variant="outline" title={t("topbar.readOnlyHint")}>
-            {t("topbar.readOnly")}
-          </Badge>
+          {/* MVP では常に読み取りのみ（鍵のアイコンとツールチップで示す） */}
+          <EnvBadge kind={conn.kind} />
         </>
       )}
       <Button
