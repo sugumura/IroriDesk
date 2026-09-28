@@ -92,6 +92,15 @@ async fn run_query(
 }
 
 #[tauri::command]
+async fn count_documents(
+    state: tauri::State<'_, AppState>,
+    connection: ConnectionConfig,
+    spec: QuerySpec,
+) -> AppResult<u64> {
+    state.client(&connection)?.count(&spec).await
+}
+
+#[tauri::command]
 async fn list_indexes(
     state: tauri::State<'_, AppState>,
     connection: ConnectionConfig,
@@ -195,6 +204,7 @@ pub fn run() {
             list_documents,
             run_query,
             list_indexes,
+            count_documents,
             export::save_text_file,
             list_auth_users,
             lookup_auth_users,

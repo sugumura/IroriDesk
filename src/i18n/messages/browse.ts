@@ -9,6 +9,7 @@ export const ja = {
   noDocuments: "ドキュメントはありません",
   /** 件数（common.count）の後ろに続く。狭い幅では隠れる */
   loadedSuffix: "読み込み済み",
+  totalSuffix: " / 全 {count} 件",
   missingSuffix: "（うち実体なし {count} 件）",
   more: "続き",
   loadMore: "さらに読み込む",
@@ -23,6 +24,7 @@ export const en: typeof ja = {
   indexes: "Indexes",
   noDocuments: "No documents",
   loadedSuffix: " loaded",
+  totalSuffix: " / {count} total",
   missingSuffix: " ({count} missing)",
   more: "More",
   loadMore: "Load more",

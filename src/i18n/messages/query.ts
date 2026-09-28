@@ -1,5 +1,7 @@
 /** クエリ画面・クエリ履歴・フィールド候補 */
 export const ja = {
+  totalSuffix: " / 条件に一致: 全 {count} 件",
+  totalTitle: "表示中の件数 / limit を外した場合に条件に一致する件数",
   run: "実行",
   runTitle: "実行（⌘/Ctrl+Enter）",
   targetCollection: "コレクション",
@@ -38,6 +40,8 @@ export const ja = {
 };
 
 export const en: typeof ja = {
+  totalSuffix: " / {count} match in total",
+  totalTitle: "Shown / total matching without the limit",
   run: "Run",
   runTitle: "Run (⌘/Ctrl+Enter)",
   targetCollection: "Collection",

@@ -232,3 +232,8 @@ export interface CollectionIndexes {
 export function listIndexes(connection: ConnectionConfig, collectionId: string): Promise<CollectionIndexes> {
   return invoke("list_indexes", { connection, collectionId });
 }
+
+/** 条件に一致するドキュメント数（集計クエリ。limit は無視） */
+export function countDocuments(connection: ConnectionConfig, spec: QuerySpec): Promise<number> {
+  return invoke("count_documents", { connection, spec });
+}

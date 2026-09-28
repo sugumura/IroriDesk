@@ -121,6 +121,23 @@ pub struct BuiltQuery {
     pub body: Value,
 }
 
+impl BuiltQuery {
+    /// 条件に一致する件数を数える runAggregationQuery の本文（limit と orderBy は外す）
+    pub fn count_body(&self) -> Value {
+        let mut sq = self.body["structuredQuery"].clone();
+        if let Some(obj) = sq.as_object_mut() {
+            obj.remove("limit");
+            obj.remove("orderBy");
+        }
+        json!({
+            "structuredAggregationQuery": {
+                "structuredQuery": sq,
+                "aggregations": [{ "alias": "count", "count": {} }]
+            }
+        })
+    }
+}
+
 fn invalid(msg: impl Into<String>) -> AppError {
     AppError::InvalidInput(msg.into())
 }
@@ -621,5 +638,25 @@ mod tests {
         .unwrap();
         assert_eq!(s.where_[0].op, WhereOp::ArrayContainsAny);
         assert_eq!(s.order_by[0].direction, Direction::Desc);
+    }
+
+    #[test]
+    fn count_body_drops_limit_and_order() {
+        let mut s = spec(TargetKind::Collection, "logs");
+        s.where_ = vec![w("level", WhereOp::Eq, ValueType::String, "error")];
+        s.order_by = vec![OrderClause {
+            field: "seq".into(),
+            direction: Direction::Desc,
+        }];
+        s.limit = Some(5);
+        let body = build(&s, ROOT).unwrap().count_body();
+        let sq = &body["structuredAggregationQuery"]["structuredQuery"];
+        assert!(sq.get("limit").is_none());
+        assert!(sq.get("orderBy").is_none());
+        assert_eq!(sq["where"]["fieldFilter"]["op"], "EQUAL");
+        assert_eq!(
+            body["structuredAggregationQuery"]["aggregations"],
+            json!([{ "alias": "count", "count": {} }])
+        );
     }
 }

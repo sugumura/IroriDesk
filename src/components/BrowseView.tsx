@@ -121,6 +121,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
           {t("common.count", { count: tab.docs.length })}
           <span className="hidden @md:inline">{t("browse.loadedSuffix")}</span>
           {missingCount > 0 && <span className="hidden @xl:inline">{t("browse.missingSuffix", { count: missingCount })}</span>}
+          {tab.totalCount !== null && <span>{t("browse.totalSuffix", { count: tab.totalCount })}</span>}
         </span>
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />

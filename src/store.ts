@@ -6,6 +6,7 @@ import {
   type DisplayUser,
   listAuthUsers,
   listCollectionIds,
+  countDocuments,
   listDocuments,
   lookupAuthUsers,
   type UserLookupKind,
@@ -47,6 +48,8 @@ export interface BrowseTab {
   view: "table" | "json";
   /** 古いレスポンスを捨てるための世代番号 */
   requestSeq: number;
+  /** コレクション全体の件数（集計クエリ）。未取得・失敗時は null */
+  totalCount: number | null;
 }
 
 export interface QueryTab {
@@ -63,6 +66,8 @@ export interface QueryTab {
   error: AppError | null;
   view: "table" | "json";
   requestSeq: number;
+  /** 条件に一致する件数（limit なし）。未取得・失敗時は null */
+  totalCount: number | null;
 }
 
 /** Firebase Authentication のユーザー一覧 */
@@ -232,6 +237,9 @@ function syncLanguage(appearance: Appearance) {
   void invoke("set_locale", { lang }).catch(() => undefined);
 }
 
+/** 件数の取得は一覧の読み込みとは別に走るため、タブごとに最新の要求だけを反映する */
+const countTokens = new Map<string, number>();
+
 const emptyRoot: RootCollections = { ids: null, loading: false, error: null };
 
 export const useStore = create<State>((set, get) => {
@@ -242,6 +250,21 @@ export const useStore = create<State>((set, get) => {
 
   const updateTab = <T extends Tab>(id: string, patch: Partial<T>) =>
     set((s) => ({ tabs: s.tabs.map((t) => (t.id === id ? ({ ...t, ...patch } as Tab) : t)) }));
+
+  /** 件数を集計クエリで取得してタブに反映する。失敗しても一覧の表示には影響させない */
+  const refreshCount = async (tabId: string, spec: QuerySpec) => {
+    const conn = activeConnection(get());
+    if (!conn) return;
+    const token = (countTokens.get(tabId) ?? 0) + 1;
+    countTokens.set(tabId, token);
+    try {
+      const total = await countDocuments(conn, spec);
+      if (countTokens.get(tabId) !== token || !get().tabs.some((t) => t.id === tabId)) return;
+      updateTab(tabId, { totalCount: total });
+    } catch {
+      // 件数の取得に失敗しても（権限・Emulator の制限など）表示しないだけにする
+    }
+  };
 
   /** 接続を切り替えたら閲覧状態をすべて捨てる */
   const resetBrowsing = () =>
@@ -361,6 +384,7 @@ export const useStore = create<State>((set, get) => {
       const focused = focusedTab(get());
       const current = focused?.kind === "browse" ? focused : null;
       const base: Omit<BrowseTab, "id"> = {
+        totalCount: null,
         kind: "browse",
         group: get().focusedGroup,
         collectionPath: path,
@@ -391,8 +415,11 @@ export const useStore = create<State>((set, get) => {
         loading: true,
         error: null,
         requestSeq: seq,
-        ...(reset ? { docs: [], nextPageToken: null } : {}),
+        ...(reset ? { docs: [], nextPageToken: null, totalCount: null } : {}),
       });
+      if (reset) {
+        void refreshCount(tabId, { targetKind: "collection", target: tab.collectionPath, where: [], orderBy: [], limit: null });
+      }
       const isCurrent = () => get().tabs.find((t) => t.id === tabId)?.requestSeq === seq;
       try {
         const page = await listDocuments(
@@ -505,6 +532,7 @@ export const useStore = create<State>((set, get) => {
         group: get().focusedGroup,
         spec: spec ?? emptyQuerySpec(),
         ranSpec: null,
+        totalCount: null,
         docs: [],
         readTime: null,
         structuredQuery: null,
@@ -529,7 +557,8 @@ export const useStore = create<State>((set, get) => {
       if (!conn || tab?.kind !== "query") return;
       const seq = tab.requestSeq + 1;
       const spec = tab.spec;
-      updateTab<QueryTab>(tabId, { loading: true, error: null, requestSeq: seq });
+      updateTab<QueryTab>(tabId, { loading: true, error: null, requestSeq: seq, totalCount: null });
+      void refreshCount(tabId, spec);
       // 失敗したクエリも残す（インデックス作成後に再実行しやすいように）
       const history = { ...get().queryHistory, [conn.id]: addToHistory(get().queryHistory[conn.id] ?? [], spec) };
       set({ queryHistory: history });

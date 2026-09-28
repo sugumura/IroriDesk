@@ -382,7 +382,12 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
         )}
       </div>
       <div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
-        {ran && <span>{t("common.count", { count: tab.docs.length })}</span>}
+        {ran && (
+          <span title={t("query.totalTitle")}>
+            {t("common.count", { count: tab.docs.length })}
+            {tab.totalCount !== null && t("query.totalSuffix", { count: tab.totalCount })}
+          </span>
+        )}
         {tab.readTime && <span className="hidden @xl:inline" title={tab.readTime}>readTime: {formatTimestamp(tab.readTime)}</span>}
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />

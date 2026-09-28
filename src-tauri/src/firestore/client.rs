@@ -39,6 +39,9 @@ pub trait FirestoreApi: Send + Sync {
     /// structuredQuery を実行する（MVP ではカーソルによるページングなし）
     async fn run_query(&self, spec: &QuerySpec) -> AppResult<QueryResult>;
 
+    /// 条件に一致するドキュメント数（limit は無視する）。集計クエリなので全件は読み込まない
+    async fn count(&self, spec: &QuerySpec) -> AppResult<u64>;
+
     /// コレクションID（コレクショングループ）の複合インデックスと単一フィールドの例外設定
     async fn list_indexes(&self, collection_id: &str) -> AppResult<CollectionIndexes>;
 }
@@ -364,6 +367,33 @@ impl FirestoreApi for RestClient {
             read_time,
             structured_query: built.body,
         })
+    }
+
+    async fn count(&self, spec: &QuerySpec) -> AppResult<u64> {
+        let built = query::build(spec, &self.documents_root())?;
+        let parent: Vec<&str> = built.parent_segments.iter().map(String::as_str).collect();
+        let url = self.documents_url(&parent, ":runAggregationQuery");
+        let res = self
+            .request(Method::POST, url)
+            .await?
+            .json(&built.count_body())
+            .send()
+            .await?;
+        let items: Vec<serde_json::Value> = check_status(res).await?.json().await?;
+        items
+            .iter()
+            .find_map(|i| i.pointer("/result/aggregateFields/count/integerValue"))
+            .and_then(|v| match v {
+                serde_json::Value::String(s) => s.parse().ok(),
+                serde_json::Value::Number(n) => n.as_u64(),
+                _ => None,
+            })
+            .ok_or_else(|| {
+                AppError::Decode(tr!(
+                    "件数の応答を解析できませんでした",
+                    "Could not parse the count response"
+                ))
+            })
     }
 
     async fn list_indexes(&self, collection_id: &str) -> AppResult<CollectionIndexes> {
@@ -707,5 +737,20 @@ mod emulator_tests {
             ids(c.run_query(&q(json!({ "field": "bestFriend", "op": "==", "valueType": "reference", "value": "users/bob" }))).await.unwrap()),
             vec!["alice"]
         );
+    }
+
+    #[tokio::test]
+    #[ignore = "Firestore Emulator が必要"]
+    async fn counts_documents() {
+        let c = emulator_client();
+        let all = spec(json!({ "targetKind": "collection", "target": "logs", "limit": 5 }));
+        assert_eq!(c.count(&all).await.unwrap(), 120);
+        let errors = spec(json!({
+            "targetKind": "collection", "target": "logs",
+            "where": [{ "field": "level", "op": "==", "valueType": "string", "value": "error" }]
+        }));
+        assert_eq!(c.count(&errors).await.unwrap(), 40);
+        let group = spec(json!({ "targetKind": "collectionGroup", "target": "orders" }));
+        assert_eq!(c.count(&group).await.unwrap(), 3);
     }
 }
