@@ -136,7 +136,8 @@
     height: 100%;
     overflow: hidden;
   }
-  html {
+  /* html の font-size を変えると rem 基準のコンポーネント寸法（スイッチ等）が崩れるため body で指定する */
+  body {
     font-size: 13px;
   }
 }
