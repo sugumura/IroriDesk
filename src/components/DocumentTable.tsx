@@ -6,6 +6,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { compareValues } from "@/lib/localView";
+import type { TableSort } from "@/store";
 import type { DisplayDocument } from "@/lib/api";
 import { displayKey } from "@/lib/display";
 import { cn } from "@/lib/utils";
@@ -22,6 +25,8 @@ export function DocumentTable({
   selectedPath,
   onSelect,
   idLabel = "Doc ID",
+  sort = null,
+  onSortChange,
 }: {
   docs: DisplayDocument[];
   /** 固定列の見出し（Authentication では UID） */
@@ -30,6 +35,9 @@ export function DocumentTable({
   fields: string[];
   selectedPath: string | null;
   onSelect: (doc: DisplayDocument) => void;
+  /** 手元での並べ替え。column は "__id" かフィールド名 */
+  sort?: TableSort | null;
+  onSortChange?: (sort: TableSort | null) => void;
 }) {
   const t = useT();
   const columns = useMemo<ColumnDef<DisplayDocument>[]>(
@@ -55,8 +63,26 @@ export function DocumentTable({
     [fieldNames, idLabel],
   );
 
+  // 見出しのクリックで 昇順 → 降順 → 読み込んだ順 に切り替える
+  const sortedDocs = useMemo(() => {
+    if (!sort) return docs;
+    const collator = new Intl.Collator(undefined, { numeric: true });
+    return [...docs].sort((a, b) =>
+      sort.column === ID_COLUMN
+        ? (sort.desc ? -1 : 1) * collator.compare(a.id, b.id)
+        : compareValues(a.fields[sort.column], b.fields[sort.column], sort.desc),
+    );
+  }, [docs, sort]);
+
+  const cycleSort = (column: string) => {
+    if (!onSortChange) return;
+    if (sort?.column !== column) onSortChange({ column, desc: false });
+    else if (!sort.desc) onSortChange({ column, desc: true });
+    else onSortChange(null);
+  };
+
   const table = useReactTable({
-    data: docs,
+    data: sortedDocs,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (d) => d.path,
@@ -87,10 +113,24 @@ export function DocumentTable({
                 h.id === ID_COLUMN && "sticky left-0 z-10 bg-muted shadow-[1px_0_0_var(--border)]",
               )}
               style={{ width: h.getSize() }}
-              title={typeof h.column.columnDef.header === "string" ? h.column.columnDef.header : undefined}
+              title={t("browse.sortHint", { column: String(h.column.columnDef.header ?? "") })}
+              onClick={() => cycleSort(h.id === ID_COLUMN ? ID_COLUMN : h.id.slice(2))}
             >
-              {flexRender(h.column.columnDef.header, h.getContext())}
+              <span className={cn("truncate", onSortChange && "cursor-pointer")}>
+                {flexRender(h.column.columnDef.header, h.getContext())}
+              </span>
+              {(() => {
+                const column = h.id === ID_COLUMN ? ID_COLUMN : h.id.slice(2);
+                if (sort?.column !== column) return null;
+                return sort.desc ? (
+                  <ArrowDown className="ml-1 size-3 shrink-0 text-primary" />
+                ) : (
+                  <ArrowUp className="ml-1 size-3 shrink-0 text-primary" />
+                );
+              })()}
               <div
+                // 列幅の変更で並べ替えが動かないようにする
+                onClick={(e) => e.stopPropagation()}
                 onMouseDown={h.getResizeHandler()}
                 onDoubleClick={() => h.column.resetSize()}
                 className={cn(

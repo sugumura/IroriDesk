@@ -34,6 +34,8 @@ import {
 
 /** 分割表示のグループ。0 = 左（上）、1 = 右（下） */
 export type GroupIndex = 0 | 1;
+/** 並べ替える列（"__id" は Doc ID / UID の列）と向き */
+export type TableSort = { column: string; desc: boolean };
 export type SplitMode = "none" | "horizontal" | "vertical";
 
 export interface BrowseTab {
@@ -46,6 +48,10 @@ export interface BrowseTab {
   loading: boolean;
   error: AppError | null;
   view: "table" | "json";
+  /** 読み込み済みの結果の絞り込み（手元だけ） */
+  filter: string;
+  /** テーブルの並べ替え（手元だけ）。null は読み込んだ順 */
+  sort: TableSort | null;
   /** 古いレスポンスを捨てるための世代番号 */
   requestSeq: number;
   /** コレクション全体の件数（集計クエリ）。未取得・失敗時は null */
@@ -65,6 +71,10 @@ export interface QueryTab {
   loading: boolean;
   error: AppError | null;
   view: "table" | "json";
+  /** 読み込み済みの結果の絞り込み（手元だけ） */
+  filter: string;
+  /** テーブルの並べ替え（手元だけ）。null は読み込んだ順 */
+  sort: TableSort | null;
   requestSeq: number;
   /** 条件に一致する件数（limit なし）。未取得・失敗時は null */
   totalCount: number | null;
@@ -82,6 +92,10 @@ export interface AuthTab {
   loading: boolean;
   error: AppError | null;
   view: "table" | "json";
+  /** 読み込み済みの結果の絞り込み（手元だけ） */
+  filter: string;
+  /** テーブルの並べ替え（手元だけ）。null は読み込んだ順 */
+  sort: TableSort | null;
   requestSeq: number;
 }
 
@@ -183,6 +197,8 @@ interface State {
   /** タブをもう一方のグループへ移す（分割していなければ左右に分割する） */
   moveTabToOtherGroup(id: string): void;
   setView(tabId: string, view: Tab["view"]): void;
+  setTabFilter(tabId: string, filter: string): void;
+  setTabSort(tabId: string, sort: TableSort | null): void;
 
   openQuery(spec?: QuerySpec): void;
   /** 最新の spec に patch を当てる（連続した更新で古い値に上書きされないように） */
@@ -393,6 +409,8 @@ export const useStore = create<State>((set, get) => {
         loading: false,
         error: null,
         view: current?.view ?? "table",
+        filter: "",
+        sort: null,
         requestSeq: 0,
       };
       let id: string;
@@ -516,6 +534,14 @@ export const useStore = create<State>((set, get) => {
       updateTab(tabId, { view });
     },
 
+    setTabFilter(tabId, filter) {
+      updateTab(tabId, { filter });
+    },
+
+    setTabSort(tabId, sort) {
+      updateTab(tabId, { sort });
+    },
+
     openQuery(spec) {
       // 条件の指定がなければ、同じグループの空のクエリタブを使い回す
       if (!spec) {
@@ -539,6 +565,8 @@ export const useStore = create<State>((set, get) => {
         loading: false,
         error: null,
         view: "table",
+        filter: "",
+        sort: null,
         requestSeq: 0,
       };
       addTab(tab);
@@ -631,6 +659,8 @@ export const useStore = create<State>((set, get) => {
         loading: false,
         error: null,
         view: "table",
+        filter: "",
+        sort: null,
         requestSeq: 0,
       });
       void get().loadUsers(id, true);

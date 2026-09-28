@@ -26,6 +26,8 @@ import { FieldInput } from "./FieldInput";
 import { JsonCode } from "./JsonCode";
 import { HistoryButton, HistoryList } from "./QueryHistory";
 import { ResultsView, ViewToggle } from "./ResultsView";
+import { filterDocs } from "@/lib/localView";
+import { FilterInput } from "./FilterInput";
 
 const OPS: WhereOp[] = [
   "==",
@@ -357,6 +359,9 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
   const t = useT();
   // 列設定は実行したクエリの対象ごと（コレクションは閲覧タブと共通）
   const target = tab.ranSpec ?? tab.spec;
+  const setTabFilter = useStore((s) => s.setTabFilter);
+  const setTabSort = useStore((s) => s.setTabSort);
+  const shown = useMemo(() => filterDocs(tab.docs, tab.filter), [tab.docs, tab.filter]);
   const layout = useColumnLayout(
     tab.docs,
     columnScope(
@@ -378,7 +383,13 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
         ) : tab.docs.length === 0 ? (
           <div className="p-4 text-muted-foreground">{t("query.noResults")}</div>
         ) : (
-          <ResultsView docs={tab.docs} fields={layout.visible} view={tab.view} />
+          <ResultsView
+            docs={shown}
+            fields={layout.visible}
+            view={tab.view}
+            sort={tab.sort}
+            onSortChange={(sort) => setTabSort(tab.id, sort)}
+          />
         )}
       </div>
       <div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
@@ -391,6 +402,10 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
         {tab.readTime && <span className="hidden @xl:inline" title={tab.readTime}>readTime: {formatTimestamp(tab.readTime)}</span>}
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
+        {ran && tab.filter && (
+          <span className="shrink-0 text-primary">{t("browse.filtered", { shown: shown.length, total: tab.docs.length })}</span>
+        )}
+        {ran && <FilterInput className="w-40" value={tab.filter} onChange={(v) => setTabFilter(tab.id, v)} />}
         {ran && (
           <ExportMenu
             docs={tab.docs}

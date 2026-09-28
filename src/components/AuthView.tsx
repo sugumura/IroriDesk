@@ -19,6 +19,8 @@ import { ColumnSettings } from "./ColumnSettings";
 import { ErrorBox } from "./ErrorBox";
 import { ExportMenu } from "./ExportMenu";
 import { ResultsView, ViewToggle } from "./ResultsView";
+import { filterDocs } from "@/lib/localView";
+import { FilterInput } from "./FilterInput";
 
 /** placeholder が MessageKey でないもの（メールの例）はそのまま表示する */
 const LOOKUP_KINDS: { value: UserLookupKind; label: MessageKey; placeholder: MessageKey | { text: string } }[] = [
@@ -40,6 +42,9 @@ export function AuthView({ tab }: { tab: AuthTab }) {
   const rows = useMemo(() => tab.users.map(userToRow), [tab.users]);
   const layout = useColumnLayout(rows, columnScope({ kind: "collection", path: "__auth__" }));
   const byUid = useMemo(() => new Map(tab.users.map((u) => [u.uid, u])), [tab.users]);
+  const setTabFilter = useStore((s) => s.setTabFilter);
+  const setTabSort = useStore((s) => s.setTabSort);
+  const shown = useMemo(() => filterDocs(rows, tab.filter), [rows, tab.filter]);
   const kindInfo = LOOKUP_KINDS.find((k) => k.value === kind)!;
   const placeholder = typeof kindInfo.placeholder === "string" ? t(kindInfo.placeholder) : kindInfo.placeholder.text;
 
@@ -114,7 +119,9 @@ export function AuthView({ tab }: { tab: AuthTab }) {
           </div>
         ) : (
           <ResultsView
-            docs={rows}
+            docs={shown}
+            sort={tab.sort}
+            onSortChange={(sort) => setTabSort(tab.id, sort)}
             fields={layout.visible}
             view={tab.view}
             selectedPath={selectedUid ? userRowPath(selectedUid) : null}
@@ -131,6 +138,10 @@ export function AuthView({ tab }: { tab: AuthTab }) {
         </span>
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
+        {tab.filter && (
+          <span className="shrink-0 text-primary">{t("browse.filtered", { shown: shown.length, total: rows.length })}</span>
+        )}
+        <FilterInput className="w-40" value={tab.filter} onChange={(v) => setTabFilter(tab.id, v)} />
         <ExportMenu docs={rows} fields={layout.visible} baseName="auth_users" />
         {tab.nextPageToken && !tab.search && (
           <Button size="xs" variant="outline" disabled={tab.loading} onClick={() => loadUsers(tab.id, false)}>

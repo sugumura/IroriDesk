@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { DisplayDocument } from "@/lib/api";
 import { toExportObject } from "@/lib/display";
-import { type Tab, useStore } from "@/store";
+import { type Tab, type TableSort, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { DocumentTable } from "./DocumentTable";
 import { JsonCode } from "./JsonCode";
@@ -42,6 +42,8 @@ export function ResultsView({
   selectedPath: selectedOverride,
   onSelect,
   idLabel,
+  sort,
+  onSortChange,
 }: {
   docs: DisplayDocument[];
   fields: string[];
@@ -49,6 +51,8 @@ export function ResultsView({
   selectedPath?: string | null;
   onSelect?: (doc: DisplayDocument) => void;
   idLabel?: string;
+  sort?: TableSort | null;
+  onSortChange?: (sort: TableSort | null) => void;
 }) {
   const selectedDoc = useStore((s) => s.selectedDocPath);
   const select = useStore((s) => s.selectDocument);
@@ -59,6 +63,8 @@ export function ResultsView({
       selectedPath={selectedOverride !== undefined ? selectedOverride : selectedDoc}
       onSelect={onSelect ?? ((d) => select(d.path))}
       idLabel={idLabel}
+      sort={sort}
+      onSortChange={onSortChange}
     />
   ) : (
     <JsonList docs={docs} />

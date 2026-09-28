@@ -1,4 +1,6 @@
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { filterDocs } from "@/lib/localView";
+import { FilterInput } from "./FilterInput";
 import { ChevronRight, ListTree, Loader2, RefreshCw, Search } from "lucide-react";
 import { splitPath } from "@/lib/display";
 import { activeConnection, type BrowseTab, emptyQuerySpec, useStore } from "@/store";
@@ -58,6 +60,10 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
   const [indexesOpen, setIndexesOpen] = useState(false);
   const segments = splitPath(tab.collectionPath);
   const collectionId = segments[segments.length - 1] ?? tab.collectionPath;
+  const setTabFilter = useStore((s) => s.setTabFilter);
+  const setTabSort = useStore((s) => s.setTabSort);
+  // 読み込み済みの結果を手元で絞り込む（Firestore にはクエリを送らない）
+  const shown = useMemo(() => filterDocs(tab.docs, tab.filter), [tab.docs, tab.filter]);
   const layout = useColumnLayout(
     tab.docs,
     columnScope({ kind: "collection", path: tab.collectionPath }),
@@ -112,7 +118,13 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
         {tab.docs.length === 0 && !tab.loading && !tab.error ? (
           <div className="p-4 text-muted-foreground">{t("browse.noDocuments")}</div>
         ) : (
-          <ResultsView docs={tab.docs} fields={layout.visible} view={tab.view} />
+          <ResultsView
+            docs={shown}
+            fields={layout.visible}
+            view={tab.view}
+            sort={tab.sort}
+            onSortChange={(sort) => setTabSort(tab.id, sort)}
+          />
         )}
       </div>
 
@@ -125,6 +137,10 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
         </span>
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
+        {tab.filter && (
+          <span className="shrink-0 text-primary">{t("browse.filtered", { shown: shown.length, total: tab.docs.length })}</span>
+        )}
+        <FilterInput className="w-44" value={tab.filter} onChange={(v) => setTabFilter(tab.id, v)} />
         <ExportMenu docs={tab.docs} fields={layout.visible} baseName={tab.collectionPath} />
         {tab.nextPageToken && (
           <Button size="xs" variant="outline" disabled={tab.loading} onClick={() => loadPage(tab.id, false)}>
