@@ -13,9 +13,11 @@ pub enum AppError {
         detail: Option<String>,
     },
 
-    /// Firestore API がエラーレスポンスを返した
-    #[error("Firestore API エラー ({status}): {message}")]
+    /// Google の API（Firestore / Authentication）がエラーレスポンスを返した
+    #[error("{service} API エラー ({status}): {message}")]
     Api {
+        /// 呼び出した API の表示名（Firestore / Authentication）
+        service: &'static str,
         http_status: u16,
         status: String,
         message: String,

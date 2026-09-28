@@ -11,7 +11,7 @@ use serde_json::{json, Map, Value};
 use crate::auth::{AdcTokenSource, EmulatorTokenSource, TokenSource};
 use crate::connection::{ConnectionConfig, ConnectionKind};
 use crate::error::{AppError, AppResult};
-use crate::firestore::check_status;
+use crate::firestore::check_status_for;
 
 const PRODUCTION_BASE_URL: &str = "https://identitytoolkit.googleapis.com";
 const MAX_PAGE_SIZE: u32 = 1000;
@@ -204,7 +204,7 @@ impl AuthClient {
             }
         }
         let res = self.request(Method::GET, url).await?.send().await?;
-        let body: Value = check_status(res).await?.json().await?;
+        let body: Value = check_auth_status(res).await?.json().await?;
         Ok(UserPage {
             users: users_from(&body)?,
             next_page_token: body
@@ -235,9 +235,37 @@ impl AuthClient {
             .json(&body)
             .send()
             .await?;
-        let body: Value = check_status(res).await?.json().await?;
+        let body: Value = check_auth_status(res).await?.json().await?;
         users_from(&body)
     }
+}
+
+/// Identity Toolkit のエラーを分かりやすいメッセージにする
+async fn check_auth_status(res: reqwest::Response) -> AppResult<reqwest::Response> {
+    check_status_for(res, "Authentication").await.map_err(|e| match e {
+        AppError::Api {
+            service,
+            http_status,
+            status,
+            message,
+        } => {
+            let hint = match message.as_str() {
+                "CONFIGURATION_NOT_FOUND" => Some(
+                    "このプロジェクトでは Firebase Authentication が有効になっていません。\
+                     Firebase コンソールの Authentication で「始める」を押し、ログイン方法を1つ以上有効にしてください。",
+                ),
+                "PROJECT_NOT_FOUND" => Some("プロジェクトが見つかりません。プロジェクトIDを確認してください。"),
+                _ => None,
+            };
+            AppError::Api {
+                service,
+                http_status,
+                status,
+                message: hint.map_or(message.clone(), |h| format!("{h}（{message}）")),
+            }
+        }
+        other => other,
+    })
 }
 
 fn users_from(body: &Value) -> AppResult<Vec<DisplayUser>> {
@@ -307,6 +335,22 @@ mod tests {
                 std::env::var("FIREBASE_AUTH_EMULATOR_HOST").unwrap_or("127.0.0.1:9099".into()),
             ),
         }
+    }
+
+    #[tokio::test]
+    async fn explains_configuration_not_found() {
+        let body = json!({ "error": { "code": 400, "message": "CONFIGURATION_NOT_FOUND" } });
+        let res = reqwest::Response::from(
+            http::Response::builder()
+                .status(400)
+                .body(body.to_string())
+                .unwrap(),
+        );
+        let err = check_auth_status(res).await.unwrap_err();
+        let text = err.to_string();
+        assert!(text.starts_with("Authentication API エラー (Bad Request)"), "{text}");
+        assert!(text.contains("Firebase Authentication が有効になっていません"), "{text}");
+        assert!(text.contains("CONFIGURATION_NOT_FOUND"), "{text}");
     }
 
     #[test]

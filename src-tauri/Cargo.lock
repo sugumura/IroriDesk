@@ -1042,6 +1042,7 @@ dependencies = [
  "base64 0.23.1",
  "chrono",
  "gcp_auth",
+ "http",
  "reqwest",
  "serde",
  "serde_json",

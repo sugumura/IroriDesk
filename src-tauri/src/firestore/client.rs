@@ -159,8 +159,13 @@ fn parse_error_body(text: String) -> (String, String) {
     }
 }
 
-/// 非2xxレスポンスを AppError に変換する
+/// 非2xxレスポンスを AppError に変換する（Firestore API）
 pub(crate) async fn check_status(res: Response) -> AppResult<Response> {
+    check_status_for(res, "Firestore").await
+}
+
+/// 非2xxレスポンスを AppError に変換する。service はエラーの見出しに使う
+pub(crate) async fn check_status_for(res: Response, service: &'static str) -> AppResult<Response> {
     let http_status = res.status();
     if http_status.is_success() {
         return Ok(res);
@@ -174,6 +179,7 @@ pub(crate) async fn check_status(res: Response) -> AppResult<Response> {
         });
     }
     Err(AppError::Api {
+        service,
         http_status: http_status.as_u16(),
         status: if status.is_empty() {
             http_status.canonical_reason().unwrap_or("").to_owned()
