@@ -1,168 +1,173 @@
 # Irori Desk
 
-Cloud Firestore と Firebase Authentication を閲覧・クエリするためのデスクトップアプリです（Tauri 2 + React）。
-現在のバージョンは**読み取り専用**で、Firestore や Authentication に書き込む API は一切呼びません。
+English | [日本語](docs/README.ja.md)
 
-## 主な機能
+A desktop app for browsing and querying Cloud Firestore and Firebase Authentication (Tauri 2 + React).
+The current version is **read-only**: it never calls any API that writes to Firestore or Authentication.
 
-- **閲覧**: コレクションツリー、ドキュメント一覧（ページング・仮想スクロール）、ドキュメント詳細（ツリー / JSON）、サブコレクション・参照先への移動
-- **クエリ**: コレクション / collectionGroup を対象に where（AND）・orderBy・limit。フィールド名の候補表示、インデックス不足時の作成リンク、接続ごとの履歴（直近20件）
-- **Authentication**: ユーザー一覧、UID / メール / 電話番号での検索、詳細（プロバイダ、カスタムクレームなど）
-- **エクスポート**: JSON（型情報を保持）/ CSV / TSV
-- **表示**: Doc ID 列の固定、列の表示・並び替え、画面の分割（左右・上下）、ライト / ダーク / システム、フォント・表示サイズ
-- **接続**: 本番（ADC または gcloud のアカウントを接続ごとに選択）と Emulator
+## Features
 
-仕様と設計上の決定事項は [docs/SPEC.md](docs/SPEC.md) を参照してください。
+- **Browse**: collection tree, document list (paging, virtual scrolling), document details (tree / JSON), jump to subcollections and referenced documents
+- **Query**: `where` (AND), `orderBy` and `limit` on a collection or collection group. Field name suggestions, a link to create a missing composite index, and per-connection history (last 20)
+- **Authentication**: user list, search by UID / email / phone number, details (providers, custom claims, …)
+- **Indexes**: composite indexes and single-field exemptions per collection
+- **Export**: JSON (keeps type information) / CSV / TSV
+- **View**: pinned Doc ID column, column visibility and order, split view (side by side / stacked), light / dark / system theme, fonts and zoom, English / Japanese
+- **Connections**: production (ADC, or a gcloud account per connection) and the Firebase Emulator
 
-## 必要なもの
+The specification and design decisions (in Japanese) are in [docs/SPEC.md](docs/SPEC.md).
 
-| ツール | 用途 | 備考 |
+## Requirements
+
+| Tool | Used for | Notes |
 |---|---|---|
-| Node.js 24 / pnpm 10 | フロントエンド | |
-| Rust（stable） | バックエンド | `rustup` で導入 |
-| Xcode Command Line Tools（macOS） | ビルド | 初回は `sudo xcodebuild -license accept` が必要な場合あり |
-| Google Cloud SDK（gcloud） | 本番接続の認証 | |
-| Java 21 以上 | Firebase Emulator | 開発・動作確認時のみ。`.sdkmanrc` あり |
+| Node.js 24 / pnpm 10 | Frontend | |
+| Rust (stable) | Backend | Install with `rustup` |
+| Xcode Command Line Tools (macOS) | Build | You may need `sudo xcodebuild -license accept` once |
+| Google Cloud SDK (gcloud) | Authentication for production connections | |
+| Java 21+ | Firebase Emulator | Only for development. See `.sdkmanrc` |
 
-Windows / Linux の前提は [Tauri の Prerequisites](https://tauri.app/start/prerequisites/) を参照してください。
+For Windows / Linux, see the [Tauri prerequisites](https://tauri.app/start/prerequisites/).
 
-## セットアップと起動
+## Getting started
 
 ```bash
 pnpm install
 pnpm tauri dev
 ```
 
-## 本番プロジェクトへの接続
+## Connecting to a production project
 
-接続の管理（上部バーのサーバーアイコン）で「本番（Google Cloud）」の接続を追加し、アカウントを選びます。
+Open **Manage connections** (the server icon in the top bar), add a **Production (Google Cloud)** connection, and choose an account.
 
-### ADC を使う場合
+### Using ADC
 
-マシン全体で1つのアカウントを使います。
+One account for the whole machine.
 
 ```bash
 gcloud auth application-default login --scopes=openid,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/cloud-platform
 ```
 
-- `--scopes` を省略すると Cloud SQL のスコープも要求されます（このアプリには不要）。
-- ADC を別のアカウントで作り直したら、接続の管理の「ADC を再読み込み」を押します（再起動は不要）。
+- Without `--scopes`, gcloud also requests a Cloud SQL scope, which this app doesn't need.
+- After recreating ADC with a different account, press **Reload ADC** in Manage connections (no restart needed).
 
-### gcloud のアカウントを使う場合
+### Using a gcloud account
 
-接続ごとに別のアカウントを使えます。接続の管理の「アカウントを追加」でブラウザが開き、Google にログインします（`gcloud auth login --no-activate` を実行。ターミナル側の gcloud の現在のアカウントは変わりません）。トークンの期限切れや組織の再認証ポリシーでエラーになったら「再ログイン」を押します。
+Each connection can use a different account. **Add account** in Manage connections opens a browser to sign in with Google (it runs `gcloud auth login --no-activate`, so the active account of your gcloud CLI doesn't change). If a token expires or your organization requires reauthentication, press **Sign in again**.
 
-### 注意
+### Notes
 
-- アクセストークンは Rust 側のメモリにのみ保持し、画面や設定ファイルには渡しません。
-- Firebase Authentication の API はユーザーの認証情報だと quota project が必要なため、未指定なら接続先のプロジェクトを使います（`x-goog-user-project`）。
-- Authentication が未有効のプロジェクトでは `CONFIGURATION_NOT_FOUND` になります。Firebase コンソールの Authentication で「始める」を押してください。
-- 複合インデックスが必要なクエリは、エラー内のリンクから作成できます。
+- Access tokens are kept only in memory on the Rust side; they are never passed to the UI or written to the settings file.
+- The Firebase Authentication API requires a quota project when called with user credentials, so the connection's project is used unless you set one (`x-goog-user-project`).
+- If Authentication isn't enabled for the project, you'll get `CONFIGURATION_NOT_FOUND`. Click **Get started** under Authentication in the Firebase console.
+- For queries that need a composite index, the error includes a link to create it.
+- Viewing indexes requires permission to list indexes (e.g. Owner or Datastore Index Admin). The Emulator doesn't support the index API.
 
-## Emulator での動作確認
+## Trying it with the Emulator
 
 ```bash
-sdk env            # Java 21 に切り替え（sdkman を使う場合）
-pnpm emulator      # Firestore（8080）と Authentication（9099）
-pnpm seed          # テストデータ（ドキュメント128件、ユーザー33人）を投入
+sdk env            # switch to Java 21 (if you use sdkman)
+pnpm emulator      # Firestore (8080) and Authentication (9099)
+pnpm seed          # load test data (128 documents, 33 users)
 ```
 
-アプリの初回起動時に「Emulator (demo)」接続（プロジェクト ID `demo-firestore-viewer`）が作られます。
-テストデータにはネストした map・配列・Timestamp・Reference・GeoPoint・bytes・安全範囲外の整数・NaN・`$` で始まるキー・実体のない親ドキュメント・サブコレクション・ページング用の120件が含まれます。
+On first launch the app creates an "Emulator (demo)" connection (project ID `demo-firestore-viewer`).
+The test data includes nested maps, arrays, Timestamps, References, GeoPoints, bytes, integers outside the safe range, NaN, keys starting with `$`, missing parent documents, subcollections, and 120 documents for paging.
 
-本番プロジェクトにも同じ Firestore のテストデータを入れられます（既存のドキュメントは上書きしません。Authentication のユーザーは投入しません）。
+You can load the same Firestore test data into a production project as well (existing documents are never overwritten; Authentication users are not created):
 
 ```bash
 pnpm seed --project <projectId>
 ```
 
-## テスト
+## Tests
 
 ```bash
-pnpm test                                     # フロントエンド（vitest）
+pnpm test                                         # frontend (vitest)
 pnpm typecheck
-cd src-tauri && cargo test                    # Rust
-cd src-tauri && cargo test -- --include-ignored   # Emulator を使う結合テストも含める（pnpm emulator と pnpm seed が必要）
+cd src-tauri && cargo test                        # Rust
+cd src-tauri && cargo test -- --include-ignored   # also run Emulator integration tests (needs pnpm emulator and pnpm seed)
 cd src-tauri && cargo clippy --all-targets
 ```
 
-## リリースビルド
+## Release builds
 
-### 署名なし（自分の Mac で使う場合）
+### Unsigned (for your own Mac)
 
 ```bash
 pnpm tauri build
 ```
 
-`src-tauri/target/release/bundle/` に `.app` と `.dmg` ができます。
-`.dmg` の作成時に Finder を操作するため、初回に「オートメーション」の許可を求められたら許可してください。
+The `.app` and `.dmg` are created under `src-tauri/target/release/bundle/`.
+Building the `.dmg` controls Finder, so allow the **Automation** permission if macOS asks.
 
-### 署名・公証付き（配布する場合）
+### Signed and notarized (for distribution)
 
-配布したアプリがそのまま起動できるよう、Apple の Developer ID で署名し、公証（Notarization）します。
+So that distributed builds open without Gatekeeper warnings, the app is signed with an Apple Developer ID and notarized.
 
-1. [Apple Developer Program](https://developer.apple.com/programs/) に登録する（年額 99 米ドル）。
-2. 「Developer ID Application」証明書を作成し、キーチェーンに入れる。名前は `security find-identity -v -p codesigning` で確認できます。
-3. 公証の認証情報を用意する（App Store Connect の API キー、または Apple ID と App 用パスワード）。
-4. `.env.signing.example` を `.env.signing` にコピーして値を入れる（`.env.signing` と `*.p8` は git 管理外）。
-5. 実行する。
+1. Join the [Apple Developer Program](https://developer.apple.com/programs/) (US$99/year).
+2. Create a **Developer ID Application** certificate and add it to your keychain. Check its name with `security find-identity -v -p codesigning`.
+3. Prepare notarization credentials (an App Store Connect API key, or an Apple ID with an app-specific password).
+4. Copy `.env.signing.example` to `.env.signing` and fill it in (`.env.signing` and `*.p8` are git-ignored).
+5. Run:
 
 ```bash
 ./scripts/release-mac.sh
 ```
 
-Apple Silicon と Intel の Universal バイナリを作り、署名・公証・チケットの添付まで行ったうえで、`codesign` / `spctl` / `stapler` で確認します。成果物は `src-tauri/target/universal-apple-darwin/release/bundle/dmg/` にできます。
+It builds a universal binary (Apple Silicon + Intel), signs, notarizes and staples it, then verifies with `codesign` / `spctl` / `stapler`. Output goes to `src-tauri/target/universal-apple-darwin/release/bundle/dmg/`.
 
-Windows は署名しないと SmartScreen の警告が出ます（「詳細情報 → 実行」で起動可能）。
+On Windows, unsigned builds show a SmartScreen warning ("More info → Run anyway").
 
-### GitHub Releases で配布する
+### Publishing with GitHub Releases
 
-`v0.1.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が macOS（Universal、署名・公証付き）/ Windows / Linux 向けにビルドし、Releases に**下書き**として登録します。内容を確認して「Publish release」を押すと公開されます。
+Pushing a tag like `v0.1.1` runs GitHub Actions (`.github/workflows/release.yml`), which builds for macOS (universal, signed and notarized), Windows and Linux and creates a **draft** release. Review it and click **Publish release**.
 
 ```bash
-# src-tauri/tauri.conf.json の version を上げてコミットしてから
-git tag v0.1.0
-git push origin v0.1.0
+# bump "version" in src-tauri/tauri.conf.json and commit first
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
-タグと `tauri.conf.json` の `version` が一致しないとビルドは失敗します。
+The build fails if the tag doesn't match `version` in `tauri.conf.json`.
 
-macOS の署名・公証には、リポジトリの Secrets（Settings → Secrets and variables → Actions）が必要です。
+Signing and notarizing on macOS needs these repository secrets (Settings → Secrets and variables → Actions):
 
-| Secret | 内容 |
+| Secret | Value |
 |---|---|
-| `APPLE_CERTIFICATE` | Developer ID Application 証明書と秘密鍵を書き出した `.p12` を base64 にしたもの |
-| `APPLE_CERTIFICATE_PASSWORD` | `.p12` を書き出したときのパスワード |
-| `APPLE_SIGNING_IDENTITY` | `Developer ID Application: 名前 (チームID)` |
-| `APPLE_API_ISSUER` | App Store Connect API の Issuer ID |
-| `APPLE_API_KEY` | App Store Connect API のキー ID |
-| `APPLE_API_PRIVATE_KEY` | `AuthKey_キーID.p8` の中身 |
-| `KEYCHAIN_PASSWORD` | CI で作る一時キーチェーンのパスワード（任意の文字列） |
+| `APPLE_CERTIFICATE` | The Developer ID Application certificate and private key exported as `.p12`, base64-encoded |
+| `APPLE_CERTIFICATE_PASSWORD` | The password used when exporting the `.p12` |
+| `APPLE_SIGNING_IDENTITY` | `Developer ID Application: Name (TEAMID)` |
+| `APPLE_API_ISSUER` | App Store Connect API Issuer ID |
+| `APPLE_API_KEY` | App Store Connect API key ID |
+| `APPLE_API_PRIVATE_KEY` | Contents of `AuthKey_<KEYID>.p8` |
+| `KEYCHAIN_PASSWORD` | Password for the temporary keychain created in CI (any string) |
 
-`.p12` はキーチェーンアクセスで証明書を右クリック →「書き出す」で作成し、`base64 -i 証明書.p12 | pbcopy` でコピーできます。
+Export the `.p12` from Keychain Access (right-click the certificate under **My Certificates** → **Export**), then copy it with `base64 -i certificate.p12 | pbcopy`.
 
-## アイコン
+## Icon
 
-元データは `assets/icon.svg` です。編集したら次のコマンドで全サイズを作り直します（モバイル向けの画像は自動で削除されます）。
+The source is `assets/icon.svg`. After editing it, regenerate every size (mobile icons are removed automatically):
 
 ```bash
 pnpm icons
 ```
 
-## 構成
+## Project layout
 
 ```
-src/                    React（画面）
-  components/           画面の部品
-  lib/                  API 呼び出し、表示用の変換、エクスポート、列設定、履歴など
-  store.ts              アプリの状態（zustand）
+src/                    React (UI)
+  components/           UI components
+  lib/                  API calls, display conversion, export, column settings, history, …
+  i18n/                 English / Japanese messages (per feature under messages/)
+  store.ts              App state (zustand)
 src-tauri/src/          Rust
-  firestore/            Firestore REST クライアント、型変換（value.rs）、クエリ組み立て
-  firebase_auth.rs      Firebase Authentication（Identity Toolkit）
-  auth.rs / gcloud.rs   ADC / gcloud アカウントのトークン
-  export.rs             保存ダイアログとファイル書き込み
-scripts/                テストデータ投入、macOS のリリースビルド
-docs/SPEC.md            仕様と決定事項
+  firestore/            Firestore REST client, value conversion (value.rs), query building, indexes
+  firebase_auth.rs      Firebase Authentication (Identity Toolkit)
+  auth.rs / gcloud.rs   Tokens from ADC / gcloud accounts
+  export.rs             Save dialog and file writing
+scripts/                Test data loading, macOS release build
+docs/                   Specification (SPEC.md) and the Japanese README
 ```
 
-設定（接続、表示、列、クエリ履歴）は OS のアプリデータ領域の `settings.json` に保存されます（macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`）。
+Settings (connections, appearance, columns, query history) are stored in `settings.json` in the OS app data directory (macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`).
