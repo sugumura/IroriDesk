@@ -4,7 +4,7 @@ import { formatTimestamp } from "@/lib/display";
 import { useStore } from "@/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CopyButton } from "./CopyButton";
+import { CopyButton, CopyTextButton } from "./CopyButton";
 import { JsonCode } from "./JsonCode";
 
 function Row({ label, value, mono, copy }: { label: string; value: React.ReactNode; mono?: boolean; copy?: string }) {
@@ -100,7 +100,8 @@ export function UserDetail({ user }: { user: DisplayUser }) {
           </div>
         </details>
       </div>
-      <div className="shrink-0 border-t px-3 py-1 text-right">
+      <div className="flex h-9 shrink-0 items-center justify-end gap-2 border-t px-3">
+        <CopyTextButton text={raw}>JSON をコピー</CopyTextButton>
         <Button variant="ghost" size="xs" onClick={() => selectUser(null)}>
           選択解除
         </Button>

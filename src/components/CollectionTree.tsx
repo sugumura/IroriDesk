@@ -14,7 +14,7 @@ function OpenPathForm() {
   const [value, setValue] = useState("");
   return (
     <form
-      className="p-2"
+      className="px-2 pb-2"
       onSubmit={(e) => {
         e.preventDefault();
         const path = splitPath(value).join("/");
@@ -46,17 +46,35 @@ export function CollectionTree() {
   });
   const activeRoot = activePath ? splitPath(activePath)[0] : null;
 
-
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* Authentication は常に一番上に固定し、区切り線のあとにコレクションを並べる */}
       <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
+        <span className="font-medium">Authentication</span>
+        <div className="flex-1" />
+        <Button variant="ghost" size="icon-sm" title="パネルを閉じる" onClick={() => setTreeOpen(false)}>
+          <X />
+        </Button>
+      </div>
+      <div className="shrink-0 border-b p-1">
+        <button
+          type="button"
+          className={cn(
+            "flex w-full items-center gap-1.5 rounded px-2 py-1 text-left hover:bg-muted",
+            authActive && "bg-accent font-medium",
+          )}
+          onClick={() => openAuth()}
+        >
+          <Users className="size-3.5 shrink-0 text-muted-foreground" />
+          ユーザー
+        </button>
+      </div>
+
+      <div className="flex h-9 shrink-0 items-center gap-2 px-3">
         <span className="font-medium">コレクション</span>
         <div className="flex-1" />
-        <Button variant="ghost" size="icon-sm" title="再読み込み" disabled={root.loading} onClick={() => reload()}>
+        <Button variant="ghost" size="icon-sm" title="コレクションを再読み込み" disabled={root.loading} onClick={() => reload()}>
           {root.loading ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-        </Button>
-        <Button variant="ghost" size="icon-sm" title="閉じる" onClick={() => setTreeOpen(false)}>
-          <X />
         </Button>
       </div>
       <OpenPathForm />
@@ -80,20 +98,6 @@ export function CollectionTree() {
             <span className="truncate">{id}</span>
           </button>
         ))}
-      </div>
-      <div className="shrink-0 border-t p-1">
-        <div className="px-2 pt-1 pb-0.5 text-xs font-medium text-muted-foreground">Authentication</div>
-        <button
-          type="button"
-          className={cn(
-            "flex w-full items-center gap-1.5 rounded px-2 py-1 text-left hover:bg-muted",
-            authActive && "bg-accent font-medium",
-          )}
-          onClick={() => openAuth()}
-        >
-          <Users className="size-3.5 shrink-0 text-muted-foreground" />
-          ユーザー
-        </button>
       </div>
     </div>
   );

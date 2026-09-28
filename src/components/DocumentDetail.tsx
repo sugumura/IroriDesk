@@ -7,10 +7,10 @@ import {
   listCollectionIds,
   toAppError,
 } from "@/lib/api";
-import { formatTimestamp, toExportObject } from "@/lib/display";
+import { formatTimestamp } from "@/lib/display";
 import { activeConnection, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
-import { CopyButton } from "./CopyButton";
+import { CopyButton, CopyTextButton } from "./CopyButton";
 import { ErrorBox } from "./ErrorBox";
 import { JsonCode } from "./JsonCode";
 import { JsonTree } from "./JsonTree";
@@ -110,11 +110,6 @@ export function DocumentDetail() {
                 {state.doc.updateTime && (
                   <span title={state.doc.updateTime}>更新: {formatTimestamp(state.doc.updateTime)}</span>
                 )}
-                <CopyButton
-                  text={() => JSON.stringify(toExportObject(state.doc!), null, 2)}
-                  label="ドキュメントをJSONでコピー"
-                  className="ml-auto"
-                />
               </div>
             )}
           </div>
@@ -159,19 +154,18 @@ export function DocumentDetail() {
                 <JsonTree fields={state.doc.fields} />
               </div>
             ) : (
-              <div className="relative p-2">
-                <CopyButton
-                  text={() => JSON.stringify(state.doc!.fields, null, 2)}
-                  label="フィールドをJSONでコピー"
-                  className="absolute top-3 right-3"
-                />
+              <div className="p-2">
                 <JsonCode text={JSON.stringify(state.doc.fields, null, 2)} className="overflow-auto px-1" />
               </div>
             ))}
         </div>
       )}
       {path && (
-        <div className="shrink-0 border-t px-3 py-1 text-right">
+        // 一覧のフッターと同じ高さに揃える
+        <div className="flex h-9 shrink-0 items-center justify-end gap-2 border-t px-3">
+          {state.doc && (
+            <CopyTextButton text={() => JSON.stringify(state.doc!.fields, null, 2)}>JSON をコピー</CopyTextButton>
+          )}
           <Button variant="ghost" size="xs" onClick={() => select(null)}>
             選択解除
           </Button>
