@@ -14,6 +14,7 @@ import { CopyButton, CopyTextButton } from "./CopyButton";
 import { ErrorBox } from "./ErrorBox";
 import { JsonCode } from "./JsonCode";
 import { JsonTree } from "./JsonTree";
+import { useT } from "@/i18n";
 
 interface DetailState {
   loading: boolean;
@@ -47,6 +48,7 @@ export function DocumentDetail() {
   const view = useStore((s) => s.detailView);
   const setView = useStore((s) => s.setDetailView);
   const [state, setState] = useState<DetailState>(initial);
+  const t = useT();
 
   useEffect(() => {
     if (!conn || !path) {
@@ -79,36 +81,36 @@ export function DocumentDetail() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
-        <span className="font-medium">ドキュメント</span>
+        <span className="font-medium">{t("detail.title")}</span>
         <div className="flex-1" />
         <div className="flex rounded-md border p-0.5">
           {(["tree", "json"] as const).map((v) => (
             <Button key={v} size="xs" variant={view === v ? "secondary" : "ghost"} onClick={() => setView(v)}>
-              {v === "tree" ? "ツリー" : "JSON"}
+              {v === "tree" ? t("detail.tree") : t("common.json")}
             </Button>
           ))}
         </div>
-        <Button variant="ghost" size="icon-sm" onClick={() => setDetailOpen(false)} title="閉じる">
+        <Button variant="ghost" size="icon-sm" onClick={() => setDetailOpen(false)} title={t("common.close")}>
           <X />
         </Button>
       </div>
 
       {!path ? (
-        <div className="p-4 text-muted-foreground">一覧からドキュメントを選択してください</div>
+        <div className="p-4 text-muted-foreground">{t("detail.selectPrompt")}</div>
       ) : (
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="space-y-1 border-b p-3">
             <div className="flex items-center gap-1">
               <span className="min-w-0 flex-1 font-mono text-xs break-all">{path}</span>
-              <CopyButton text={path} label="パスをコピー" />
+              <CopyButton text={path} label={t("detail.copyPath")} />
             </div>
             {state.doc && (
               <div className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
                 {state.doc.createTime && (
-                  <span title={state.doc.createTime}>作成: {formatTimestamp(state.doc.createTime)}</span>
+                  <span title={state.doc.createTime}>{t("detail.created", { time: formatTimestamp(state.doc.createTime) })}</span>
                 )}
                 {state.doc.updateTime && (
-                  <span title={state.doc.updateTime}>更新: {formatTimestamp(state.doc.updateTime)}</span>
+                  <span title={state.doc.updateTime}>{t("detail.updated", { time: formatTimestamp(state.doc.updateTime) })}</span>
                 )}
               </div>
             )}
@@ -116,26 +118,26 @@ export function DocumentDetail() {
 
           {state.loading && (
             <div className="flex items-center gap-2 p-3 text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> 読み込み中…
+              <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
             </div>
           )}
           {state.error && <ErrorBox error={state.error} className="m-3" />}
           {state.notFound && (
             <div className="p-3 text-muted-foreground">
-              このドキュメントは存在しません（サブコレクションのみを持つ場合があります）
+              {t("detail.notFound")}
             </div>
           )}
 
           {state.subcollections && state.subcollections.length > 0 && (
             <div className="border-b p-3">
-              <div className="mb-1 text-xs font-medium text-muted-foreground">サブコレクション</div>
+              <div className="mb-1 text-xs font-medium text-muted-foreground">{t("detail.subcollections")}</div>
               <div className="flex flex-wrap gap-1">
                 {state.subcollections.map((id) => (
                   <Button
                     key={id}
                     variant="outline"
                     size="xs"
-                    title="クリックで開く（⌘/Ctrl+クリックで新しいタブ）"
+                    title={t("tree.openHint")}
                     onClick={(e) =>
                       openCollection(`${path}/${id}`, { newTab: e.metaKey || e.ctrlKey })
                     }
@@ -164,10 +166,10 @@ export function DocumentDetail() {
         // 一覧のフッターと同じ高さに揃える
         <div className="flex h-9 shrink-0 items-center justify-end gap-2 border-t px-3">
           {state.doc && (
-            <CopyTextButton text={() => JSON.stringify(state.doc!.fields, null, 2)}>JSON をコピー</CopyTextButton>
+            <CopyTextButton text={() => JSON.stringify(state.doc!.fields, null, 2)}>{t("common.copyJson")}</CopyTextButton>
           )}
           <Button variant="ghost" size="xs" onClick={() => select(null)}>
-            選択解除
+            {t("common.clearSelection")}
           </Button>
         </div>
       )}

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { sharedLayout } from "@/lib/layoutStorage";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { type TFunction, useT } from "@/i18n";
 import { ErrorBox } from "./ErrorBox";
 import { columnScope } from "@/lib/columns";
 import { useColumnLayout } from "@/lib/useColumnLayout";
@@ -49,9 +50,9 @@ const VALUE_TYPES: QueryValueType[] = [
   "reference",
 ];
 
-function placeholder(w: WhereClause): string {
+function placeholder(w: WhereClause, t: TFunction): string {
   const list = LIST_OPS.has(w.op);
-  if (w.field.trim() === "__name__") return list ? "alice, users/bob" : "ドキュメントID またはパス";
+  if (w.field.trim() === "__name__") return list ? "alice, users/bob" : t("query.namePlaceholder");
   switch (w.valueType) {
     case "timestamp":
       return list ? "2026-01-01T00:00:00Z, ..." : "2026-01-01T00:00:00Z / +09:00";
@@ -60,7 +61,7 @@ function placeholder(w: WhereClause): string {
     case "double":
       return list ? "1.5, 2.5" : "1.5 / NaN";
     default:
-      return list ? "カンマ区切りで複数指定" : "値";
+      return list ? t("query.listPlaceholder") : t("query.valuePlaceholder");
   }
 }
 
@@ -119,6 +120,7 @@ function WhereRow({
   onRemove: () => void;
   suggestions: SuggestionProps;
 }) {
+  const t = useT();
   const set = <K extends keyof WhereClause>(k: K, v: WhereClause[K]) => onChange({ ...clause, [k]: v });
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -128,7 +130,7 @@ function WhereRow({
         onPick={(f) => onChange(applyPickedField(clause, f))}
         suggestions={suggestions.fields}
         loading={suggestions.loading}
-        placeholder="フィールド（profile.city / __name__）"
+        placeholder={t("query.fieldPlaceholder")}
         className="h-7 w-56 font-mono text-xs"
       />
       <SmallSelect value={clause.op} options={OPS} onChange={(v) => set("op", v)} className="w-40 font-mono" />
@@ -139,7 +141,7 @@ function WhereRow({
         className="w-28"
       />
       {clause.valueType === "null" ? (
-        <span className="flex-1 px-2 text-xs text-muted-foreground">null（== / != のみ）</span>
+        <span className="flex-1 px-2 text-xs text-muted-foreground">{t("query.nullOnly")}</span>
       ) : clause.valueType === "boolean" && !LIST_OPS.has(clause.op) ? (
         <SmallSelect
           value={clause.value === "false" ? "false" : "true"}
@@ -151,11 +153,11 @@ function WhereRow({
         <Input
           value={clause.value}
           onChange={(e) => set("value", e.target.value)}
-          placeholder={placeholder(clause)}
+          placeholder={placeholder(clause, t)}
           className="h-7 min-w-48 flex-1 font-mono text-xs"
         />
       )}
-      <Button variant="ghost" size="icon-xs" onClick={onRemove} title="条件を削除">
+      <Button variant="ghost" size="icon-xs" onClick={onRemove} title={t("query.removeWhere")}>
         <X />
       </Button>
     </div>
@@ -173,6 +175,7 @@ function OrderRow({
   onRemove: () => void;
   suggestions: SuggestionProps;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <FieldInput
@@ -180,19 +183,19 @@ function OrderRow({
         onChange={(v) => onChange({ ...clause, field: v })}
         suggestions={suggestions.fields}
         loading={suggestions.loading}
-        placeholder="フィールド"
+        placeholder={t("query.fieldPlaceholderShort")}
         className="h-7 w-56 font-mono text-xs"
       />
       <SmallSelect
         value={clause.direction}
         options={[
-          { value: "asc", label: "昇順 (asc)" },
-          { value: "desc", label: "降順 (desc)" },
+          { value: "asc", label: t("query.asc") },
+          { value: "desc", label: t("query.desc") },
         ]}
         onChange={(v) => onChange({ ...clause, direction: v })}
         className="w-32"
       />
-      <Button variant="ghost" size="icon-xs" onClick={onRemove} title="並び順を削除">
+      <Button variant="ghost" size="icon-xs" onClick={onRemove} title={t("query.removeOrder")}>
         <X />
       </Button>
     </div>
@@ -200,6 +203,7 @@ function OrderRow({
 }
 
 function QueryForm({ tab }: { tab: QueryTab }) {
+  const t = useT();
   const patch = useStore((s) => s.patchQuerySpec);
   const execute = useStore((s) => s.executeQuery);
   const spec = tab.spec;
@@ -227,7 +231,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
         <SmallSelect
           value={spec.targetKind}
           options={[
-            { value: "collection", label: "コレクション" },
+            { value: "collection", label: t("query.targetCollection") },
             { value: "collectionGroup", label: "collectionGroup" },
           ]}
           onChange={(v) => set({ targetKind: v })}
@@ -236,7 +240,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
         <Input
           value={spec.target}
           onChange={(e) => set({ target: e.target.value })}
-          placeholder={spec.targetKind === "collection" ? "コレクションパス（users/alice/orders）" : "コレクションID（orders）"}
+          placeholder={spec.targetKind === "collection" ? t("query.targetPathPlaceholder") : t("query.targetIdPlaceholder")}
           className="h-7 min-w-48 flex-1 font-mono text-xs"
         />
         <span className="ml-2 text-xs text-muted-foreground">limit</span>
@@ -245,18 +249,18 @@ function QueryForm({ tab }: { tab: QueryTab }) {
           min={1}
           value={spec.limit ?? ""}
           onChange={(e) => set({ limit: e.target.value === "" ? null : Number(e.target.value) })}
-          placeholder="なし"
+          placeholder={t("query.limitNone")}
           className="h-7 w-24 text-xs"
         />
         <HistoryButton tab={tab} />
-        <Button type="submit" size="sm" disabled={tab.loading || !spec.target.trim()} title="実行（⌘/Ctrl+Enter）">
+        <Button type="submit" size="sm" disabled={tab.loading || !spec.target.trim()} title={t("query.runTitle")}>
           {tab.loading ? <Loader2 className="animate-spin" /> : <Play />}
-          実行
+          {t("query.run")}
         </Button>
       </div>
 
       <div className="space-y-1">
-        <div className="text-xs font-medium text-muted-foreground">where（AND）</div>
+        <div className="text-xs font-medium text-muted-foreground">{t("query.whereLabel")}</div>
         {spec.where.map((w, i) => (
           <WhereRow
             key={i}
@@ -274,7 +278,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
             set((s) => ({ where: [...s.where, { field: "", op: "==", valueType: "string", value: "" }] }))
           }
         >
-          <Plus /> 条件を追加
+          <Plus /> {t("query.addWhere")}
         </Button>
       </div>
 
@@ -295,7 +299,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
           size="xs"
           onClick={() => set((s) => ({ orderBy: [...s.orderBy, { field: "", direction: "asc" }] }))}
         >
-          <Plus /> 並び順を追加
+          <Plus /> {t("query.addOrder")}
         </Button>
       </div>
     </form>
@@ -303,6 +307,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
 }
 
 function SentQuery({ query }: { query: unknown }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   return (
     <div className="border-b">
@@ -312,7 +317,7 @@ function SentQuery({ query }: { query: unknown }) {
         onClick={() => setOpen((o) => !o)}
       >
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        送信した structuredQuery
+        {t("query.sentQuery")}
       </button>
       {open && (
         <JsonCode text={JSON.stringify(query, null, 2)} className="max-h-48 overflow-auto px-3 pb-2" />
@@ -349,6 +354,7 @@ export function QueryView({ tab }: { tab: QueryTab }) {
 }
 
 function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
+  const t = useT();
   // 列設定は実行したクエリの対象ごと（コレクションは閲覧タブと共通）
   const target = tab.ranSpec ?? tab.spec;
   const layout = useColumnLayout(
@@ -366,17 +372,17 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
       <div className="min-h-0 flex-1">
         {!ran ? (
           <div className="h-full overflow-auto p-3">
-            <div className="mb-1 text-muted-foreground">条件を入力して実行するか、最近のクエリから選んでください</div>
+            <div className="mb-1 text-muted-foreground">{t("query.emptyPrompt")}</div>
             <HistoryList tab={tab} className="max-w-2xl" />
           </div>
         ) : tab.docs.length === 0 ? (
-          <div className="p-4 text-muted-foreground">該当するドキュメントはありません</div>
+          <div className="p-4 text-muted-foreground">{t("query.noResults")}</div>
         ) : (
           <ResultsView docs={tab.docs} fields={layout.visible} view={tab.view} />
         )}
       </div>
       <div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
-        {ran && <span>{tab.docs.length} 件</span>}
+        {ran && <span>{t("common.count", { count: tab.docs.length })}</span>}
         {tab.readTime && <span className="hidden @xl:inline" title={tab.readTime}>readTime: {formatTimestamp(tab.readTime)}</span>}
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />

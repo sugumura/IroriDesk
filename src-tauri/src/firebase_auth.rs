@@ -77,14 +77,21 @@ fn millis_to_rfc3339(v: Option<&Value>) -> Option<String> {
 
 impl DisplayUser {
     pub fn from_raw(mut raw: Value) -> AppResult<Self> {
-        let m = raw
-            .as_object_mut()
-            .ok_or_else(|| AppError::Decode("ユーザー情報が object ではありません".into()))?;
+        let m = raw.as_object_mut().ok_or_else(|| {
+            AppError::Decode(tr!(
+                "ユーザー情報が object ではありません",
+                "User info is not an object"
+            ))
+        })?;
         for key in SECRET_FIELDS {
             m.remove(*key);
         }
-        let uid = str_field(m, "localId")
-            .ok_or_else(|| AppError::Decode("ユーザー情報に localId がありません".into()))?;
+        let uid = str_field(m, "localId").ok_or_else(|| {
+            AppError::Decode(tr!(
+                "ユーザー情報に localId がありません",
+                "User info has no localId"
+            ))
+        })?;
         let providers = m
             .get("providerUserInfo")
             .and_then(Value::as_array)
@@ -143,7 +150,10 @@ impl AuthClient {
     ) -> AppResult<Self> {
         let project_id = conn.project_id.trim();
         if project_id.is_empty() {
-            return Err(AppError::InvalidInput("プロジェクトIDが未入力です".into()));
+            return Err(AppError::InvalidInput(tr!(
+                "プロジェクトIDが未入力です",
+                "Project ID is empty"
+            )));
         }
         Ok(match conn.kind {
             ConnectionKind::Production => Self {
@@ -173,10 +183,13 @@ impl AuthClient {
     }
 
     fn url(&self, action: &str) -> AppResult<Url> {
-        let mut url = Url::parse(&self.base_url)
-            .map_err(|e| AppError::InvalidInput(format!("接続先URLが不正です: {e}")))?;
+        let mut url = Url::parse(&self.base_url).map_err(|e| {
+            AppError::InvalidInput(tr!("接続先URLが不正です: {e}", "Invalid endpoint URL: {e}"))
+        })?;
         url.path_segments_mut()
-            .map_err(|_| AppError::InvalidInput("接続先URLが不正です".into()))?
+            .map_err(|_| {
+                AppError::InvalidInput(tr!("接続先URLが不正です", "Invalid endpoint URL"))
+            })?
             .pop_if_empty()
             .extend(["v1", "projects", &self.project_id, action]);
         Ok(url)
@@ -220,9 +233,10 @@ impl AuthClient {
     pub async fn lookup(&self, kind: LookupKind, value: &str) -> AppResult<Vec<DisplayUser>> {
         let value = value.trim();
         if value.is_empty() {
-            return Err(AppError::InvalidInput(
-                "検索する値を入力してください".into(),
-            ));
+            return Err(AppError::InvalidInput(tr!(
+                "検索する値を入力してください",
+                "Enter a value to search for"
+            )));
         }
         let body = match kind {
             LookupKind::Uid => json!({ "localId": [value] }),
@@ -251,18 +265,23 @@ async fn check_auth_status(res: reqwest::Response) -> AppResult<reqwest::Respons
             message,
         } => {
             let hint = match message.as_str() {
-                "CONFIGURATION_NOT_FOUND" => Some(
+                "CONFIGURATION_NOT_FOUND" => Some(tr!(
                     "このプロジェクトでは Firebase Authentication が有効になっていません。\
                      Firebase コンソールの Authentication で「始める」を押し、ログイン方法を1つ以上有効にしてください。",
-                ),
-                "PROJECT_NOT_FOUND" => Some("プロジェクトが見つかりません。プロジェクトIDを確認してください。"),
+                    "Firebase Authentication is not enabled for this project. \
+                     In the Firebase console, open Authentication, click \"Get started\", and enable at least one sign-in method."
+                )),
+                "PROJECT_NOT_FOUND" => Some(tr!(
+                    "プロジェクトが見つかりません。プロジェクトIDを確認してください。",
+                    "Project not found. Check the project ID."
+                )),
                 _ => None,
             };
             AppError::Api {
                 service,
                 http_status,
                 status,
-                message: hint.map_or(message.clone(), |h| format!("{h}（{message}）")),
+                message: hint.map_or(message.clone(), |h| tr!("{h}（{message}）", "{h} ({message})")),
             }
         }
         other => other,
@@ -340,7 +359,9 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(clippy::await_holding_lock)]
     async fn explains_configuration_not_found() {
+        let _guard = crate::i18n::test_lock();
         let body = json!({ "error": { "code": 400, "message": "CONFIGURATION_NOT_FOUND" } });
         let res = reqwest::Response::from(
             http::Response::builder()

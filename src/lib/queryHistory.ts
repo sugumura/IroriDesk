@@ -37,11 +37,15 @@ function whereText(w: WhereClause): string {
   return `${w.field} ${w.op} ${value}`;
 }
 
-/** 一覧に表示する1行の要約。例: logs · level == "error" · seq desc · limit 5 */
-export function summarizeQuery(spec: QuerySpec): string {
+/**
+ * 一覧に表示する1行の要約。例: logs · level == "error" · seq desc · limit 5
+ * noTarget は対象が空のときの表示（画面の言語に合わせて呼び出し側で渡す）。
+ * このモジュールは store から読まれるため、i18n（store に依存）は import しない
+ */
+export function summarizeQuery(spec: QuerySpec, noTarget = "(対象なし)"): string {
   const target = spec.targetKind === "collectionGroup" ? `group(${spec.target})` : spec.target;
   return [
-    target || "(対象なし)",
+    target || noTarget,
     ...spec.where.map(whereText),
     ...spec.orderBy.map((o) => `${o.field} ${o.direction}`),
     ...(spec.limit ? [`limit ${spec.limit}`] : []),

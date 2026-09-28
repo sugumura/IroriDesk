@@ -4,12 +4,14 @@ import {
   customFontFamily,
   DEFAULT_APPEARANCE,
   type FontPreset,
+  type LanguageSetting,
   MONO_PRESETS,
   SANS_PRESETS,
   type ThemeMode,
   ZOOM_OPTIONS,
 } from "@/lib/appearance";
 import { useStore } from "@/store";
+import { type MessageKey, useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,10 +42,17 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-const THEMES: { value: ThemeMode; label: string; icon: React.ReactNode }[] = [
-  { value: "system", label: "システム", icon: <Monitor /> },
-  { value: "light", label: "ライト", icon: <Sun /> },
-  { value: "dark", label: "ダーク", icon: <Moon /> },
+const THEMES: { value: ThemeMode; labelKey: MessageKey; icon: React.ReactNode }[] = [
+  { value: "system", labelKey: "settings.themeSystem", icon: <Monitor /> },
+  { value: "light", labelKey: "settings.themeLight", icon: <Sun /> },
+  { value: "dark", labelKey: "settings.themeDark", icon: <Moon /> },
+];
+
+/** 言語名は現在の表示言語に関係なく、その言語自身の表記で出す */
+const LANGUAGES: { value: LanguageSetting; labelKey?: MessageKey; label?: string }[] = [
+  { value: "system", labelKey: "settings.languageSystem" },
+  { value: "ja", label: "日本語" },
+  { value: "en", label: "English" },
 ];
 
 /** プリセットの選択と、フォント名の直接入力 */
@@ -60,6 +69,7 @@ function FontPicker({
   onChange: (fontFamily: string) => void;
   previewClass: string;
 }) {
+  const t = useT();
   const preset = presets.find((p) => p.value === value);
   const [custom, setCustom] = useState(preset ? "" : value);
   const [mode, setMode] = useState(preset ? value || "default" : CUSTOM);
@@ -85,17 +95,17 @@ function FontPicker({
         </SelectTrigger>
         <SelectContent>
           {presets.map((p) => (
-            <SelectItem key={p.label} value={p.value || "default"}>
-              <span style={{ fontFamily: p.value || undefined }}>{p.label}</span>
+            <SelectItem key={p.value || "default"} value={p.value || "default"}>
+              <span style={{ fontFamily: p.value || undefined }}>{p.labelKey ? t(p.labelKey) : p.label}</span>
             </SelectItem>
           ))}
-          <SelectItem value={CUSTOM}>フォント名を入力…</SelectItem>
+          <SelectItem value={CUSTOM}>{t("settings.customFont")}</SelectItem>
         </SelectContent>
       </Select>
       {mode === CUSTOM && (
         <Input
           value={custom}
-          placeholder="例: Inter / 'Fira Code', monospace"
+          placeholder={t("settings.customFontPlaceholder")}
           onChange={(e) => {
             setCustom(e.target.value);
             onChange(customFontFamily(e.target.value, fallback));
@@ -103,7 +113,7 @@ function FontPicker({
         />
       )}
       <div className={`rounded-md border px-3 py-2 ${previewClass}`}>
-        Firestore ビューア 0123456789 {"{ \"$timestamp\": \"2026-01-01\" }"}
+        {t("settings.fontPreview")} 0123456789 {"{ \"$timestamp\": \"2026-01-01\" }"}
       </div>
     </>
   );
@@ -116,6 +126,7 @@ export function AppSettingsDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useT();
   const appearance = useStore((s) => s.appearance);
   const setAppearance = useStore((s) => s.setAppearance);
 
@@ -123,28 +134,44 @@ export function AppSettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>設定</DialogTitle>
-          <DialogDescription>変更はすぐに反映され、自動で保存されます。</DialogDescription>
+          <DialogTitle>{t("settings.title")}</DialogTitle>
+          <DialogDescription>{t("settings.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <Row label="テーマ">
+          <Row label={t("settings.language")}>
             <div className="flex rounded-md border p-0.5">
-              {THEMES.map((t) => (
+              {LANGUAGES.map((l) => (
                 <Button
-                  key={t.value}
+                  key={l.value}
                   size="sm"
                   className="flex-1"
-                  variant={appearance.theme === t.value ? "secondary" : "ghost"}
-                  onClick={() => setAppearance({ theme: t.value })}
+                  variant={appearance.language === l.value ? "secondary" : "ghost"}
+                  onClick={() => setAppearance({ language: l.value })}
                 >
-                  {t.icon} {t.label}
+                  {l.labelKey ? t(l.labelKey) : l.label}
                 </Button>
               ))}
             </div>
           </Row>
 
-          <Row label="UI フォント">
+          <Row label={t("settings.theme")}>
+            <div className="flex rounded-md border p-0.5">
+              {THEMES.map((th) => (
+                <Button
+                  key={th.value}
+                  size="sm"
+                  className="flex-1"
+                  variant={appearance.theme === th.value ? "secondary" : "ghost"}
+                  onClick={() => setAppearance({ theme: th.value })}
+                >
+                  {th.icon} {t(th.labelKey)}
+                </Button>
+              ))}
+            </div>
+          </Row>
+
+          <Row label={t("settings.fontSans")}>
             <FontPicker
               value={appearance.fontSans}
               presets={SANS_PRESETS}
@@ -154,7 +181,7 @@ export function AppSettingsDialog({
             />
           </Row>
 
-          <Row label="等幅フォント">
+          <Row label={t("settings.fontMono")}>
             <FontPicker
               value={appearance.fontMono}
               presets={MONO_PRESETS}
@@ -164,7 +191,7 @@ export function AppSettingsDialog({
             />
           </Row>
 
-          <Row label="表示サイズ">
+          <Row label={t("settings.zoom")}>
             <Select
               value={String(appearance.zoom)}
               onValueChange={(v) => setAppearance({ zoom: Number(v) })}
@@ -185,9 +212,9 @@ export function AppSettingsDialog({
 
         <DialogFooter className="sm:justify-between">
           <Button variant="ghost" onClick={() => setAppearance(DEFAULT_APPEARANCE)}>
-            既定に戻す
+            {t("settings.reset")}
           </Button>
-          <Button onClick={() => onOpenChange(false)}>閉じる</Button>
+          <Button onClick={() => onOpenChange(false)}>{t("common.close")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

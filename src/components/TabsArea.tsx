@@ -26,18 +26,20 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { BrowseView } from "./BrowseView";
 import { AuthView } from "./AuthView";
 import { QueryView } from "./QueryView";
+import { useT } from "@/i18n";
 
 function SplitMenu() {
   const split = useStore((s) => s.split);
   const setSplit = useStore((s) => s.setSplit);
+  const t = useT();
   const items: { mode: SplitMode; label: string; icon: React.ReactNode }[] = [
-    { mode: "horizontal", label: "左右に分割", icon: <Columns2 /> },
-    { mode: "vertical", label: "上下に分割", icon: <Rows2 /> },
+    { mode: "horizontal", label: t("tabs.splitRight"), icon: <Columns2 /> },
+    { mode: "vertical", label: t("tabs.splitDown"), icon: <Rows2 /> },
   ];
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={split === "none" ? "ghost" : "secondary"} size="icon-xs" className="mb-1 shrink-0" title="画面の分割">
+        <Button variant={split === "none" ? "ghost" : "secondary"} size="icon-xs" className="mb-1 shrink-0" title={t("tabs.splitView")}>
           <SquareSplitHorizontal />
         </Button>
       </DropdownMenuTrigger>
@@ -51,7 +53,7 @@ function SplitMenu() {
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setSplit("none")}>
-              <X /> 分割を解除
+              <X /> {t("tabs.unsplit")}
             </DropdownMenuItem>
           </>
         )}
@@ -71,17 +73,18 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
   const openQuery = useStore((s) => s.openQuery);
   const focusGroup = useStore((s) => s.focusGroup);
   const moveTab = useStore((s) => s.moveTabToOtherGroup);
+  const tr = useT();
 
   const groupTabs = tabs.filter((t) => t.group === group);
   const active = groupTabs.find((t) => t.id === activeId);
   const moveLabel =
     split === "vertical"
       ? group === 0
-        ? "下へ移動"
-        : "上へ移動"
+        ? tr("tabs.moveDown")
+        : tr("tabs.moveUp")
       : split === "horizontal" && group === 1
-        ? "左へ移動"
-        : "右へ移動（分割）";
+        ? tr("tabs.moveLeft")
+        : tr("tabs.moveRightSplit");
 
   return (
     // どこかを操作したグループをフォーカス中にする（新しいタブはそこに開く）
@@ -103,7 +106,7 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
             )}
             onClick={() => setActive(t.id)}
             onAuxClick={(e) => e.button === 1 && close(t.id)}
-            title={tabTitle(t)}
+            title={tabTitle(t, tr)}
           >
             {t.kind === "browse" ? (
               <Table2 className="size-3.5 shrink-0" />
@@ -112,7 +115,7 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
             ) : (
               <Search className="size-3.5 shrink-0" />
             )}
-            <span className="truncate font-mono">{tabTitle(t)}</span>
+            <span className="truncate font-mono">{tabTitle(t, tr)}</span>
             <button
               type="button"
               className="rounded p-0.5 opacity-0 group-hover:opacity-60 hover:bg-accent hover:opacity-100"
@@ -132,8 +135,8 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
                 e.stopPropagation();
                 close(t.id);
               }}
-              title="タブを閉じる"
-              aria-label="タブを閉じる"
+              title={tr("tabs.closeTab")}
+              aria-label={tr("tabs.closeTab")}
             >
               <X className="size-3" />
             </button>
@@ -143,13 +146,13 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
           variant="ghost"
           size="xs"
           className="mb-1 ml-1 shrink-0"
-          title="新しいクエリタブ"
+          title={tr("tabs.newQueryTab")}
           onClick={() => {
             focusGroup(group);
             openQuery();
           }}
         >
-          <Plus /> クエリ
+          <Plus /> {tr("tabs.query")}
         </Button>
         <div className="flex-1" />
         {showSplitMenu && <SplitMenu />}
@@ -163,7 +166,7 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
           <AuthView key={active.id} tab={active} />
         ) : (
           <div className="flex h-full items-center justify-center p-4 text-center text-muted-foreground">
-            左のコレクションを選択するか、「+ クエリ」でクエリタブを開いてください
+            {tr("tabs.emptyHint")}
           </div>
         )}
       </div>

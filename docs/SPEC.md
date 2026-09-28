@@ -158,3 +158,7 @@ Firestore REST は型付きの Value を返すので、Rust 側で「表示用JS
 - ADC はマシン全体で1アカウント（本番接続はすべて同じ gcloud アカウントを使う）。
 - UI: shadcn/ui + Tailwind、TanStack Table + TanStack Virtual。JSON ツリーは自作する。
 - Emulator には firebase CLI と Java が必要。
+
+### 多言語化（2026-09-28）
+- 画面とエラーメッセージを日本語・英語に対応。言語は設定で選ぶ（既定は OS の言語）。
+- エラーの Display を言語ごとに切り替えるため、`thiserror` の derive をやめて手書きの実装にした（`{ code, message, detail }` の形は変更なし）。

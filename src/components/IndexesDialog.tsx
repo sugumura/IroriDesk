@@ -10,6 +10,7 @@ import {
   toAppError,
 } from "@/lib/api";
 import { databaseId } from "@/lib/display";
+import { type MessageKey, useT } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,30 +30,32 @@ const MODE_ICON: Record<IndexField["mode"], React.ReactNode> = {
   vector: <Sparkles className="size-3" />,
 };
 
-const MODE_LABEL: Record<IndexField["mode"], string> = {
-  asc: "昇順",
-  desc: "降順",
-  "array-contains": "配列（array-contains）",
-  vector: "ベクトル",
+const MODE_LABEL: Record<IndexField["mode"], MessageKey> = {
+  asc: "indexes.mode.asc",
+  desc: "indexes.mode.desc",
+  "array-contains": "indexes.mode.arrayContains",
+  vector: "indexes.mode.vector",
 };
 
-const SCOPE_LABEL: Record<string, string> = {
-  COLLECTION: "コレクション",
-  COLLECTION_GROUP: "コレクショングループ",
+const SCOPE_LABEL: Record<string, MessageKey> = {
+  COLLECTION: "indexes.scope.collection",
+  COLLECTION_GROUP: "indexes.scope.collectionGroup",
 };
 
 function StateBadge({ state }: { state: string }) {
-  if (state === "READY") return <Badge variant="secondary">作成済み</Badge>;
-  if (state === "CREATING") return <Badge variant="outline">作成中</Badge>;
-  if (state === "NEEDS_REPAIR") return <Badge variant="destructive">要修復</Badge>;
+  const t = useT();
+  if (state === "READY") return <Badge variant="secondary">{t("indexes.state.ready")}</Badge>;
+  if (state === "CREATING") return <Badge variant="outline">{t("indexes.state.creating")}</Badge>;
+  if (state === "NEEDS_REPAIR") return <Badge variant="destructive">{t("indexes.state.needsRepair")}</Badge>;
   return <Badge variant="outline">{state}</Badge>;
 }
 
 function FieldChip({ field }: { field: IndexField }) {
+  const t = useT();
   return (
     <span
       className="inline-flex items-center gap-1 rounded border bg-muted/50 px-1.5 py-0.5 font-mono text-xs"
-      title={MODE_LABEL[field.mode]}
+      title={t(MODE_LABEL[field.mode])}
     >
       {field.fieldPath}
       {MODE_ICON[field.mode]}
@@ -78,6 +81,8 @@ export function IndexesDialog({
   connection: ConnectionConfig;
   collectionId: string;
 }) {
+  const t = useT();
+  const scopeLabel = (scope: string) => (SCOPE_LABEL[scope] ? t(SCOPE_LABEL[scope]) : scope);
   const [data, setData] = useState<CollectionIndexes | null>(null);
   const [error, setError] = useState<AppError | null>(null);
   const [loading, setLoading] = useState(false);
@@ -104,17 +109,17 @@ export function IndexesDialog({
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>
-            インデックス: <span className="font-mono">{collectionId}</span>
+            {t("indexes.title")}<span className="font-mono">{collectionId}</span>
           </DialogTitle>
           <DialogDescription>
-            インデックスはコレクションID単位です（親のドキュメントに関係なく、同じIDのコレクションで共通）。
+            {t("indexes.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[60vh] space-y-5 overflow-auto">
           {loading && (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> 読み込み中…
+              <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
             </div>
           )}
           {error && <ErrorBox error={error} />}
@@ -122,10 +127,10 @@ export function IndexesDialog({
           {data && (
             <>
               <section className="space-y-2">
-                <h3 className="font-medium">複合インデックス（{data.composite.length}）</h3>
+                <h3 className="font-medium">{t("indexes.composite", { count: data.composite.length })}</h3>
                 {data.composite.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    複合インデックスはありません。インデックスが必要なクエリを実行すると、作成用のリンクがエラーに表示されます。
+                    {t("indexes.noComposite")}
                   </p>
                 ) : (
                   <div className="divide-y rounded-md border">
@@ -136,7 +141,7 @@ export function IndexesDialog({
                             <FieldChip key={i} field={f} />
                           ))}
                         </div>
-                        <span className="text-xs text-muted-foreground">{SCOPE_LABEL[idx.queryScope] ?? idx.queryScope}</span>
+                        <span className="text-xs text-muted-foreground">{scopeLabel(idx.queryScope)}</span>
                         <StateBadge state={idx.state} />
                       </div>
                     ))}
@@ -145,9 +150,9 @@ export function IndexesDialog({
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-medium">単一フィールドの例外（{data.fieldOverrides.length}）</h3>
+                <h3 className="font-medium">{t("indexes.fieldOverrides", { count: data.fieldOverrides.length })}</h3>
                 <p className="text-xs text-muted-foreground">
-                  単一フィールドのインデックス（昇順・降順・配列）は、例外を除いてすべてのフィールドに自動で作成されます。
+                  {t("indexes.fieldOverridesHelp")}
                 </p>
                 {data.fieldOverrides.length > 0 && (
                   <div className="divide-y rounded-md border">
@@ -155,12 +160,12 @@ export function IndexesDialog({
                       <div key={o.fieldPath} className="flex flex-wrap items-center gap-2 px-3 py-2">
                         <span className="min-w-0 flex-1 font-mono text-xs">{o.fieldPath}</span>
                         {o.indexes.length === 0 ? (
-                          <Badge variant="outline">自動インデックス無効</Badge>
+                          <Badge variant="outline">{t("indexes.autoIndexDisabled")}</Badge>
                         ) : (
                           o.indexes.map((i, n) => (
                             <span key={n} className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                               {MODE_ICON[i.mode]}
-                              {MODE_LABEL[i.mode]}・{SCOPE_LABEL[i.queryScope] ?? i.queryScope}
+                              {t("indexes.modeScope", { mode: t(MODE_LABEL[i.mode]), scope: scopeLabel(i.queryScope) })}
                             </span>
                           ))
                         )}
@@ -176,13 +181,13 @@ export function IndexesDialog({
 
         <DialogFooter className="sm:justify-between">
           <Button variant="outline" onClick={() => void openUrl(consoleUrl(connection))}>
-            <ExternalLink /> Firebase コンソールで開く
+            <ExternalLink /> {t("indexes.openConsole")}
           </Button>
           <div className="flex gap-2">
             <Button variant="ghost" disabled={loading} onClick={() => void load()}>
-              <RefreshCw /> 再読み込み
+              <RefreshCw /> {t("common.reload")}
             </Button>
-            <Button onClick={() => onOpenChange(false)}>閉じる</Button>
+            <Button onClick={() => onOpenChange(false)}>{t("common.close")}</Button>
           </div>
         </DialogFooter>
       </DialogContent>

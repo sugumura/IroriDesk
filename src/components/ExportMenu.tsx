@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CircleCheck, Download, Loader2 } from "lucide-react";
 import { type AppError, type DisplayDocument, saveTextFile, toAppError } from "@/lib/api";
 import { defaultFileName, EXPORT_FORMATS, type ExportFormat, exportContents } from "@/lib/export";
+import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,12 +12,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const FORMAT_HINTS: Record<ExportFormat, string> = {
-  json: "型情報を保持（表示用JSON）",
-  csv: "Excel / スプレッドシート向け",
-  tsv: "タブ区切り",
-};
 
 /** 表示中の結果（読み込み済みの分）を保存する */
 export function ExportMenu({
@@ -29,6 +24,7 @@ export function ExportMenu({
   fields: string[];
   baseName: string;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ ok: true; path: string } | { ok: false; error: AppError } | null>(null);
   const count = docs.filter((d) => !d.missing).length;
@@ -40,7 +36,7 @@ export function ExportMenu({
     try {
       const path = await saveTextFile(
         defaultFileName(baseName, format),
-        f.filterName,
+        t(`export.filterName.${format}`),
         f.extension,
         exportContents(docs, format, fields),
       );
@@ -60,7 +56,7 @@ export function ExportMenu({
       {status?.ok === true && (
         <span className="flex min-w-0 items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400" title={status.path}>
           <CircleCheck className="size-3.5 shrink-0" />
-          <span className="truncate">保存しました</span>
+          <span className="truncate">{t("export.saved")}</span>
         </span>
       )}
       {status?.ok === false && (
@@ -70,20 +66,20 @@ export function ExportMenu({
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="xs" disabled={busy || count === 0} title="読み込み済みの結果を保存">
+          <Button variant="outline" size="xs" disabled={busy || count === 0} title={t("export.buttonTitle")}>
             {busy ? <Loader2 className="animate-spin" /> : <Download />}
-            <span className="hidden @md:inline">エクスポート</span>
+            <span className="hidden @md:inline">{t("export.button")}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel className="text-xs text-muted-foreground">
-            読み込み済みの {count} 件
+            {t("export.loadedCount", { count })}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {(Object.keys(EXPORT_FORMATS) as ExportFormat[]).map((format) => (
             <DropdownMenuItem key={format} onSelect={() => void run(format)}>
               <span className="w-10 font-medium">{EXPORT_FORMATS[format].label}</span>
-              <span className="text-xs text-muted-foreground">{FORMAT_HINTS[format]}</span>
+              <span className="text-xs text-muted-foreground">{t(`export.hint.${format}`)}</span>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

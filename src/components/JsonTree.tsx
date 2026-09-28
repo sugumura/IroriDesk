@@ -4,6 +4,7 @@ import type { DisplayValue } from "@/lib/api";
 import { asWrapper, displayKey, isPlainObject } from "@/lib/display";
 import { CopyButton } from "./CopyButton";
 import { ValueView, typeLabel } from "./ValueView";
+import { useT } from "@/i18n";
 
 function isContainer(v: DisplayValue): v is DisplayValue[] | { [k: string]: DisplayValue } {
   return (Array.isArray(v) || isPlainObject(v)) && asWrapper(v) === null;
@@ -25,6 +26,7 @@ function Node({
   depth: number;
   defaultOpenDepth: number;
 }) {
+  const t = useT();
   const container = isContainer(value);
   const [open, setOpen] = useState(depth < defaultOpenDepth);
   const entries: [string, DisplayValue][] = container
@@ -44,8 +46,8 @@ function Node({
             type="button"
             className="flex size-4 shrink-0 items-center justify-center text-muted-foreground"
             onClick={() => setOpen((o) => !o)}
-            title={open ? "折りたたむ" : "展開する"}
-            aria-label={open ? "折りたたむ" : "展開する"}
+            title={open ? t("detail.collapse") : t("detail.expand")}
+            aria-label={open ? t("detail.collapse") : t("detail.expand")}
           >
             {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
           </button>
@@ -70,14 +72,14 @@ function Node({
         <CopyButton
           text={() => copyText(value)}
           className="opacity-0 group-hover:opacity-100"
-          label="値をコピー"
+          label={t("detail.copyValue")}
         />
       </div>
       {container && open && (
         <div>
           {entries.length === 0 && (
             <div className="text-xs text-muted-foreground" style={{ paddingLeft: (depth + 1) * 14 + 24 }}>
-              (空)
+              {t("detail.empty")}
             </div>
           )}
           {entries.map(([k, v]) => (
@@ -90,9 +92,10 @@ function Node({
 }
 
 export function JsonTree({ fields }: { fields: Record<string, DisplayValue> }) {
+  const t = useT();
   const entries = Object.entries(fields);
   if (entries.length === 0) {
-    return <div className="px-2 text-muted-foreground">フィールドはありません</div>;
+    return <div className="px-2 text-muted-foreground">{t("detail.noFields")}</div>;
   }
   return (
     <div className="text-sm">

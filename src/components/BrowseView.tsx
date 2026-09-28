@@ -10,10 +10,12 @@ import { useColumnLayout } from "@/lib/useColumnLayout";
 import { ColumnSettings } from "./ColumnSettings";
 import { ExportMenu } from "./ExportMenu";
 import { ResultsView, ViewToggle } from "./ResultsView";
+import { useT } from "@/i18n";
 
 function Breadcrumb({ path }: { path: string }) {
   const openCollection = useStore((s) => s.openCollection);
   const select = useStore((s) => s.selectDocument);
+  const t = useT();
   const segments = splitPath(path);
   return (
     <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto font-mono text-xs whitespace-nowrap">
@@ -32,7 +34,7 @@ function Breadcrumb({ path }: { path: string }) {
                   ? "font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:underline"
               }
-              title={isCollection ? "コレクションを開く" : "ドキュメントを表示"}
+              title={isCollection ? t("browse.openCollection") : t("browse.showDocument")}
               onClick={(e) =>
                 isCollection
                   ? openCollection(sub, { newTab: e.metaKey || e.ctrlKey })
@@ -52,6 +54,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
   const loadPage = useStore((s) => s.loadPage);
   const openQuery = useStore((s) => s.openQuery);
   const conn = useStore(activeConnection);
+  const t = useT();
   const [indexesOpen, setIndexesOpen] = useState(false);
   const segments = splitPath(tab.collectionPath);
   const collectionId = segments[segments.length - 1] ?? tab.collectionPath;
@@ -69,18 +72,18 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
         <Button
           variant="outline"
           size="xs"
-          title="このコレクションを対象にクエリタブを開く"
+          title={t("browse.queryThisCollection")}
           onClick={() => openQuery(emptyQuerySpec(tab.collectionPath))}
         >
-          <Search /> <span className="hidden @lg:inline">クエリ</span>
+          <Search /> <span className="hidden @lg:inline">{t("browse.query")}</span>
         </Button>
         <Button
           variant="outline"
           size="xs"
-          title={`コレクション ${collectionId} のインデックスを表示`}
+          title={t("browse.showIndexes", { id: collectionId })}
           onClick={() => setIndexesOpen(true)}
         >
-          <ListTree /> <span className="hidden @lg:inline">インデックス</span>
+          <ListTree /> <span className="hidden @lg:inline">{t("browse.indexes")}</span>
         </Button>
         {conn && (
           <IndexesDialog
@@ -95,7 +98,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
         <Button
           variant="ghost"
           size="icon-sm"
-          title="再読み込み"
+          title={t("common.reload")}
           disabled={tab.loading}
           onClick={() => loadPage(tab.id, true)}
         >
@@ -107,7 +110,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
 
       <div className="min-h-0 flex-1">
         {tab.docs.length === 0 && !tab.loading && !tab.error ? (
-          <div className="p-4 text-muted-foreground">ドキュメントはありません</div>
+          <div className="p-4 text-muted-foreground">{t("browse.noDocuments")}</div>
         ) : (
           <ResultsView docs={tab.docs} fields={layout.visible} view={tab.view} />
         )}
@@ -115,16 +118,17 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
 
       <div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
         <span className="min-w-0 truncate">
-          {tab.docs.length} 件<span className="hidden @md:inline">読み込み済み</span>
-          {missingCount > 0 && <span className="hidden @xl:inline">（うち実体なし {missingCount} 件）</span>}
+          {t("common.count", { count: tab.docs.length })}
+          <span className="hidden @md:inline">{t("browse.loadedSuffix")}</span>
+          {missingCount > 0 && <span className="hidden @xl:inline">{t("browse.missingSuffix", { count: missingCount })}</span>}
         </span>
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
         <ExportMenu docs={tab.docs} fields={layout.visible} baseName={tab.collectionPath} />
         {tab.nextPageToken && (
           <Button size="xs" variant="outline" disabled={tab.loading} onClick={() => loadPage(tab.id, false)}>
-            <span className="@md:hidden">続き</span>
-            <span className="hidden @md:inline">さらに読み込む</span>
+            <span className="@md:hidden">{t("browse.more")}</span>
+            <span className="hidden @md:inline">{t("browse.loadMore")}</span>
           </Button>
         )}
       </div>

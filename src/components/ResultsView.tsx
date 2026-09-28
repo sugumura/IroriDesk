@@ -5,9 +5,11 @@ import { type Tab, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { DocumentTable } from "./DocumentTable";
 import { JsonCode } from "./JsonCode";
+import { useT } from "@/i18n";
 
 export function ViewToggle({ tab }: { tab: Tab }) {
   const setView = useStore((s) => s.setView);
+  const t = useT();
   return (
     <div className="flex rounded-md border p-0.5">
       {(["table", "json"] as const).map((v) => (
@@ -17,7 +19,7 @@ export function ViewToggle({ tab }: { tab: Tab }) {
           variant={tab.view === v ? "secondary" : "ghost"}
           onClick={() => setView(tab.id, v)}
         >
-          {v === "table" ? "テーブル" : "JSON"}
+          {v === "table" ? t("common.table") : t("common.json")}
         </Button>
       ))}
     </div>

@@ -5,11 +5,12 @@ export type ExportFormat = "json" | "csv" | "tsv";
 
 export const EXPORT_FORMATS: Record<
   ExportFormat,
-  { label: string; extension: string; filterName: string }
+  { label: string; extension: string }
 > = {
-  json: { label: "JSON", extension: "json", filterName: "JSON" },
-  csv: { label: "CSV", extension: "csv", filterName: "CSV (カンマ区切り)" },
-  tsv: { label: "TSV", extension: "tsv", filterName: "TSV (タブ区切り)" },
+  // 保存ダイアログのフィルタ名は画面の言語に合わせて ExportMenu で付ける（export.filterName.*）
+  json: { label: "JSON", extension: "json" },
+  csv: { label: "CSV", extension: "csv" },
+  tsv: { label: "TSV", extension: "tsv" },
 };
 
 /** Excel で日本語が文字化けしないよう、CSV/TSV の先頭に付ける */

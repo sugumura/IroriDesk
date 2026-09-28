@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CircleCheck, CircleX, Loader2, PanelLeft, PanelRight, PlugZap, ServerCog, Settings } from "lucide-react";
 import { listCollectionIds, toAppError } from "@/lib/api";
 import { activeConnection, useStore } from "@/store";
+import { useT } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import { ConnectionDialog } from "./ConnectionDialog";
 type TestResult = { ok: true; count: number } | { ok: false; message: string } | null;
 
 export function TopBar() {
+  const t = useT();
   const connections = useStore((s) => s.connections);
   const activeId = useStore((s) => s.activeConnectionId);
   const conn = useStore(activeConnection);
@@ -57,7 +59,7 @@ export function TopBar() {
         }}
       >
         <SelectTrigger size="sm" className="w-64">
-          <SelectValue placeholder="接続を選択" />
+          <SelectValue placeholder={t("topbar.selectConnection")} />
         </SelectTrigger>
         <SelectContent>
           {connections.map((c) => (
@@ -71,16 +73,16 @@ export function TopBar() {
           ))}
         </SelectContent>
       </Select>
-      <Button variant="ghost" size="icon-sm" title="接続の管理" onClick={() => setDialogOpen(true)}>
+      <Button variant="ghost" size="icon-sm" title={t("topbar.manageConnections")} onClick={() => setDialogOpen(true)}>
         <ServerCog />
       </Button>
       <Button variant="outline" size="sm" disabled={!conn || testing} onClick={runTest}>
         {testing ? <Loader2 className="animate-spin" /> : <PlugZap />}
-        接続テスト
+        {t("topbar.testConnection")}
       </Button>
       {result?.ok === true && (
         <span className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400">
-          <CircleCheck className="size-3.5" /> 接続OK（ルートコレクション {result.count} 件）
+          <CircleCheck className="size-3.5" /> {t("topbar.testOk", { count: result.count })}
         </span>
       )}
       {result?.ok === false && (
@@ -99,18 +101,18 @@ export function TopBar() {
           {conn.kind === "emulator" ? (
             <Badge variant="secondary">Emulator</Badge>
           ) : (
-            <Badge variant="outline">本番</Badge>
+            <Badge variant="outline">{t("topbar.production")}</Badge>
           )}
           {/* MVP では常に読み取りのみ */}
-          <Badge variant="outline" title="このバージョンは Firestore に書き込みません">
-            読み取り専用
+          <Badge variant="outline" title={t("topbar.readOnlyHint")}>
+            {t("topbar.readOnly")}
           </Badge>
         </>
       )}
       <Button
         variant={treeOpen ? "secondary" : "ghost"}
         size="icon-sm"
-        title="コレクションパネルの表示切替"
+        title={t("topbar.toggleTree")}
         onClick={() => setTreeOpen(!treeOpen)}
       >
         <PanelLeft />
@@ -118,12 +120,12 @@ export function TopBar() {
       <Button
         variant={detailOpen ? "secondary" : "ghost"}
         size="icon-sm"
-        title="詳細ペインの表示切替"
+        title={t("topbar.toggleDetail")}
         onClick={() => setDetailOpen(!detailOpen)}
       >
         <PanelRight />
       </Button>
-      <Button variant="ghost" size="icon-sm" title="設定（テーマ・フォント）" onClick={() => setSettingsOpen(true)}>
+      <Button variant="ghost" size="icon-sm" title={t("topbar.settings")} onClick={() => setSettingsOpen(true)}>
         <Settings />
       </Button>
 

@@ -13,7 +13,7 @@ use super::path::{collection_segments, document_segments};
 use super::query::{self, QuerySpec};
 use crate::auth::{EmulatorTokenSource, TokenSource};
 use crate::connection::{ConnectionConfig, ConnectionKind};
-use crate::error::{AppError, AppResult, ADC_LOGIN_HINT};
+use crate::error::{adc_login_hint, AppError, AppResult};
 
 const PRODUCTION_BASE_URL: &str = "https://firestore.googleapis.com";
 const LIST_COLLECTION_IDS_PAGE_SIZE: u32 = 300;
@@ -71,7 +71,10 @@ impl RestClient {
     ) -> AppResult<Self> {
         let project_id = conn.project_id.trim();
         if project_id.is_empty() {
-            return Err(AppError::InvalidInput("プロジェクトIDが未入力です".into()));
+            return Err(AppError::InvalidInput(tr!(
+                "プロジェクトIDが未入力です",
+                "Project ID is empty"
+            )));
         }
         let (base_url, tokens, quota_project): (String, Arc<dyn TokenSource>, _) = match conn.kind {
             ConnectionKind::Production => (
@@ -89,8 +92,9 @@ impl RestClient {
                 (base, Arc::new(EmulatorTokenSource), None)
             }
         };
-        let base_url = Url::parse(&base_url)
-            .map_err(|e| AppError::InvalidInput(format!("接続先URLが不正です: {e}")))?;
+        let base_url = Url::parse(&base_url).map_err(|e| {
+            AppError::InvalidInput(tr!("接続先URLが不正です: {e}", "Invalid endpoint URL: {e}"))
+        })?;
         Ok(Self {
             http,
             is_emulator: conn.kind == ConnectionKind::Emulator,
@@ -206,7 +210,11 @@ pub(crate) async fn check_status_for(res: Response, service: &'static str) -> Ap
     let (status, message) = parse_error_body(text);
     if http_status.as_u16() == 401 || status == "UNAUTHENTICATED" {
         return Err(AppError::Auth {
-            message: format!("認証に失敗しました。{ADC_LOGIN_HINT}"),
+            message: tr!(
+                "認証に失敗しました。{}",
+                "Authentication failed. {}",
+                adc_login_hint()
+            ),
             detail: Some(message),
         });
     }
@@ -288,7 +296,10 @@ impl FirestoreApi for RestClient {
     async fn get_document(&self, path: &str) -> AppResult<DisplayDocument> {
         let segments = document_segments(path)?;
         if segments.is_empty() {
-            return Err(AppError::InvalidInput("ドキュメントパスが空です".into()));
+            return Err(AppError::InvalidInput(tr!(
+                "ドキュメントパスが空です",
+                "Document path is empty"
+            )));
         }
         let url = self.documents_url(&segments, "");
         let res = self.request(Method::GET, url).await?.send().await?;
@@ -357,14 +368,16 @@ impl FirestoreApi for RestClient {
 
     async fn list_indexes(&self, collection_id: &str) -> AppResult<CollectionIndexes> {
         if self.is_emulator {
-            return Err(AppError::InvalidInput(
-                "Firestore Emulator はインデックスの API に対応していません".into(),
-            ));
+            return Err(AppError::InvalidInput(tr!(
+                "Firestore Emulator はインデックスの API に対応していません",
+                "The Firestore Emulator does not support the indexes API"
+            )));
         }
         let cg = collection_id.trim();
         if cg.is_empty() || cg.contains('/') {
-            return Err(AppError::InvalidInput(format!(
-                "コレクションIDが不正です: {collection_id}"
+            return Err(AppError::InvalidInput(tr!(
+                "コレクションIDが不正です: {collection_id}",
+                "Invalid collection ID: {collection_id}"
             )));
         }
 

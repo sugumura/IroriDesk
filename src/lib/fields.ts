@@ -95,6 +95,7 @@ export function collectFields(docs: DisplayDocument[]): FieldInfo[] {
 export const NAME_FIELD: FieldInfo = {
   path: "__name__",
   valueType: "string",
+  // 画面では FieldInput が翻訳した型名（query.documentId）に置き換えて表示する
   typeLabel: "ドキュメントID",
   count: 0,
 };

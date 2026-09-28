@@ -1,5 +1,6 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import type { MessageKey } from "@/i18n";
 
 export type ThemeMode = "system" | "light" | "dark";
 /** 表示言語。system は OS の言語に従う */
@@ -30,30 +31,32 @@ export const DEFAULT_APPEARANCE: Appearance = {
 };
 
 export interface FontPreset {
-  label: string;
+  /** 翻訳キー（表示時に翻訳する）。なければ label をそのまま表示する（固有のフォント名） */
+  labelKey?: MessageKey;
+  label?: string;
   /** 空文字は既定 */
   value: string;
 }
 
 /** OS にインストールされていないフォントは代替フォントで表示される */
 export const SANS_PRESETS: FontPreset[] = [
-  { label: "既定（Geist + システム）", value: "" },
-  { label: "システム", value: `-apple-system, BlinkMacSystemFont, 'Segoe UI', ${JP_FALLBACK}` },
-  { label: "ヒラギノ角ゴシック", value: `'Hiragino Sans', 'Hiragino Kaku Gothic ProN', ${JP_FALLBACK}` },
-  { label: "游ゴシック", value: `'Yu Gothic UI', 'YuGothic', 'Yu Gothic', ${JP_FALLBACK}` },
+  { labelKey: "settings.presets.sansDefault", value: "" },
+  { labelKey: "settings.presets.sansSystem", value: `-apple-system, BlinkMacSystemFont, 'Segoe UI', ${JP_FALLBACK}` },
+  { labelKey: "settings.presets.hiragino", value: `'Hiragino Sans', 'Hiragino Kaku Gothic ProN', ${JP_FALLBACK}` },
+  { labelKey: "settings.presets.yuGothic", value: `'Yu Gothic UI', 'YuGothic', 'Yu Gothic', ${JP_FALLBACK}` },
   { label: "Noto Sans JP", value: `'Noto Sans JP', ${JP_FALLBACK}` },
-  { label: "BIZ UDPゴシック", value: `'BIZ UDPGothic', ${JP_FALLBACK}` },
-  { label: "メイリオ", value: `'Meiryo', ${JP_FALLBACK}` },
+  { labelKey: "settings.presets.bizUdpGothic", value: `'BIZ UDPGothic', ${JP_FALLBACK}` },
+  { labelKey: "settings.presets.meiryo", value: `'Meiryo', ${JP_FALLBACK}` },
 ];
 
 export const MONO_PRESETS: FontPreset[] = [
-  { label: "既定（システムの等幅）", value: "" },
+  { labelKey: "settings.presets.monoDefault", value: "" },
   { label: "SF Mono", value: `'SF Mono', ${MONO_FALLBACK}` },
   { label: "Menlo", value: `Menlo, ${MONO_FALLBACK}` },
   { label: "Consolas", value: `Consolas, ${MONO_FALLBACK}` },
   { label: "JetBrains Mono", value: `'JetBrains Mono', ${MONO_FALLBACK}` },
   { label: "Source Code Pro", value: `'Source Code Pro', ${MONO_FALLBACK}` },
-  { label: "Osaka−等幅", value: `'Osaka-Mono', 'Osaka', ${MONO_FALLBACK}` },
+  { labelKey: "settings.presets.osakaMono", value: `'Osaka-Mono', 'Osaka', ${MONO_FALLBACK}` },
 ];
 
 export const ZOOM_OPTIONS = [0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.5];
@@ -79,14 +82,15 @@ export function normalizeAppearance(a: Partial<Appearance> | null | undefined): 
   };
 }
 
-const media = window.matchMedia("(prefers-color-scheme: dark)");
+// テストなど window がない環境でも読み込めるようにする
+const media = typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 let currentTheme: ThemeMode = "system";
 
 function applyThemeClass() {
-  const dark = currentTheme === "dark" || (currentTheme === "system" && media.matches);
+  const dark = currentTheme === "dark" || (currentTheme === "system" && !!media?.matches);
   document.documentElement.classList.toggle("dark", dark);
 }
-media.addEventListener("change", applyThemeClass);
+media?.addEventListener("change", applyThemeClass);
 
 /** 画面に反映する。ネイティブ側（タイトルバーのテーマ、拡大率）の失敗は無視する */
 export function applyAppearance(a: Appearance) {

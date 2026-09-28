@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Columns3, Pin } from "lucide-react";
 import { moveField, orderedFields, setFieldHidden } from "@/lib/columns";
 import { displayKey } from "@/lib/display";
 import type { ColumnLayout } from "@/lib/useColumnLayout";
+import { useT } from "@/i18n";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 /** テーブルに表示する列の選択と並べ替え（接続×コレクションごとに保存） */
 export function ColumnSettings({ layout, idLabel = "Doc ID" }: { layout: ColumnLayout; idLabel?: string }) {
+  const t = useT();
   const setColumnConfig = useStore((s) => s.setColumnConfig);
   const [filter, setFilter] = useState("");
   const { fieldNames, config, key } = layout;
@@ -27,10 +29,10 @@ export function ColumnSettings({ layout, idLabel = "Doc ID" }: { layout: ColumnL
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="xs" title="表示する列の設定">
+        <Button variant="ghost" size="xs" title={t("columns.title")}>
           <Columns3 />
-          <span className="hidden @lg:inline">列</span>
-          {hiddenCount > 0 && <span className="text-muted-foreground">（{hiddenCount}<span className="hidden @lg:inline"> 件非表示</span>）</span>}
+          <span className="hidden @lg:inline">{t("columns.button")}</span>
+          {hiddenCount > 0 && <span className="text-muted-foreground">（{hiddenCount}<span className="hidden @lg:inline">{t("columns.hiddenCount")}</span>）</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
@@ -38,32 +40,32 @@ export function ColumnSettings({ layout, idLabel = "Doc ID" }: { layout: ColumnL
           <Input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="フィールドを絞り込み"
+            placeholder={t("columns.filterPlaceholder")}
             className="h-7 text-xs"
           />
           <div className="flex gap-1">
             <Button variant="outline" size="xs" onClick={() => save({ ...config, hidden: [] })}>
-              すべて表示
+              {t("columns.showAll")}
             </Button>
             <Button
               variant="outline"
               size="xs"
               onClick={() => save({ ...config, hidden: [...new Set([...config.hidden, ...fieldNames])] })}
             >
-              すべて非表示
+              {t("columns.hideAll")}
             </Button>
             <div className="flex-1" />
-            <Button variant="ghost" size="xs" onClick={() => setColumnConfig(key, null)} title="並び順と表示を既定に戻す">
-              リセット
+            <Button variant="ghost" size="xs" onClick={() => setColumnConfig(key, null)} title={t("columns.resetTitle")}>
+              {t("columns.reset")}
             </Button>
           </div>
         </div>
 
         <div className="max-h-80 overflow-auto p-1">
-          <div className="flex h-7 items-center gap-2 px-2 text-xs text-muted-foreground" title={`${idLabel} 列は常に先頭に表示されます`}>
-            <Pin className="size-3.5" /> {idLabel}（固定）
+          <div className="flex h-7 items-center gap-2 px-2 text-xs text-muted-foreground" title={t("columns.pinnedTitle", { label: idLabel })}>
+            <Pin className="size-3.5" /> {t("columns.pinned", { label: idLabel })}
           </div>
-          {shown.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">該当するフィールドはありません</div>}
+          {shown.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">{t("columns.noMatch")}</div>}
           {shown.map((k) => {
             const index = ordered.indexOf(k);
             return (
@@ -82,7 +84,7 @@ export function ColumnSettings({ layout, idLabel = "Doc ID" }: { layout: ColumnL
                   size="icon-xs"
                   disabled={!!q || index === 0}
                   className="opacity-0 group-hover:opacity-100"
-                  title="上へ"
+                  title={t("columns.moveUp")}
                   onClick={() => save(moveField(fieldNames, config, k, -1))}
                 >
                   <ArrowUp />
@@ -92,7 +94,7 @@ export function ColumnSettings({ layout, idLabel = "Doc ID" }: { layout: ColumnL
                   size="icon-xs"
                   disabled={!!q || index === ordered.length - 1}
                   className="opacity-0 group-hover:opacity-100"
-                  title="下へ"
+                  title={t("columns.moveDown")}
                   onClick={() => save(moveField(fieldNames, config, k, 1))}
                 >
                   <ArrowDown />
@@ -102,7 +104,7 @@ export function ColumnSettings({ layout, idLabel = "Doc ID" }: { layout: ColumnL
           })}
         </div>
         <div className="border-t px-3 py-1.5 text-[11px] text-muted-foreground">
-          設定はこの接続・コレクションごとに保存され、CSV/TSV エクスポートの列にも使われます
+          {t("columns.footer")}
         </div>
       </PopoverContent>
     </Popover>

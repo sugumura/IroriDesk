@@ -53,7 +53,12 @@ pub struct DisplayDocument {
 pub fn relative_path(name: &str) -> AppResult<&str> {
     name.split_once("/documents/")
         .map(|(_, rest)| rest)
-        .ok_or_else(|| AppError::Decode(format!("不正なドキュメント名です: {name}")))
+        .ok_or_else(|| {
+            AppError::Decode(tr!(
+                "不正なドキュメント名です: {name}",
+                "Invalid document name: {name}"
+            ))
+        })
 }
 
 impl DisplayDocument {

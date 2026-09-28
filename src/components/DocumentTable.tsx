@@ -10,6 +10,7 @@ import type { DisplayDocument } from "@/lib/api";
 import { displayKey } from "@/lib/display";
 import { cn } from "@/lib/utils";
 import { ValueView } from "./ValueView";
+import { useT } from "@/i18n";
 
 const ROW_HEIGHT = 28;
 
@@ -30,6 +31,7 @@ export function DocumentTable({
   selectedPath: string | null;
   onSelect: (doc: DisplayDocument) => void;
 }) {
+  const t = useT();
   const columns = useMemo<ColumnDef<DisplayDocument>[]>(
     () => [
       {
@@ -112,7 +114,7 @@ export function DocumentTable({
                 )}
                 style={{ top: vr.start, height: ROW_HEIGHT }}
                 onClick={() => onSelect(row.original)}
-                title={row.original.missing ? "実体のないドキュメント（サブコレクションのみ）" : undefined}
+                title={row.original.missing ? t("detail.missingDocument") : undefined}
               >
                 {row.getVisibleCells().map((cell) => (
                   <div

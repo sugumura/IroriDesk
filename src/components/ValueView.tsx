@@ -1,15 +1,17 @@
 import type { DisplayValue } from "@/lib/api";
 import { asWrapper, base64ByteLength, compactText, formatTimestamp, refToLocalPath } from "@/lib/display";
 import { activeConnection, useStore } from "@/store";
+import { useT } from "@/i18n";
 
 /** $ref のクリックで参照先ドキュメントを詳細ペインに開く */
 function RefLink({ refName, label }: { refName: string; label: string }) {
   const conn = useStore(activeConnection);
   const select = useStore((s) => s.selectDocument);
+  const t = useT();
   const local = conn ? refToLocalPath(refName, conn) : null;
   if (!local) {
     return (
-      <span className="text-sky-700 dark:text-sky-400" title={`別のプロジェクト/DBへの参照: ${refName}`}>
+      <span className="text-sky-700 dark:text-sky-400" title={t("detail.otherRef", { ref: refName })}>
         {label}
       </span>
     );

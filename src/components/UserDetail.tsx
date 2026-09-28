@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import type { DisplayUser } from "@/lib/api";
 import { formatTimestamp } from "@/lib/display";
+import { useT } from "@/i18n";
 import { useStore } from "@/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ function Time({ iso }: { iso: string | null }) {
 
 /** Authentication ユーザーの詳細（読み取りのみ） */
 export function UserDetail({ user }: { user: DisplayUser }) {
+  const t = useT();
   const selectUser = useStore((s) => s.selectUser);
   const setDetailOpen = useStore((s) => s.setDetailOpen);
   const claims = user.customClaims == null ? null : JSON.stringify(user.customClaims, null, 2);
@@ -31,9 +33,9 @@ export function UserDetail({ user }: { user: DisplayUser }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
-        <span className="font-medium">ユーザー</span>
+        <span className="font-medium">{t("auth.user")}</span>
         <div className="flex-1" />
-        <Button variant="ghost" size="icon-sm" onClick={() => setDetailOpen(false)} title="閉じる">
+        <Button variant="ghost" size="icon-sm" onClick={() => setDetailOpen(false)} title={t("common.close")}>
           <X />
         </Button>
       </div>
@@ -49,7 +51,7 @@ export function UserDetail({ user }: { user: DisplayUser }) {
           <div className="min-w-0">
             <div className="truncate font-medium">{user.displayName ?? user.email ?? user.uid}</div>
             <div className="flex flex-wrap gap-1 pt-0.5">
-              {user.disabled && <Badge variant="destructive">無効</Badge>}
+              {user.disabled && <Badge variant="destructive">{t("auth.disabled")}</Badge>}
               {user.providers.map((p) => (
                 <Badge key={p} variant="outline">
                   {p}
@@ -60,39 +62,39 @@ export function UserDetail({ user }: { user: DisplayUser }) {
         </div>
         <Row label="UID" value={user.uid} mono copy={user.uid} />
         <Row
-          label="メール"
+          label={t("auth.email")}
           value={
             user.email && (
               <>
                 {user.email}
-                <span className="ml-2 text-xs text-muted-foreground">{user.emailVerified ? "（確認済み）" : "（未確認）"}</span>
+                <span className="ml-2 text-xs text-muted-foreground">{user.emailVerified ? t("auth.verified") : t("auth.unverified")}</span>
               </>
             )
           }
           copy={user.email ?? undefined}
         />
-        <Row label="表示名" value={user.displayName} />
-        <Row label="電話番号" value={user.phoneNumber} mono copy={user.phoneNumber ?? undefined} />
-        <Row label="作成日時" value={user.createdAt && <Time iso={user.createdAt} />} />
-        <Row label="最終ログイン" value={user.lastLoginAt && <Time iso={user.lastLoginAt} />} />
-        <Row label="最終更新" value={user.lastRefreshAt && <Time iso={user.lastRefreshAt} />} />
-        {user.tenantId && <Row label="テナント" value={user.tenantId} mono />}
+        <Row label={t("auth.displayName")} value={user.displayName} />
+        <Row label={t("auth.phone")} value={user.phoneNumber} mono copy={user.phoneNumber ?? undefined} />
+        <Row label={t("auth.createdAt")} value={user.createdAt && <Time iso={user.createdAt} />} />
+        <Row label={t("auth.lastLoginAt")} value={user.lastLoginAt && <Time iso={user.lastLoginAt} />} />
+        <Row label={t("auth.lastRefreshAt")} value={user.lastRefreshAt && <Time iso={user.lastRefreshAt} />} />
+        {user.tenantId && <Row label={t("auth.tenant")} value={user.tenantId} mono />}
 
         <div className="mt-3 px-3">
           <div className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
-            カスタムクレーム
+            {t("auth.customClaims")}
             {claims && <CopyButton text={claims} />}
           </div>
           {claims ? (
             <JsonCode text={claims} className="overflow-auto rounded-md border bg-muted/40 p-2" />
           ) : (
-            <div className="text-xs text-muted-foreground">なし</div>
+            <div className="text-xs text-muted-foreground">{t("common.none")}</div>
           )}
         </div>
 
         <details className="mt-3 px-3">
           <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
-            API の応答（パスワードのハッシュ等は除外）
+            {t("auth.rawResponse")}
           </summary>
           <div className="relative mt-1">
             <CopyButton text={raw} className="absolute top-1 right-1" />
@@ -101,9 +103,9 @@ export function UserDetail({ user }: { user: DisplayUser }) {
         </details>
       </div>
       <div className="flex h-9 shrink-0 items-center justify-end gap-2 border-t px-3">
-        <CopyTextButton text={raw}>JSON をコピー</CopyTextButton>
+        <CopyTextButton text={raw}>{t("common.copyJson")}</CopyTextButton>
         <Button variant="ghost" size="xs" onClick={() => selectUser(null)}>
-          選択解除
+          {t("common.clearSelection")}
         </Button>
       </div>
     </div>

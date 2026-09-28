@@ -8,6 +8,7 @@ import {
   reloadCredentials,
   toAppError,
 } from "@/lib/api";
+import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -31,6 +32,7 @@ export function AccountPicker({
   value: string | undefined;
   onChange: (account: string | undefined) => void;
 }) {
+  const t = useT();
   const [accounts, setAccounts] = useState<GcloudAccount[] | null>(null);
   const [busy, setBusy] = useState<"list" | "login" | null>(null);
   const [error, setError] = useState<AppError | null>(null);
@@ -81,45 +83,45 @@ export function AccountPicker({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ADC}>ADC（gcloud auth application-default login）</SelectItem>
+            <SelectItem value={ADC}>{t("connection.accountPicker.adc")}</SelectItem>
             {options.map((a) => (
               <SelectItem key={a.account} value={a.account}>
                 {a.account}
-                {a.active && <span className="text-xs text-muted-foreground">gcloud の現在のアカウント</span>}
+                {a.active && <span className="text-xs text-muted-foreground">{t("connection.accountPicker.gcloudActive")}</span>}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Button variant="ghost" size="icon" title="アカウント一覧を更新" disabled={busy !== null} onClick={refresh}>
+        <Button variant="ghost" size="icon" title={t("connection.accountPicker.refresh")} disabled={busy !== null} onClick={refresh}>
           {busy === "list" ? <Loader2 className="animate-spin" /> : <RefreshCw />}
         </Button>
       </div>
       <div className="flex flex-wrap gap-1.5">
         <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => login()}>
-          <UserPlus /> アカウントを追加
+          <UserPlus /> {t("connection.accountPicker.addAccount")}
         </Button>
         {value ? (
           <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => login(value)}>
-            <LogIn /> 再ログイン
+            <LogIn /> {t("connection.accountPicker.relogin")}
           </Button>
         ) : (
           <Button
             variant="outline"
             size="sm"
             disabled={busy !== null}
-            title="gcloud auth application-default login で ADC を作り直したあとに押す（再起動は不要）"
+            title={t("connection.accountPicker.reloadAdcHint")}
             onClick={async () => {
               await reloadCredentials();
               setReloaded(true);
               setTimeout(() => setReloaded(false), 2500);
             }}
           >
-            {reloaded ? <Check /> : <RotateCcw />} ADC を再読み込み
+            {reloaded ? <Check /> : <RotateCcw />} {t("connection.accountPicker.reloadAdc")}
           </Button>
         )}
         {busy === "login" && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Loader2 className="size-3.5 animate-spin" /> ブラウザで Google にログインしてください…
+            <Loader2 className="size-3.5 animate-spin" /> {t("connection.accountPicker.loggingIn")}
           </span>
         )}
       </div>

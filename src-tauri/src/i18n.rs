@@ -15,6 +15,15 @@ pub fn is_english() -> bool {
     ENGLISH.load(Ordering::Relaxed)
 }
 
+/// 言語フラグを切り替えるテスト同士が並列に干渉しないよう、テスト中はこのロックを保持する
+#[cfg(test)]
+pub(crate) fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    set_english(false);
+    guard
+}
+
 /// 日本語と英語の文言から、現在の言語のものを format! して返す
 #[macro_export]
 macro_rules! tr {
@@ -37,11 +46,17 @@ pub fn set_locale(lang: String) {
 mod tests {
     #[test]
     fn switches_language_with_captured_args() {
+        let _guard = super::test_lock();
         let path = "users/alice";
-        super::set_english(false);
-        assert_eq!(tr!("{path} がありません", "{path} not found"), "users/alice がありません");
+        assert_eq!(
+            tr!("{path} がありません", "{path} not found"),
+            "users/alice がありません"
+        );
         super::set_english(true);
-        assert_eq!(tr!("{path} がありません", "{path} not found"), "users/alice not found");
+        assert_eq!(
+            tr!("{path} がありません", "{path} not found"),
+            "users/alice not found"
+        );
         assert_eq!(tr!("{} 件", "{} items", 3), "3 items");
         super::set_english(false);
     }

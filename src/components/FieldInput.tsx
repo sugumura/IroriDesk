@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { FieldInfo } from "@/lib/fields";
+import { type FieldInfo, NAME_FIELD } from "@/lib/fields";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
@@ -25,6 +26,7 @@ export function FieldInput({
   placeholder?: string;
   className?: string;
 }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -113,7 +115,7 @@ export function FieldInput({
             onMouseDown={(e) => e.preventDefault()}
           >
             {loading && filtered.length === 0 && (
-              <div className="px-2 py-1 text-xs text-muted-foreground">フィールドを取得中…</div>
+              <div className="px-2 py-1 text-xs text-muted-foreground">{t("query.fieldsLoading")}</div>
             )}
             {filtered.map((f, i) => (
               <div
@@ -128,8 +130,8 @@ export function FieldInput({
               >
                 <span className="min-w-0 flex-1 truncate">{f.path}</span>
                 <span className="shrink-0 font-sans text-[10px] text-muted-foreground">
-                  {f.typeLabel}
-                  {f.count > 0 && ` · ${f.count}件`}
+                  {f === NAME_FIELD ? t("query.documentId") : f.typeLabel}
+                  {f.count > 0 && ` · ${t("query.fieldCount", { count: f.count })}`}
                 </span>
               </div>
             ))}

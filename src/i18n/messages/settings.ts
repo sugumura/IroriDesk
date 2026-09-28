@@ -1,3 +1,56 @@
-export const ja = {};
+/** 設定ダイアログ */
+export const ja = {
+  title: "設定",
+  description: "変更はすぐに反映され、自動で保存されます。",
+  language: "言語",
+  languageSystem: "システム（OS に従う）",
+  theme: "テーマ",
+  themeSystem: "システム",
+  themeLight: "ライト",
+  themeDark: "ダーク",
+  fontSans: "UI フォント",
+  fontMono: "等幅フォント",
+  customFont: "フォント名を入力…",
+  customFontPlaceholder: "例: Inter / 'Fira Code', monospace",
+  fontPreview: "Firestore ビューア",
+  zoom: "表示サイズ",
+  reset: "既定に戻す",
+  presets: {
+    sansDefault: "既定（Geist + システム）",
+    sansSystem: "システム",
+    hiragino: "ヒラギノ角ゴシック",
+    yuGothic: "游ゴシック",
+    bizUdpGothic: "BIZ UDPゴシック",
+    meiryo: "メイリオ",
+    monoDefault: "既定（システムの等幅）",
+    osakaMono: "Osaka−等幅",
+  },
+};
 
-export const en: typeof ja = {};
+export const en: typeof ja = {
+  title: "Settings",
+  description: "Changes apply immediately and are saved automatically.",
+  language: "Language",
+  languageSystem: "System (follow OS)",
+  theme: "Theme",
+  themeSystem: "System",
+  themeLight: "Light",
+  themeDark: "Dark",
+  fontSans: "UI font",
+  fontMono: "Monospace font",
+  customFont: "Enter font name…",
+  customFontPlaceholder: "e.g. Inter / 'Fira Code', monospace",
+  fontPreview: "Firestore viewer",
+  zoom: "Zoom",
+  reset: "Reset to defaults",
+  presets: {
+    sansDefault: "Default (Geist + system)",
+    sansSystem: "System",
+    hiragino: "Hiragino Sans",
+    yuGothic: "Yu Gothic",
+    bizUdpGothic: "BIZ UDPGothic",
+    meiryo: "Meiryo",
+    monoDefault: "Default (system monospace)",
+    osakaMono: "Osaka Mono",
+  },
+};

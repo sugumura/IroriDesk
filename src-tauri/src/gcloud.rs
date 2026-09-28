@@ -65,8 +65,10 @@ pub fn find_gcloud() -> AppResult<PathBuf> {
         .into_iter()
         .find(|p| p.is_file())
         .ok_or_else(|| AppError::Auth {
-            message: "gcloud CLI が見つかりません。Google Cloud SDK をインストールしてください。"
-                .into(),
+            message: tr!(
+                "gcloud CLI が見つかりません。Google Cloud SDK をインストールしてください。",
+                "gcloud CLI was not found. Please install the Google Cloud SDK."
+            ),
             detail: None,
         })
 }
@@ -79,7 +81,12 @@ async fn run_gcloud(args: &[&str]) -> Result<String, String> {
         .stdin(Stdio::null())
         .output()
         .await
-        .map_err(|e| format!("gcloud を実行できませんでした: {e}"))?;
+        .map_err(|e| {
+            tr!(
+                "gcloud を実行できませんでした: {e}",
+                "Could not run gcloud: {e}"
+            )
+        })?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).trim().to_owned())
     } else {
@@ -107,12 +114,18 @@ pub async fn list_accounts() -> AppResult<Vec<GcloudAccount>> {
     let json = run_gcloud(&["auth", "list", "--format=json"])
         .await
         .map_err(|detail| AppError::Auth {
-            message: "gcloud のアカウント一覧を取得できませんでした".into(),
+            message: tr!(
+                "gcloud のアカウント一覧を取得できませんでした",
+                "Could not get the gcloud account list"
+            ),
             detail: Some(detail),
         })?;
     let entries: Vec<AuthListEntry> =
         serde_json::from_str(if json.is_empty() { "[]" } else { &json }).map_err(|e| {
-            AppError::Decode(format!("gcloud auth list の出力を解析できません: {e}"))
+            AppError::Decode(tr!(
+                "gcloud auth list の出力を解析できません: {e}",
+                "Could not parse the output of gcloud auth list: {e}"
+            ))
         })?;
     Ok(entries
         .into_iter()
@@ -131,7 +144,10 @@ pub async fn login(account: Option<&str>) -> AppResult<()> {
         args.push(a);
     }
     run_gcloud(&args).await.map(|_| ()).map_err(|detail| AppError::Auth {
-        message: "gcloud へのログインに失敗しました（ブラウザでのログインが完了していない可能性があります）".into(),
+        message: tr!(
+            "gcloud へのログインに失敗しました（ブラウザでのログインが完了していない可能性があります）",
+            "gcloud sign-in failed (the browser sign-in may not have completed)"
+        ),
         detail: Some(detail),
     })
 }
@@ -157,15 +173,20 @@ impl GcloudTokenCache {
         let token = run_gcloud(&["auth", "print-access-token", &arg])
             .await
             .map_err(|detail| AppError::Auth {
-                message: format!(
+                message: tr!(
                     "アカウント {account} のアクセストークンを取得できませんでした。\
-                     接続の管理で「再ログイン」を押してログインし直してください。"
+                     接続の管理で「再ログイン」を押してログインし直してください。",
+                    "Could not get an access token for account {account}. \
+                     Click \"Sign in again\" in Manage connections to sign in again."
                 ),
                 detail: Some(detail),
             })?;
         if token.is_empty() {
             return Err(AppError::Auth {
-                message: format!("アカウント {account} のアクセストークンが空でした"),
+                message: tr!(
+                    "アカウント {account} のアクセストークンが空でした",
+                    "The access token for account {account} was empty"
+                ),
                 detail: None,
             });
         }

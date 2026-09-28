@@ -1,3 +1,36 @@
-export const ja = {};
+/** ドキュメントの詳細ペイン（DocumentDetail / JsonTree / ValueView / DocumentTable） */
+export const ja = {
+  title: "ドキュメント",
+  tree: "ツリー",
+  selectPrompt: "一覧からドキュメントを選択してください",
+  copyPath: "パスをコピー",
+  created: "作成: {time}",
+  updated: "更新: {time}",
+  notFound: "このドキュメントは存在しません（サブコレクションのみを持つ場合があります）",
+  subcollections: "サブコレクション",
+  copyValue: "値をコピー",
+  collapse: "折りたたむ",
+  expand: "展開する",
+  empty: "(空)",
+  noFields: "フィールドはありません",
+  otherRef: "別のプロジェクト/DBへの参照: {ref}",
+  missingDocument: "実体のないドキュメント（サブコレクションのみ）",
+};
 
-export const en: typeof ja = {};
+export const en: typeof ja = {
+  title: "Document",
+  tree: "Tree",
+  selectPrompt: "Select a document from the list",
+  copyPath: "Copy path",
+  created: "Created: {time}",
+  updated: "Updated: {time}",
+  notFound: "This document does not exist (it may have only subcollections)",
+  subcollections: "Subcollections",
+  copyValue: "Copy value",
+  collapse: "Collapse",
+  expand: "Expand",
+  empty: "(empty)",
+  noFields: "No fields",
+  otherRef: "Reference to another project/database: {ref}",
+  missingDocument: "Missing document (has only subcollections)",
+};

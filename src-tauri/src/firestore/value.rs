@@ -53,8 +53,9 @@ fn unescape_key(key: &str) -> AppResult<String> {
     match key.strip_prefix('$') {
         None => Ok(key.to_owned()),
         Some(rest) if rest.starts_with('$') => Ok(rest.to_owned()),
-        Some(_) => Err(invalid(format!(
-            "キー `{key}` は `$` で始まるため `${key}` とエスケープしてください"
+        Some(_) => Err(invalid(tr!(
+            "キー `{key}` は `$` で始まるため `${key}` とエスケープしてください",
+            "Key `{key}` starts with `$`, so escape it as `${key}`"
         ))),
     }
 }
@@ -72,23 +73,32 @@ pub fn fields_to_display(fields: &Map<String, Value>) -> AppResult<Map<String, V
 }
 
 pub fn to_display(value: &Value) -> AppResult<Value> {
-    let obj = value
-        .as_object()
-        .ok_or_else(|| decode_err(format!("Value が object ではありません: {value}")))?;
+    let obj = value.as_object().ok_or_else(|| {
+        decode_err(tr!(
+            "Value が object ではありません: {value}",
+            "Value is not an object: {value}"
+        ))
+    })?;
     let (kind, inner) = obj
         .iter()
         .next()
-        .ok_or_else(|| decode_err("空の Value です"))?;
+        .ok_or_else(|| decode_err(tr!("空の Value です", "Empty Value")))?;
 
     match kind.as_str() {
         "nullValue" => Ok(Value::Null),
-        "booleanValue" => inner
-            .as_bool()
-            .map(Value::Bool)
-            .ok_or_else(|| decode_err("booleanValue が bool ではありません")),
+        "booleanValue" => inner.as_bool().map(Value::Bool).ok_or_else(|| {
+            decode_err(tr!(
+                "booleanValue が bool ではありません",
+                "booleanValue is not a bool"
+            ))
+        }),
         "integerValue" => {
-            let n = parse_int(inner)
-                .ok_or_else(|| decode_err(format!("不正な integerValue: {inner}")))?;
+            let n = parse_int(inner).ok_or_else(|| {
+                decode_err(tr!(
+                    "不正な integerValue: {inner}",
+                    "Invalid integerValue: {inner}"
+                ))
+            })?;
             Ok(if (-MAX_SAFE_INTEGER..=MAX_SAFE_INTEGER).contains(&n) {
                 json!(n)
             } else {
@@ -96,29 +106,48 @@ pub fn to_display(value: &Value) -> AppResult<Value> {
             })
         }
         "doubleValue" => {
-            let f = parse_double(inner)
-                .ok_or_else(|| decode_err(format!("不正な doubleValue: {inner}")))?;
+            let f = parse_double(inner).ok_or_else(|| {
+                decode_err(tr!(
+                    "不正な doubleValue: {inner}",
+                    "Invalid doubleValue: {inner}"
+                ))
+            })?;
             Ok(double_to_display(f))
         }
         "timestampValue" => {
-            let s = inner
-                .as_str()
-                .ok_or_else(|| decode_err("timestampValue が文字列ではありません"))?;
+            let s = inner.as_str().ok_or_else(|| {
+                decode_err(tr!(
+                    "timestampValue が文字列ではありません",
+                    "timestampValue is not a string"
+                ))
+            })?;
             let ts = normalize_timestamp(s).map_err(decode_err)?;
             Ok(wrap(W_TIMESTAMP, json!(ts)))
         }
-        "stringValue" => inner
-            .as_str()
-            .map(|s| json!(s))
-            .ok_or_else(|| decode_err("stringValue が文字列ではありません")),
+        "stringValue" => inner.as_str().map(|s| json!(s)).ok_or_else(|| {
+            decode_err(tr!(
+                "stringValue が文字列ではありません",
+                "stringValue is not a string"
+            ))
+        }),
         "bytesValue" => inner
             .as_str()
             .map(|s| wrap(W_BYTES, json!(s)))
-            .ok_or_else(|| decode_err("bytesValue が文字列ではありません")),
+            .ok_or_else(|| {
+                decode_err(tr!(
+                    "bytesValue が文字列ではありません",
+                    "bytesValue is not a string"
+                ))
+            }),
         "referenceValue" => inner
             .as_str()
             .map(|s| wrap(W_REF, json!(s)))
-            .ok_or_else(|| decode_err("referenceValue が文字列ではありません")),
+            .ok_or_else(|| {
+                decode_err(tr!(
+                    "referenceValue が文字列ではありません",
+                    "referenceValue is not a string"
+                ))
+            }),
         "geoPointValue" => {
             // proto3 JSON では 0 のフィールドが省略される
             let lat = inner.get("latitude").and_then(Value::as_f64).unwrap_or(0.0);
@@ -135,18 +164,23 @@ pub fn to_display(value: &Value) -> AppResult<Value> {
                 .map(to_display)
                 .collect::<AppResult<Vec<_>>>()
                 .map(Value::Array),
-            Some(other) => Err(decode_err(format!(
-                "arrayValue.values が配列ではありません: {other}"
+            Some(other) => Err(decode_err(tr!(
+                "arrayValue.values が配列ではありません: {other}",
+                "arrayValue.values is not an array: {other}"
             ))),
         },
         "mapValue" => match inner.get("fields") {
             None => Ok(json!({})),
             Some(Value::Object(fields)) => fields_to_display(fields).map(Value::Object),
-            Some(other) => Err(decode_err(format!(
-                "mapValue.fields が object ではありません: {other}"
+            Some(other) => Err(decode_err(tr!(
+                "mapValue.fields が object ではありません: {other}",
+                "mapValue.fields is not an object: {other}"
             ))),
         },
-        other => Err(decode_err(format!("未知の Value 型です: {other}"))),
+        other => Err(decode_err(tr!(
+            "未知の Value 型です: {other}",
+            "Unknown Value type: {other}"
+        ))),
     }
 }
 
@@ -198,7 +232,8 @@ fn double_to_display(f: f64) -> Value {
 
 /// RFC3339 をマイクロ秒6桁の UTC 表記に正規化する（それより細かい桁は切り捨て）
 pub fn normalize_timestamp(s: &str) -> Result<String, String> {
-    let dt = DateTime::parse_from_rfc3339(s).map_err(|e| format!("不正な日時 `{s}`: {e}"))?;
+    let dt = DateTime::parse_from_rfc3339(s)
+        .map_err(|e| tr!("不正な日時 `{s}`: {e}", "Invalid date-time `{s}`: {e}"))?;
     Ok(dt
         .with_timezone(&Utc)
         .to_rfc3339_opts(SecondsFormat::Micros, true))
@@ -226,7 +261,10 @@ pub fn from_display(value: &Value) -> AppResult<Value> {
             if let Some(i) = n.as_i64() {
                 Ok(json!({ "integerValue": i.to_string() }))
             } else if n.is_u64() {
-                Err(invalid(format!("整数 {n} は int64 の範囲外です")))
+                Err(invalid(tr!(
+                    "整数 {n} は int64 の範囲外です",
+                    "Integer {n} is out of int64 range"
+                )))
             } else {
                 Ok(json!({ "doubleValue": n }))
             }
@@ -254,17 +292,23 @@ pub fn from_display(value: &Value) -> AppResult<Value> {
 fn wrapper_from_display(key: &str, v: &Value) -> AppResult<Option<Value>> {
     let converted = match key {
         W_INT => {
-            let s = v
-                .as_str()
-                .ok_or_else(|| invalid("$int は文字列で指定してください"))?;
-            let n: i64 = s
-                .parse()
-                .map_err(|_| invalid(format!("$int `{s}` は int64 として解釈できません")))?;
+            let s = v.as_str().ok_or_else(|| {
+                invalid(tr!(
+                    "$int は文字列で指定してください",
+                    "Specify $int as a string"
+                ))
+            })?;
+            let n: i64 = s.parse().map_err(|_| {
+                invalid(tr!(
+                    "$int `{s}` は int64 として解釈できません",
+                    "$int `{s}` cannot be parsed as int64"
+                ))
+            })?;
             json!({ "integerValue": n.to_string() })
         }
         W_DOUBLE => {
             let f = parse_double(v).ok_or_else(|| {
-                invalid(format!("$double は数値か \"NaN\" / \"Infinity\" / \"-Infinity\" で指定してください: {v}"))
+                invalid(tr!("$double は数値か \"NaN\" / \"Infinity\" / \"-Infinity\" で指定してください: {v}", "Specify $double as a number or \"NaN\" / \"Infinity\" / \"-Infinity\": {v}"))
             })?;
             if f.is_finite() {
                 json!({ "doubleValue": Number::from_f64(f).expect("有限値") })
@@ -273,30 +317,44 @@ fn wrapper_from_display(key: &str, v: &Value) -> AppResult<Option<Value>> {
             }
         }
         W_TIMESTAMP => {
-            let s = v
-                .as_str()
-                .ok_or_else(|| invalid("$timestamp は文字列で指定してください"))?;
+            let s = v.as_str().ok_or_else(|| {
+                invalid(tr!(
+                    "$timestamp は文字列で指定してください",
+                    "Specify $timestamp as a string"
+                ))
+            })?;
             json!({ "timestampValue": normalize_timestamp(s).map_err(invalid)? })
         }
         W_BYTES => {
-            let s = v
-                .as_str()
-                .ok_or_else(|| invalid("$bytes は base64 文字列で指定してください"))?;
+            let s = v.as_str().ok_or_else(|| {
+                invalid(tr!(
+                    "$bytes は base64 文字列で指定してください",
+                    "Specify $bytes as a base64 string"
+                ))
+            })?;
             base64::engine::general_purpose::STANDARD
                 .decode(s)
-                .map_err(|e| invalid(format!("$bytes が base64 として不正です: {e}")))?;
+                .map_err(|e| {
+                    invalid(tr!(
+                        "$bytes が base64 として不正です: {e}",
+                        "$bytes is not valid base64: {e}"
+                    ))
+                })?;
             json!({ "bytesValue": s })
         }
         W_REF => {
-            let s = v
-                .as_str()
-                .ok_or_else(|| invalid("$ref は文字列で指定してください"))?;
+            let s = v.as_str().ok_or_else(|| {
+                invalid(tr!(
+                    "$ref は文字列で指定してください",
+                    "Specify $ref as a string"
+                ))
+            })?;
             if !(s.starts_with("projects/")
                 && s.contains("/databases/")
                 && s.contains("/documents/"))
             {
-                return Err(invalid(format!(
-                    "$ref は projects/{{p}}/databases/{{db}}/documents/... の形式で指定してください: {s}"
+                return Err(invalid(tr!(
+                    "$ref は projects/{{p}}/databases/{{db}}/documents/... の形式で指定してください: {s}", "Specify $ref in the form projects/{{p}}/databases/{{db}}/documents/...: {s}"
                 )));
             }
             json!({ "referenceValue": s })
@@ -311,8 +369,9 @@ fn wrapper_from_display(key: &str, v: &Value) -> AppResult<Option<Value>> {
                     json!({ "geoPointValue": { "latitude": lat, "longitude": lng } })
                 }
                 _ => {
-                    return Err(invalid(format!(
-                        "$geo は {{\"lat\": -90..90, \"lng\": -180..180}} で指定してください: {v}"
+                    return Err(invalid(tr!(
+                        "$geo は {{\"lat\": -90..90, \"lng\": -180..180}} で指定してください: {v}",
+                        "Specify $geo as {{\"lat\": -90..90, \"lng\": -180..180}}: {v}"
                     )))
                 }
             }

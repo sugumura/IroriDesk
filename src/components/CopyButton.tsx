@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/i18n";
 
 export function CopyButton({
   text,
-  label = "コピー",
+  label: labelProp,
   className,
 }: {
   text: string | (() => string);
@@ -13,6 +14,8 @@ export function CopyButton({
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const t = useT();
+  const label = labelProp ?? t("common.copy");
   return (
     <button
       type="button"
@@ -37,6 +40,7 @@ export function CopyButton({
 /** 文字で内容を示すコピーボタン（フッターなどで使う） */
 export function CopyTextButton({ text, children }: { text: string | (() => string); children: React.ReactNode }) {
   const [copied, setCopied] = useState(false);
+  const t = useT();
   return (
     <Button
       variant="outline"
@@ -48,7 +52,7 @@ export function CopyTextButton({ text, children }: { text: string | (() => strin
       }}
     >
       {copied ? <Check /> : <Copy />}
-      {copied ? "コピーしました" : children}
+      {copied ? t("common.copied") : children}
     </Button>
   );
 }

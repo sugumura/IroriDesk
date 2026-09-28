@@ -8,8 +8,9 @@ pub fn split_relative(path: &str) -> AppResult<Vec<&str>> {
     }
     let segments: Vec<&str> = trimmed.split('/').collect();
     if segments.iter().any(|s| s.is_empty()) {
-        return Err(AppError::InvalidInput(format!(
-            "パスに空のセグメントがあります: {path}"
+        return Err(AppError::InvalidInput(tr!(
+            "パスに空のセグメントがあります: {path}",
+            "The path has an empty segment: {path}"
         )));
     }
     Ok(segments)
@@ -19,8 +20,9 @@ pub fn split_relative(path: &str) -> AppResult<Vec<&str>> {
 pub fn document_segments(path: &str) -> AppResult<Vec<&str>> {
     let segments = split_relative(path)?;
     if segments.len() % 2 != 0 {
-        return Err(AppError::InvalidInput(format!(
-            "ドキュメントパスではありません: {path}"
+        return Err(AppError::InvalidInput(tr!(
+            "ドキュメントパスではありません: {path}",
+            "Not a document path: {path}"
         )));
     }
     Ok(segments)
@@ -30,8 +32,9 @@ pub fn document_segments(path: &str) -> AppResult<Vec<&str>> {
 pub fn collection_segments(path: &str) -> AppResult<Vec<&str>> {
     let segments = split_relative(path)?;
     if segments.len() % 2 != 1 {
-        return Err(AppError::InvalidInput(format!(
-            "コレクションパスではありません: {path}"
+        return Err(AppError::InvalidInput(tr!(
+            "コレクションパスではありません: {path}",
+            "Not a collection path: {path}"
         )));
     }
     Ok(segments)

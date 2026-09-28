@@ -4,6 +4,7 @@ import type { UserLookupKind } from "@/lib/api";
 import { userRowPath, userToRow } from "@/lib/authUsers";
 import { columnScope } from "@/lib/columns";
 import { useColumnLayout } from "@/lib/useColumnLayout";
+import { type MessageKey, useT } from "@/i18n";
 import { type AuthTab, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +20,16 @@ import { ErrorBox } from "./ErrorBox";
 import { ExportMenu } from "./ExportMenu";
 import { ResultsView, ViewToggle } from "./ResultsView";
 
-const LOOKUP_KINDS: { value: UserLookupKind; label: string; placeholder: string }[] = [
-  { value: "email", label: "メール", placeholder: "alice@example.com" },
-  { value: "uid", label: "UID", placeholder: "ユーザーの UID" },
-  { value: "phone", label: "電話番号", placeholder: "+819012345678（E.164 形式）" },
+/** placeholder が MessageKey でないもの（メールの例）はそのまま表示する */
+const LOOKUP_KINDS: { value: UserLookupKind; label: MessageKey; placeholder: MessageKey | { text: string } }[] = [
+  { value: "email", label: "auth.lookup.email", placeholder: { text: "alice@example.com" } },
+  { value: "uid", label: "auth.lookup.uid", placeholder: "auth.placeholder.uid" },
+  { value: "phone", label: "auth.lookup.phone", placeholder: "auth.placeholder.phone" },
 ];
 
 /** Firebase Authentication のユーザー一覧（読み取りのみ） */
 export function AuthView({ tab }: { tab: AuthTab }) {
+  const t = useT();
   const loadUsers = useStore((s) => s.loadUsers);
   const searchUsers = useStore((s) => s.searchUsers);
   const selectUser = useStore((s) => s.selectUser);
@@ -38,6 +41,7 @@ export function AuthView({ tab }: { tab: AuthTab }) {
   const layout = useColumnLayout(rows, columnScope({ kind: "collection", path: "__auth__" }));
   const byUid = useMemo(() => new Map(tab.users.map((u) => [u.uid, u])), [tab.users]);
   const kindInfo = LOOKUP_KINDS.find((k) => k.value === kind)!;
+  const placeholder = typeof kindInfo.placeholder === "string" ? t(kindInfo.placeholder) : kindInfo.placeholder.text;
 
   return (
     <div className="@container flex h-full min-h-0 flex-col">
@@ -56,7 +60,7 @@ export function AuthView({ tab }: { tab: AuthTab }) {
           <SelectContent>
             {LOOKUP_KINDS.map((k) => (
               <SelectItem key={k.value} value={k.value}>
-                {k.label}
+                {t(k.label)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -64,24 +68,24 @@ export function AuthView({ tab }: { tab: AuthTab }) {
         <Input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={`${kindInfo.placeholder}（完全一致）`}
+          placeholder={t("auth.exactMatch", { placeholder })}
           className="h-7 min-w-40 flex-1 font-mono text-xs"
         />
         <Button type="submit" size="sm" variant="outline" disabled={!value.trim() || tab.loading}>
-          <Search /> <span className="hidden @lg:inline">検索</span>
+          <Search /> <span className="hidden @lg:inline">{t("auth.search")}</span>
         </Button>
         {tab.search && (
           <Button
             type="button"
             size="sm"
             variant="ghost"
-            title="検索を解除して一覧に戻る"
+            title={t("auth.clearSearchTitle")}
             onClick={() => {
               setValue("");
               void loadUsers(tab.id, true);
             }}
           >
-            <X /> <span className="hidden @lg:inline">解除</span>
+            <X /> <span className="hidden @lg:inline">{t("auth.clear")}</span>
           </Button>
         )}
         <div className="flex-1" />
@@ -91,7 +95,7 @@ export function AuthView({ tab }: { tab: AuthTab }) {
           type="button"
           variant="ghost"
           size="icon-sm"
-          title="再読み込み"
+          title={t("common.reload")}
           disabled={tab.loading}
           onClick={() =>
             tab.search ? void searchUsers(tab.id, tab.search.kind, tab.search.value) : void loadUsers(tab.id, true)
@@ -106,7 +110,7 @@ export function AuthView({ tab }: { tab: AuthTab }) {
       <div className="min-h-0 flex-1">
         {rows.length === 0 && !tab.loading && !tab.error ? (
           <div className="p-4 text-muted-foreground">
-            {tab.search ? "該当するユーザーはいません" : "ユーザーはいません"}
+            {tab.search ? t("auth.noMatchingUsers") : t("auth.noUsers")}
           </div>
         ) : (
           <ResultsView
@@ -122,16 +126,16 @@ export function AuthView({ tab }: { tab: AuthTab }) {
 
       <div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
         <span className="min-w-0 truncate">
-          {tab.search ? `検索結果 ${rows.length} 件` : `${rows.length} 件`}
-          <span className="hidden @md:inline">{tab.search ? "" : "読み込み済み"}</span>
+          {tab.search ? t("auth.resultCount", { count: rows.length }) : t("common.count", { count: rows.length })}
+          <span className="hidden @md:inline">{tab.search ? "" : t("auth.loaded")}</span>
         </span>
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
         <ExportMenu docs={rows} fields={layout.visible} baseName="auth_users" />
         {tab.nextPageToken && !tab.search && (
           <Button size="xs" variant="outline" disabled={tab.loading} onClick={() => loadUsers(tab.id, false)}>
-            <span className="@md:hidden">続き</span>
-            <span className="hidden @md:inline">さらに読み込む</span>
+            <span className="@md:hidden">{t("auth.more")}</span>
+            <span className="hidden @md:inline">{t("auth.loadMore")}</span>
           </Button>
         )}
       </div>

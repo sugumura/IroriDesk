@@ -3,6 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import type { ConnectionConfig } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
+import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -57,6 +58,7 @@ export function ConnectionDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useT();
   const connections = useStore((s) => s.connections);
   const activeId = useStore((s) => s.activeConnectionId);
   const upsert = useStore((s) => s.upsertConnection);
@@ -99,9 +101,9 @@ export function ConnectionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>接続の管理</DialogTitle>
+          <DialogTitle>{t("connection.manage")}</DialogTitle>
           <DialogDescription>
-            本番接続は ADC、または gcloud に登録したアカウントの認証情報を使います。
+            {t("connection.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -119,34 +121,34 @@ export function ConnectionDialog({
               >
                 {c.name}
                 <span className="ml-1 text-xs text-muted-foreground">
-                  {c.kind === "emulator" ? "Emulator" : ""}
+                  {c.kind === "emulator" ? t("connection.kindEmulator") : ""}
                 </span>
               </button>
             ))}
             <Button variant="outline" size="sm" className="mt-2" onClick={() => setDraft(blankConnection())}>
-              <Plus /> 新しい接続
+              <Plus /> {t("connection.newConnection")}
             </Button>
           </div>
 
           <div className="space-y-3">
-            <Field label="表示名">
+            <Field label={t("connection.displayName")}>
               <Input value={draft.name} onChange={(e) => update("name", e.target.value)} />
             </Field>
-            <Field label="接続種別">
+            <Field label={t("connection.kind")}>
               <Select value={draft.kind} onValueChange={(v) => update("kind", v as ConnectionConfig["kind"])}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="production">本番（Google Cloud）</SelectItem>
-                  <SelectItem value="emulator">Emulator</SelectItem>
+                  <SelectItem value="production">{t("connection.kindProduction")}</SelectItem>
+                  <SelectItem value="emulator">{t("connection.kindEmulator")}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="プロジェクトID">
+            <Field label={t("connection.projectId")}>
               <Input value={draft.projectId} onChange={(e) => update("projectId", e.target.value)} />
             </Field>
-            <Field label="データベースID" hint="名前付きDBの場合はIDを入力。空欄は (default)">
+            <Field label={t("connection.databaseId")} hint={t("connection.databaseIdHint")}>
               <Input
                 value={draft.databaseId ?? ""}
                 placeholder="(default)"
@@ -155,14 +157,14 @@ export function ConnectionDialog({
             </Field>
             {draft.kind === "emulator" ? (
               <>
-                <Field label="Emulator ホスト" hint="Firestore Emulator">
+                <Field label={t("connection.emulatorHost")} hint={t("connection.emulatorHostHint")}>
                   <Input
                     value={draft.emulatorHost ?? ""}
                     placeholder="localhost:8080"
                     onChange={(e) => update("emulatorHost", e.target.value)}
                   />
                 </Field>
-                <Field label="Auth Emulator" hint="Authentication Emulator（ユーザー一覧に使用）">
+                <Field label={t("connection.authEmulator")} hint={t("connection.authEmulatorHint")}>
                   <Input
                     value={draft.authEmulatorHost ?? ""}
                     placeholder="localhost:9099"
@@ -172,16 +174,10 @@ export function ConnectionDialog({
               </>
             ) : (
               <>
-                <Field
-                  label="アカウント"
-                  hint="ADC はマシン全体で1つ。接続ごとに使い分けるなら gcloud のアカウントを選ぶ（ログインは gcloud が管理）"
-                >
+                <Field label={t("connection.account")} hint={t("connection.accountHint")}>
                   <AccountPicker value={draft.account} onChange={(a) => update("account", a)} />
                 </Field>
-                <Field
-                  label="quota project"
-                  hint="任意。ユーザーADCで課金/クォータ用のプロジェクトが必要な場合に指定（x-goog-user-project）"
-                >
+                <Field label={t("connection.quotaProject")} hint={t("connection.quotaProjectHint")}>
                   <Input
                     value={draft.quotaProject ?? ""}
                     onChange={(e) => update("quotaProject", e.target.value)}
@@ -189,7 +185,7 @@ export function ConnectionDialog({
                 </Field>
               </>
             )}
-            <Field label="読み取り専用" hint="現在のバージョンは常に読み取りのみです（書き込みは今後対応）">
+            <Field label={t("connection.readOnly")} hint={t("connection.readOnlyHint")}>
               <div className="pt-1.5">
                 {/* 書き込み機能（第2段階）までは常にオンで固定する */}
                 <Switch checked disabled aria-readonly />
@@ -211,14 +207,14 @@ export function ConnectionDialog({
               setDraft(blankConnection());
             }}
           >
-            <Trash2 /> {confirmDelete ? "もう一度押すと削除" : "削除"}
+            <Trash2 /> {confirmDelete ? t("connection.confirmDelete") : t("common.delete")}
           </Button>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              閉じる
+              {t("common.close")}
             </Button>
             <Button disabled={!valid} onClick={save}>
-              {isNew ? "追加" : "保存"}
+              {isNew ? t("common.add") : t("common.save")}
             </Button>
           </div>
         </DialogFooter>

@@ -6,12 +6,14 @@ import { focusedTab, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorBox } from "./ErrorBox";
+import { useT } from "@/i18n";
 
 /** パス入力: コレクションパスなら一覧を開き、ドキュメントパスなら詳細を表示する */
 function OpenPathForm() {
   const openCollection = useStore((s) => s.openCollection);
   const select = useStore((s) => s.selectDocument);
   const [value, setValue] = useState("");
+  const t = useT();
   return (
     <form
       className="px-2 pb-2"
@@ -26,7 +28,7 @@ function OpenPathForm() {
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="パスを開く（users/alice/orders）"
+        placeholder={t("tree.openPathPlaceholder")}
         className="h-7 font-mono text-xs"
       />
     </form>
@@ -39,6 +41,7 @@ export function CollectionTree() {
   const openCollection = useStore((s) => s.openCollection);
   const setTreeOpen = useStore((s) => s.setTreeOpen);
   const openAuth = useStore((s) => s.openAuth);
+  const t = useT();
   const authActive = useStore((s) => focusedTab(s)?.kind === "auth");
   const activePath = useStore((s) => {
     const tab = focusedTab(s);
@@ -52,7 +55,7 @@ export function CollectionTree() {
       <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
         <span className="font-medium">Authentication</span>
         <div className="flex-1" />
-        <Button variant="ghost" size="icon-sm" title="パネルを閉じる" onClick={() => setTreeOpen(false)}>
+        <Button variant="ghost" size="icon-sm" title={t("tree.closePanel")} onClick={() => setTreeOpen(false)}>
           <X />
         </Button>
       </div>
@@ -66,14 +69,14 @@ export function CollectionTree() {
           onClick={() => openAuth()}
         >
           <Users className="size-3.5 shrink-0 text-muted-foreground" />
-          ユーザー
+          {t("tree.users")}
         </button>
       </div>
 
       <div className="flex h-9 shrink-0 items-center gap-2 px-3">
-        <span className="font-medium">コレクション</span>
+        <span className="font-medium">{t("tree.collections")}</span>
         <div className="flex-1" />
-        <Button variant="ghost" size="icon-sm" title="コレクションを再読み込み" disabled={root.loading} onClick={() => reload()}>
+        <Button variant="ghost" size="icon-sm" title={t("tree.reloadCollections")} disabled={root.loading} onClick={() => reload()}>
           {root.loading ? <Loader2 className="animate-spin" /> : <RefreshCw />}
         </Button>
       </div>
@@ -81,13 +84,13 @@ export function CollectionTree() {
       <div className="min-h-0 flex-1 overflow-auto px-1 pb-2">
         {root.error && <ErrorBox error={root.error} className="m-1 text-xs" />}
         {root.ids?.length === 0 && (
-          <div className="px-2 text-muted-foreground">コレクションはありません</div>
+          <div className="px-2 text-muted-foreground">{t("tree.noCollections")}</div>
         )}
         {root.ids?.map((id) => (
           <button
             key={id}
             type="button"
-            title="クリックで開く（⌘/Ctrl+クリックで新しいタブ）"
+            title={t("tree.openHint")}
             className={cn(
               "flex w-full items-center gap-1.5 rounded px-2 py-1 text-left hover:bg-muted",
               activeRoot === id && "bg-accent font-medium",

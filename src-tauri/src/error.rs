@@ -1,20 +1,23 @@
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 
-pub const ADC_LOGIN_HINT: &str =
-    "`gcloud auth application-default login` を実行して ADC を作成・更新してください。";
+/// ADC の作成・更新を促すヒント（現在の言語）
+pub fn adc_login_hint() -> String {
+    tr!(
+        "`gcloud auth application-default login` を実行して ADC を作成・更新してください。",
+        "Run `gcloud auth application-default login` to create or refresh ADC."
+    )
+}
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum AppError {
     /// ADC の読み込み・トークン取得失敗、または API が 401/403 を返した
-    #[error("認証エラー: {message}")]
     Auth {
         message: String,
         detail: Option<String>,
     },
 
     /// Google の API（Firestore / Authentication）がエラーレスポンスを返した
-    #[error("{service} API エラー ({status}): {message}")]
     Api {
         /// 呼び出した API の表示名（Firestore / Authentication）
         service: &'static str,
@@ -24,17 +27,11 @@ pub enum AppError {
     },
 
     /// 接続できない・タイムアウトなど
-    #[error("ネットワークエラー: {0}")]
     Network(String),
-
-    #[error("入力が不正です: {0}")]
     InvalidInput(String),
-
-    #[error("ファイルを保存できませんでした: {0}")]
     File(String),
 
     /// Firestore のレスポンスが想定外の形式だった
-    #[error("レスポンスを解析できませんでした: {0}")]
     Decode(String),
 }
 
@@ -63,6 +60,38 @@ impl AppError {
     }
 }
 
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = match self {
+            AppError::Auth { message, .. } => {
+                tr!("認証エラー: {message}", "Authentication error: {message}")
+            }
+            AppError::Api {
+                service,
+                status,
+                message,
+                ..
+            } => tr!(
+                "{service} API エラー ({status}): {message}",
+                "{service} API error ({status}): {message}"
+            ),
+            AppError::Network(m) => tr!("ネットワークエラー: {m}", "Network error: {m}"),
+            AppError::InvalidInput(m) => tr!("入力が不正です: {m}", "Invalid input: {m}"),
+            AppError::File(m) => tr!(
+                "ファイルを保存できませんでした: {m}",
+                "Could not save the file: {m}"
+            ),
+            AppError::Decode(m) => tr!(
+                "レスポンスを解析できませんでした: {m}",
+                "Could not parse the response: {m}"
+            ),
+        };
+        f.write_str(&text)
+    }
+}
+
+impl std::error::Error for AppError {}
+
 impl From<reqwest::Error> for AppError {
     fn from(e: reqwest::Error) -> Self {
         // reqwest のエラー表示にヘッダーは含まれないため、トークンは漏れない
@@ -82,3 +111,20 @@ impl Serialize for AppError {
 }
 
 pub type AppResult<T> = Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::AppError;
+    use crate::i18n;
+
+    #[test]
+    fn display_follows_language() {
+        let _guard = i18n::test_lock();
+        let e = AppError::Network("timeout".into());
+        i18n::set_english(true);
+        let en = e.to_string();
+        i18n::set_english(false);
+        assert_eq!(en, "Network error: timeout");
+        assert_eq!(e.to_string(), "ネットワークエラー: timeout");
+    }
+}

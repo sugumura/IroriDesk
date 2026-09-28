@@ -3,7 +3,7 @@ use std::sync::Arc;
 use gcp_auth::{ConfigDefaultCredentials, TokenProvider};
 use tokio::sync::OnceCell;
 
-use crate::error::{AppError, AppResult, ADC_LOGIN_HINT};
+use crate::error::{adc_login_hint, AppError, AppResult};
 
 const SCOPES: &[&str] = &["https://www.googleapis.com/auth/datastore"];
 
@@ -29,7 +29,11 @@ impl AdcTokenSource {
                     .await
                     .map(Arc::new)
                     .map_err(|e| AppError::Auth {
-                        message: format!("ADC を読み込めませんでした。{ADC_LOGIN_HINT}"),
+                        message: tr!(
+                            "ADC を読み込めませんでした。{}",
+                            "Could not load ADC. {}",
+                            adc_login_hint()
+                        ),
                         detail: Some(e.to_string()),
                     })
             })
@@ -46,7 +50,11 @@ impl TokenSource for AdcTokenSource {
             .token(SCOPES)
             .await
             .map_err(|e| AppError::Auth {
-                message: format!("アクセストークンを取得できませんでした。{ADC_LOGIN_HINT}"),
+                message: tr!(
+                    "アクセストークンを取得できませんでした。{}",
+                    "Could not get an access token. {}",
+                    adc_login_hint()
+                ),
                 detail: Some(e.to_string()),
             })?;
         Ok(token.as_str().to_owned())

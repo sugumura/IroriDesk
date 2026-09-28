@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useDefaultLayout } from "react-resizable-panels";
 import { useStore } from "./store";
+import { useT } from "./i18n";
 import { layoutStorage } from "./lib/layoutStorage";
 import { CollectionTree } from "./components/CollectionTree";
 import { DetailPane } from "./components/DetailPane";
@@ -49,6 +50,7 @@ function MainPanes({ treeOpen, detailOpen }: { treeOpen: boolean; detailOpen: bo
 }
 
 function App() {
+  const t = useT();
   const ready = useStore((s) => s.ready);
   const init = useStore((s) => s.init);
   const hasConnection = useStore((s) => s.activeConnectionId !== null);
@@ -70,7 +72,7 @@ function App() {
           <MainPanes treeOpen={treeOpen} detailOpen={detailOpen} />
         ) : (
           <div className="flex flex-1 items-center justify-center text-muted-foreground">
-            左上の接続の管理ボタンから接続を追加してください
+            {t("topbar.noConnection")}
           </div>
         )}
       </div>

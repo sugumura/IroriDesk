@@ -16,6 +16,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { type Appearance, applyAppearance, DEFAULT_APPEARANCE } from "@/lib/appearance";
 import { resolveLang } from "@/i18n";
+import type { TFunction } from "@/i18n";
 import type { ColumnConfig } from "@/lib/columns";
 import { addToHistory, type HistoryEntry } from "@/lib/queryHistory";
 import {
@@ -96,11 +97,12 @@ export function emptyQuerySpec(collectionPath = ""): QuerySpec {
   };
 }
 
-export function tabTitle(t: Tab): string {
+/** タブの見出し。tr は呼び出し側の翻訳関数（useT） */
+export function tabTitle(t: Tab, tr: TFunction): string {
   if (t.kind === "browse") return t.collectionPath;
   if (t.kind === "auth") return "Authentication";
-  const target = t.spec.target || "(未指定)";
-  return t.spec.targetKind === "collectionGroup" ? `クエリ: group(${target})` : `クエリ: ${target}`;
+  const target = t.spec.target || tr("tabs.unspecified");
+  return tr(t.spec.targetKind === "collectionGroup" ? "tabs.queryGroupTitle" : "tabs.queryTitle", { target });
 }
 
 interface RootCollections {

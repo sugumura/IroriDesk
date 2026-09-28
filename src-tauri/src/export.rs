@@ -23,15 +23,18 @@ pub async fn save_text_file(
         .save_file(move |path| {
             let _ = tx.send(path);
         });
-    let Some(path) = rx
-        .await
-        .map_err(|_| AppError::File("保存ダイアログが閉じられました".into()))?
+    let Some(path) = rx.await.map_err(|_| {
+        AppError::File(tr!(
+            "保存ダイアログが閉じられました",
+            "The save dialog was closed"
+        ))
+    })?
     else {
         return Ok(None);
     };
-    let path: PathBuf = path
-        .into_path()
-        .map_err(|e| AppError::File(format!("保存先のパスが不正です: {e}")))?;
+    let path: PathBuf = path.into_path().map_err(|e| {
+        AppError::File(tr!("保存先のパスが不正です: {e}", "Invalid save path: {e}"))
+    })?;
     tokio::fs::write(&path, contents)
         .await
         .map_err(|e| AppError::File(format!("{}: {e}", path.display())))?;

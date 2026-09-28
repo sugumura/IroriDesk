@@ -130,15 +130,16 @@ fn invalid(msg: impl Into<String>) -> AppError {
 pub fn to_field_path(input: &str) -> AppResult<String> {
     let input = input.trim();
     if input.is_empty() {
-        return Err(invalid("フィールド名が空です"));
+        return Err(invalid(tr!("フィールド名が空です", "Field name is empty")));
     }
     if input == "__name__" || input.contains('`') {
         return Ok(input.to_owned());
     }
     let segments: Vec<&str> = input.split('.').collect();
     if segments.iter().any(|s| s.is_empty()) {
-        return Err(invalid(format!(
-            "フィールドパスに空のセグメントがあります: {input}"
+        return Err(invalid(tr!(
+            "フィールドパスに空のセグメントがあります: {input}",
+            "The field path has an empty segment: {input}"
         )));
     }
     Ok(segments
@@ -174,20 +175,27 @@ impl Ctx<'_> {
         } else if raw.contains('/') {
             let segs = split_relative(raw)?;
             if segs.len() % 2 != 0 {
-                return Err(invalid(format!("ドキュメントパスではありません: {raw}")));
+                return Err(invalid(tr!(
+                    "ドキュメントパスではありません: {raw}",
+                    "Not a document path: {raw}"
+                )));
             }
             format!("{}/{}", self.documents_root, segs.join("/"))
         } else if is_name_field {
             let col = self.collection_path.ok_or_else(|| {
-                invalid("collectionGroup クエリの __name__ にはドキュメントの完全なパスを指定してください")
+                invalid(tr!("collectionGroup クエリの __name__ にはドキュメントの完全なパスを指定してください", "For __name__ in a collectionGroup query, specify the full document path"))
             })?;
             if raw.is_empty() {
-                return Err(invalid("ドキュメントIDが空です"));
+                return Err(invalid(tr!(
+                    "ドキュメントIDが空です",
+                    "Document ID is empty"
+                )));
             }
             format!("{}/{}/{}", self.documents_root, col, raw)
         } else {
-            return Err(invalid(format!(
-                "reference にはドキュメントパス（users/alice など）を指定してください: {raw}"
+            return Err(invalid(tr!(
+                "reference にはドキュメントパス（users/alice など）を指定してください: {raw}",
+                "Specify a document path (e.g. users/alice) for reference: {raw}"
             )));
         };
         Ok(json!({ "referenceValue": full }))
@@ -202,17 +210,23 @@ impl Ctx<'_> {
         Ok(match ty {
             ValueType::String => json!({ "stringValue": raw }),
             ValueType::Integer => {
-                let n: i64 = t
-                    .parse()
-                    .map_err(|_| invalid(format!("integer として解釈できません: {raw}")))?;
+                let n: i64 = t.parse().map_err(|_| {
+                    invalid(tr!(
+                        "integer として解釈できません: {raw}",
+                        "Cannot parse as integer: {raw}"
+                    ))
+                })?;
                 json!({ "integerValue": n.to_string() })
             }
             ValueType::Double => match t {
                 "NaN" | "Infinity" | "-Infinity" => json!({ "doubleValue": t }),
                 _ => {
-                    let f: f64 = t
-                        .parse()
-                        .map_err(|_| invalid(format!("double として解釈できません: {raw}")))?;
+                    let f: f64 = t.parse().map_err(|_| {
+                        invalid(tr!(
+                            "double として解釈できません: {raw}",
+                            "Cannot parse as double: {raw}"
+                        ))
+                    })?;
                     json!({ "doubleValue": f })
                 }
             },
@@ -220,16 +234,18 @@ impl Ctx<'_> {
                 "true" => json!({ "booleanValue": true }),
                 "false" => json!({ "booleanValue": false }),
                 _ => {
-                    return Err(invalid(format!(
-                        "boolean は true / false で指定してください: {raw}"
+                    return Err(invalid(tr!(
+                        "boolean は true / false で指定してください: {raw}",
+                        "Specify boolean as true / false: {raw}"
                     )))
                 }
             },
             ValueType::Null => json!({ "nullValue": null }),
             ValueType::Timestamp => {
                 let ts = normalize_timestamp(t).map_err(|e| {
-                    invalid(format!(
-                        "{e}（例: 2026-01-01T00:00:00Z / 2026-01-01T09:00:00+09:00）"
+                    invalid(tr!(
+                        "{e}（例: 2026-01-01T00:00:00Z / 2026-01-01T09:00:00+09:00）",
+                        "{e} (e.g. 2026-01-01T00:00:00Z / 2026-01-01T09:00:00+09:00)"
                     ))
                 })?;
                 json!({ "timestampValue": ts })
@@ -252,8 +268,9 @@ impl Ctx<'_> {
                 (WhereOp::Eq, true) => "IS_NAN",
                 (WhereOp::Ne, true) => "IS_NOT_NAN",
                 _ => {
-                    return Err(invalid(format!(
+                    return Err(invalid(tr!(
                         "{} との比較は == / != のみ使えます（{}）",
+                        "Only == / != can be used to compare with {} ({})",
                         if is_nan { "NaN" } else { "null" },
                         w.field
                     )))
@@ -270,8 +287,9 @@ impl Ctx<'_> {
                 .filter(|s| !s.is_empty())
                 .collect();
             if items.is_empty() {
-                return Err(invalid(format!(
+                return Err(invalid(tr!(
                     "{} の値をカンマ区切りで指定してください",
+                    "Specify the values for {} separated by commas",
                     w.field
                 )));
             }
@@ -304,9 +322,10 @@ pub fn build(spec: &QuerySpec, documents_root: &str) -> AppResult<BuiltQuery> {
         }
         TargetKind::CollectionGroup => {
             if target.is_empty() || target.contains('/') {
-                return Err(invalid(
+                return Err(invalid(tr!(
                     "collectionGroup にはコレクションID（/ を含まない）を指定してください",
-                ));
+                    "Specify a collection ID (without /) for collectionGroup"
+                )));
             }
             (
                 Vec::new(),
@@ -364,8 +383,9 @@ pub fn build(spec: &QuerySpec, documents_root: &str) -> AppResult<BuiltQuery> {
 
     if let Some(limit) = spec.limit {
         if limit == 0 || limit > MAX_LIMIT {
-            return Err(invalid(format!(
-                "limit は 1〜{MAX_LIMIT} で指定してください"
+            return Err(invalid(tr!(
+                "limit は 1〜{MAX_LIMIT} で指定してください",
+                "limit must be between 1 and {MAX_LIMIT}"
             )));
         }
         sq.insert("limit".into(), json!(limit));
