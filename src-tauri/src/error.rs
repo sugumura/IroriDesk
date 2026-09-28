@@ -8,7 +8,10 @@ pub const ADC_LOGIN_HINT: &str =
 pub enum AppError {
     /// ADC の読み込み・トークン取得失敗、または API が 401/403 を返した
     #[error("認証エラー: {message}")]
-    Auth { message: String, detail: Option<String> },
+    Auth {
+        message: String,
+        detail: Option<String>,
+    },
 
     /// Firestore API がエラーレスポンスを返した
     #[error("Firestore API エラー ({status}): {message}")]
@@ -24,6 +27,10 @@ pub enum AppError {
 
     #[error("入力が不正です: {0}")]
     InvalidInput(String),
+
+    /// Firestore のレスポンスが想定外の形式だった
+    #[error("レスポンスを解析できませんでした: {0}")]
+    Decode(String),
 }
 
 impl AppError {
@@ -33,6 +40,7 @@ impl AppError {
             AppError::Api { .. } => "API",
             AppError::Network(_) => "NETWORK",
             AppError::InvalidInput(_) => "INVALID_INPUT",
+            AppError::Decode(_) => "DECODE",
         }
     }
 

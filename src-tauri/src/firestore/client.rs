@@ -5,6 +5,7 @@ use reqwest::{Method, RequestBuilder, Response, Url};
 use serde::Deserialize;
 use serde_json::json;
 
+use super::document::{DisplayDocument, RestDocument};
 use super::path::document_segments;
 use crate::auth::{AdcTokenSource, EmulatorTokenSource, TokenSource};
 use crate::connection::{ConnectionConfig, ConnectionKind};
@@ -18,6 +19,9 @@ const LIST_COLLECTION_IDS_PAGE_SIZE: u32 = 300;
 pub trait FirestoreApi: Send + Sync {
     /// `parent_document` 直下のコレクションID一覧。空文字ならルートコレクション
     async fn list_collection_ids(&self, parent_document: &str) -> AppResult<Vec<String>>;
+
+    /// ドキュメントを1件取得する。`path` は `users/alice` のような相対パス
+    async fn get_document(&self, path: &str) -> AppResult<DisplayDocument>;
 }
 
 pub struct RestClient {
@@ -47,8 +51,7 @@ impl RestClient {
         if project_id.is_empty() {
             return Err(AppError::InvalidInput("プロジェクトIDが未入力です".into()));
         }
-        let (base_url, tokens, quota_project): (String, Arc<dyn TokenSource>, _) = match conn.kind
-        {
+        let (base_url, tokens, quota_project): (String, Arc<dyn TokenSource>, _) = match conn.kind {
             ConnectionKind::Production => (
                 PRODUCTION_BASE_URL.to_owned(),
                 adc,
@@ -82,14 +85,21 @@ impl RestClient {
         let mut url = self.base_url.clone();
         {
             let mut segs = url.path_segments_mut().expect("base URL は http(s)");
-            segs.clear()
-                .extend(["v1", "projects", &self.project_id, "databases", &self.database_id]);
+            segs.clear().extend([
+                "v1",
+                "projects",
+                &self.project_id,
+                "databases",
+                &self.database_id,
+            ]);
             match doc_segments.split_last() {
                 None => {
                     segs.push(&format!("documents{suffix}"));
                 }
                 Some((last, rest)) => {
-                    segs.push("documents").extend(rest).push(&format!("{last}{suffix}"));
+                    segs.push("documents")
+                        .extend(rest)
+                        .push(&format!("{last}{suffix}"));
                 }
             }
         }
@@ -184,6 +194,17 @@ impl FirestoreApi for RestClient {
         ids.sort();
         Ok(ids)
     }
+
+    async fn get_document(&self, path: &str) -> AppResult<DisplayDocument> {
+        let segments = document_segments(path)?;
+        if segments.is_empty() {
+            return Err(AppError::InvalidInput("ドキュメントパスが空です".into()));
+        }
+        let url = self.documents_url(&segments, "");
+        let res = self.request(Method::GET, url).await?.send().await?;
+        let doc: RestDocument = check_status(res).await?.json().await?;
+        DisplayDocument::from_rest(doc)
+    }
 }
 
 #[cfg(test)]
@@ -252,9 +273,59 @@ mod emulator_tests {
             c.list_collection_ids("").await.unwrap(),
             vec!["logs", "products", "users"]
         );
-        assert_eq!(c.list_collection_ids("users/alice").await.unwrap(), vec!["orders"]);
+        assert_eq!(
+            c.list_collection_ids("users/alice").await.unwrap(),
+            vec!["orders"]
+        );
         // 実体のない親ドキュメントでもサブコレクションは取れる
-        assert_eq!(c.list_collection_ids("users/ghost").await.unwrap(), vec!["orders"]);
+        assert_eq!(
+            c.list_collection_ids("users/ghost").await.unwrap(),
+            vec!["orders"]
+        );
         assert!(c.list_collection_ids("users").await.is_err());
+    }
+
+    #[tokio::test]
+    #[ignore = "Firestore Emulator が必要"]
+    async fn converts_seeded_document() {
+        let doc = emulator_client().get_document("users/alice").await.unwrap();
+        assert_eq!(doc.id, "alice");
+        assert_eq!(doc.path, "users/alice");
+        let expected = json!({
+            "name": "Alice",
+            "age": 30,
+            "score": 92.5,
+            "ratio": { "$double": 1.0 },
+            "active": true,
+            "nickname": null,
+            "createdAt": { "$timestamp": "2026-01-01T09:00:00.123456Z" },
+            "avatar": { "$bytes": "iVBORw0KGgo=" },
+            "bestFriend": { "$ref": "projects/demo-firestore-viewer/databases/(default)/documents/users/bob" },
+            "home": { "$geo": { "lat": 35.681236, "lng": 139.767125 } },
+            "tags": ["admin", "beta", 1],
+            "profile": {
+                "address": { "city": "Tokyo", "zip": "100-0005" },
+                "links": [{ "label": "blog", "url": "https://example.com" }]
+            },
+            "bigId": { "$int": "9007199254740993" },
+            "notANumber": { "$double": "NaN" },
+            "$$ref": "ドルで始まるキー"
+        });
+        assert_eq!(serde_json::Value::Object(doc.fields), expected);
+
+        let err = emulator_client()
+            .get_document("users/nobody")
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(
+                err,
+                AppError::Api {
+                    http_status: 404,
+                    ..
+                }
+            ),
+            "{err:?}"
+        );
     }
 }

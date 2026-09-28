@@ -8,6 +8,7 @@ use std::sync::Arc;
 use auth::AdcTokenSource;
 use connection::ConnectionConfig;
 use error::AppResult;
+use firestore::document::DisplayDocument;
 use firestore::{FirestoreApi, RestClient};
 
 struct AppState {
@@ -34,6 +35,15 @@ async fn list_collection_ids(
         .await
 }
 
+#[tauri::command]
+async fn get_document(
+    state: tauri::State<'_, AppState>,
+    connection: ConnectionConfig,
+    path: String,
+) -> AppResult<DisplayDocument> {
+    state.client(&connection)?.get_document(&path).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -42,7 +52,7 @@ pub fn run() {
             http: firestore::build_http_client(),
             adc: Arc::default(),
         })
-        .invoke_handler(tauri::generate_handler![list_collection_ids])
+        .invoke_handler(tauri::generate_handler![list_collection_ids, get_document])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

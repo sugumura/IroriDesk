@@ -8,7 +8,9 @@ pub fn split_relative(path: &str) -> AppResult<Vec<&str>> {
     }
     let segments: Vec<&str> = trimmed.split('/').collect();
     if segments.iter().any(|s| s.is_empty()) {
-        return Err(AppError::InvalidInput(format!("パスに空のセグメントがあります: {path}")));
+        return Err(AppError::InvalidInput(format!(
+            "パスに空のセグメントがあります: {path}"
+        )));
     }
     Ok(segments)
 }
