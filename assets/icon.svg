@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Irori Desk のアプリアイコン。囲炉裏（炉縁・灰・炎）と自在鉤に下がる鉄瓶 -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a414c"/>
+      <stop offset="1" stop-color="#1c2027"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="512" cy="690" r="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff9a3c" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ff9a3c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flameOuter" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#e2461e"/>
+      <stop offset="0.6" stop-color="#ff7a2e"/>
+      <stop offset="1" stop-color="#ffb04a"/>
+    </linearGradient>
+    <linearGradient id="flameInner" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffb53d"/>
+      <stop offset="1" stop-color="#fff2b0"/>
+    </linearGradient>
+    <linearGradient id="frameTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c98b52"/>
+      <stop offset="1" stop-color="#a86a38"/>
+    </linearGradient>
+    <linearGradient id="frameFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7a4a28"/>
+      <stop offset="1" stop-color="#553219"/>
+    </linearGradient>
+    <radialGradient id="ash" cx="512" cy="770" r="230" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff8a3a"/>
+      <stop offset="0.35" stop-color="#9a4a2a"/>
+      <stop offset="1" stop-color="#3b3431"/>
+    </radialGradient>
+    <linearGradient id="kettle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#737c88"/>
+      <stop offset="0.7" stop-color="#454c56"/>
+      <stop offset="1" stop-color="#8a5a3c"/>
+    </linearGradient>
+    <clipPath id="squircle">
+      <rect x="100" y="100" width="824" height="824" rx="185"/>
+    </clipPath>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  </g>
+
+  <g clip-path="url(#squircle)">
+    <!-- 炎の明かり -->
+    <rect x="100" y="100" width="824" height="824" fill="url(#glow)"/>
+
+    <!-- 自在鉤 -->
+    <rect x="503" y="100" width="18" height="236" rx="6" fill="#c7b394"/>
+    <path d="M512 318 q-30 0 -30 28 v14" fill="none" stroke="#c7b394" stroke-width="16" stroke-linecap="round"/>
+
+    <!-- 鉄瓶（下側は炎に照らされる） -->
+    <path d="M446 372 a66 22 0 0 1 132 0" fill="none" stroke="#8d97a3" stroke-width="12"/>
+    <ellipse cx="512" cy="438" rx="112" ry="70" fill="url(#kettle)"/>
+    <rect x="472" y="362" width="80" height="18" rx="9" fill="#7b8490"/>
+    <path d="M618 428 q46 -6 60 -40" fill="none" stroke="#4a525c" stroke-width="18" stroke-linecap="round"/>
+    <path d="M424 468 a112 70 0 0 0 176 0" fill="none" stroke="#ffae5c" stroke-width="6" opacity="0.7"/>
+
+    <!-- 炉縁（上面）と灰 -->
+    <polygon points="250,700 774,700 842,806 182,806" fill="url(#frameTop)"/>
+    <polygon points="306,722 718,722 764,788 260,788" fill="url(#ash)"/>
+    <!-- 炉縁（前面） -->
+    <rect x="182" y="806" width="660" height="60" fill="url(#frameFront)"/>
+    <rect x="182" y="804" width="660" height="6" fill="#e0a56c" opacity="0.6"/>
+
+    <!-- 炎 -->
+    <path d="M512 540 C 452 602 428 644 434 694 C 440 742 476 766 512 766 C 548 766 584 742 590 694 C 596 644 572 602 512 540 Z" fill="url(#flameOuter)"/>
+    <path d="M512 618 C 480 656 468 684 472 712 C 476 738 494 752 512 752 C 530 752 548 738 552 712 C 556 684 544 656 512 618 Z" fill="url(#flameInner)"/>
+  </g>
+</svg>
