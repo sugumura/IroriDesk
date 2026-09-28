@@ -1,10 +1,48 @@
 import { useEffect } from "react";
+import { useDefaultLayout } from "react-resizable-panels";
 import { useStore } from "./store";
+import { layoutStorage } from "./lib/layoutStorage";
 import { CollectionTree } from "./components/CollectionTree";
 import { DocumentDetail } from "./components/DocumentDetail";
 import { TabsArea } from "./components/TabsArea";
 import { TopBar } from "./components/TopBar";
 import { TooltipProvider } from "./components/ui/tooltip";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
+
+function MainPanes({ detailOpen }: { detailOpen: boolean }) {
+  // 詳細ペインの開閉ごとにレイアウトを別々に保存・復元する
+  const panelIds = detailOpen ? ["tree", "main", "detail"] : ["tree", "main"];
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: "main-layout",
+    panelIds,
+    storage: layoutStorage,
+  });
+  return (
+    <ResizablePanelGroup
+      key={panelIds.join()}
+      id="main-layout"
+      defaultLayout={defaultLayout}
+      onLayoutChanged={onLayoutChanged}
+      className="min-h-0 flex-1"
+    >
+      <ResizablePanel id="tree" defaultSize={240} minSize={160} maxSize="40">
+        <CollectionTree />
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel id="main" minSize={320}>
+        <TabsArea />
+      </ResizablePanel>
+      {detailOpen && (
+        <>
+          <ResizableHandle />
+          <ResizablePanel id="detail" defaultSize={420} minSize={260} maxSize="60">
+            <DocumentDetail />
+          </ResizablePanel>
+        </>
+      )}
+    </ResizablePanelGroup>
+  );
+}
 
 function App() {
   const ready = useStore((s) => s.ready);
@@ -23,19 +61,7 @@ function App() {
       <div className="flex h-full flex-col">
         <TopBar />
         {hasConnection ? (
-          <div className="flex min-h-0 flex-1">
-            <aside className="w-60 shrink-0 border-r">
-              <CollectionTree />
-            </aside>
-            <main className="min-w-0 flex-1">
-              <TabsArea />
-            </main>
-            {detailOpen && (
-              <aside className="w-[420px] shrink-0 border-l">
-                <DocumentDetail />
-              </aside>
-            )}
-          </div>
+          <MainPanes detailOpen={detailOpen} />
         ) : (
           <div className="flex flex-1 items-center justify-center text-muted-foreground">
             上部の歯車ボタンから接続を追加してください

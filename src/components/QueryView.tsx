@@ -14,6 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDefaultLayout } from "react-resizable-panels";
+import { layoutStorage } from "@/lib/layoutStorage";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ErrorBox } from "./ErrorBox";
 import { FieldInput } from "./FieldInput";
 import { ResultsView, ViewToggle } from "./ResultsView";
@@ -203,7 +206,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
 
   return (
     <form
-      className="space-y-2 border-b p-3"
+      className="space-y-2 p-3"
       onSubmit={(e) => {
         e.preventDefault();
         void execute(tab.id);
@@ -316,11 +319,31 @@ function SentQuery({ query }: { query: unknown }) {
 
 export function QueryView({ tab }: { tab: QueryTab }) {
   const ran = tab.ranSpec !== null;
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: "query-layout",
+    storage: layoutStorage,
+  });
+  return (
+    <ResizablePanelGroup
+      id="query-layout"
+      orientation="vertical"
+      defaultLayout={defaultLayout}
+      onLayoutChanged={onLayoutChanged}
+    >
+      <ResizablePanel id="form" defaultSize="35" minSize={60}>
+        <QueryForm tab={tab} />
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel id="results" minSize={120}>
+        <QueryResults tab={tab} ran={ran} />
+      </ResizablePanel>
+    </ResizablePanelGroup>
+  );
+}
+
+function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="max-h-[45%] shrink-0 overflow-auto">
-        <QueryForm tab={tab} />
-      </div>
       {tab.error && <ErrorBox error={tab.error} className="m-3" />}
       {ran && tab.structuredQuery !== null && <SentQuery query={tab.structuredQuery} />}
       <div className="min-h-0 flex-1">
