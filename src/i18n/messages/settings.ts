@@ -14,6 +14,9 @@ export const ja = {
   customFontPlaceholder: "例: Inter / 'Fira Code', monospace",
   fontPreview: "Firestore ビューア",
   zoom: "表示サイズ",
+  documentPageSize: "ドキュメントの読み込み件数",
+  userPageSize: "ユーザーの読み込み件数",
+  pageSizeHint: "1回に読み込む件数です。「さらに読み込む」で追加する件数も同じです。",
   reset: "既定に戻す",
   presets: {
     sansDefault: "既定（Geist + システム）",
@@ -42,6 +45,9 @@ export const en: typeof ja = {
   customFontPlaceholder: "e.g. Inter / 'Fira Code', monospace",
   fontPreview: "Firestore viewer",
   zoom: "Zoom",
+  documentPageSize: "Documents per page",
+  userPageSize: "Users per page",
+  pageSizeHint: "Number of items loaded at a time, including “Load more”.",
   reset: "Reset to defaults",
   presets: {
     sansDefault: "Default (Geist + system)",

@@ -9,6 +9,8 @@ import {
   SANS_PRESETS,
   type ThemeMode,
   ZOOM_OPTIONS,
+  DOCUMENT_PAGE_SIZES,
+  USER_PAGE_SIZES,
 } from "@/lib/appearance";
 import { useStore } from "@/store";
 import { type MessageKey, useT } from "@/i18n";
@@ -203,6 +205,43 @@ export function AppSettingsDialog({
                 {ZOOM_OPTIONS.map((z) => (
                   <SelectItem key={z} value={String(z)}>
                     {Math.round(z * 100)}%
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Row>
+
+          <Row label={t("settings.documentPageSize")}>
+            <Select
+              value={String(appearance.documentPageSize)}
+              onValueChange={(v) => setAppearance({ documentPageSize: Number(v) })}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DOCUMENT_PAGE_SIZES.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {t("common.count", { count: n })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{t("settings.pageSizeHint")}</p>
+          </Row>
+
+          <Row label={t("settings.userPageSize")}>
+            <Select
+              value={String(appearance.userPageSize)}
+              onValueChange={(v) => setAppearance({ userPageSize: Number(v) })}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {USER_PAGE_SIZES.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {t("common.count", { count: n })}
                   </SelectItem>
                 ))}
               </SelectContent>

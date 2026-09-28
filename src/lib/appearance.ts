@@ -14,7 +14,15 @@ export interface Appearance {
   /** WebView の拡大率（1 = 100%） */
   zoom: number;
   language: LanguageSetting;
+  /** 1回に読み込むドキュメント数（「さらに読み込む」も同じ） */
+  documentPageSize: number;
+  /** 1回に読み込む Authentication のユーザー数 */
+  userPageSize: number;
 }
+
+/** 選択肢。上限は API が1回で返せる件数（ドキュメント 300、ユーザー 1000） */
+export const DOCUMENT_PAGE_SIZES = [20, 50, 100, 200, 300];
+export const USER_PAGE_SIZES = [50, 100, 200, 500, 1000];
 
 const JP_FALLBACK = "'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif";
 const MONO_FALLBACK = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
@@ -28,6 +36,8 @@ export const DEFAULT_APPEARANCE: Appearance = {
   fontMono: "",
   zoom: 1,
   language: "system",
+  documentPageSize: 50,
+  userPageSize: 100,
 };
 
 export interface FontPreset {
@@ -79,6 +89,12 @@ export function normalizeAppearance(a: Partial<Appearance> | null | undefined): 
     fontMono: typeof a?.fontMono === "string" ? a.fontMono : "",
     zoom,
     language: a?.language === "ja" || a?.language === "en" ? a.language : "system",
+    documentPageSize: DOCUMENT_PAGE_SIZES.includes(a?.documentPageSize as number)
+      ? (a!.documentPageSize as number)
+      : DEFAULT_APPEARANCE.documentPageSize,
+    userPageSize: USER_PAGE_SIZES.includes(a?.userPageSize as number)
+      ? (a!.userPageSize as number)
+      : DEFAULT_APPEARANCE.userPageSize,
   };
 }
 

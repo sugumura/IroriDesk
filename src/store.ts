@@ -30,7 +30,6 @@ import {
   saveSettings,
 } from "@/lib/settings";
 
-export const PAGE_SIZE = 50;
 
 /** 分割表示のグループ。0 = 左（上）、1 = 右（下） */
 export type GroupIndex = 0 | 1;
@@ -83,7 +82,7 @@ export interface AuthTab {
 
 export type Tab = BrowseTab | QueryTab | AuthTab;
 
-export const USER_PAGE_SIZE = 100;
+
 
 export const DEFAULT_QUERY_LIMIT = 100;
 
@@ -372,7 +371,7 @@ export const useStore = create<State>((set, get) => {
         const page = await listDocuments(
           conn,
           tab.collectionPath,
-          PAGE_SIZE,
+          get().appearance.documentPageSize,
           reset ? null : tab.nextPageToken,
         );
         if (!isCurrent()) return;
@@ -586,7 +585,7 @@ export const useStore = create<State>((set, get) => {
       });
       const isCurrent = () => get().tabs.find((t) => t.id === tabId)?.requestSeq === seq;
       try {
-        const page = await listAuthUsers(conn, USER_PAGE_SIZE, reset ? null : tab.nextPageToken);
+        const page = await listAuthUsers(conn, get().appearance.userPageSize, reset ? null : tab.nextPageToken);
         if (!isCurrent()) return;
         const latest = get().tabs.find((t) => t.id === tabId);
         const prev = reset || latest?.kind !== "auth" ? [] : latest.users;
