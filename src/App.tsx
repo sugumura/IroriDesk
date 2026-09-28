@@ -9,6 +9,8 @@ import { TabsArea } from "./components/TabsArea";
 import { TopBar } from "./components/TopBar";
 import { GlobalTooltip } from "./components/GlobalTooltip";
 import { AppToaster } from "./components/AppToaster";
+import { CommandPalette } from "./components/CommandPalette";
+import { useShortcuts } from "./lib/useShortcuts";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
 
 function MainPanes({ treeOpen, detailOpen }: { treeOpen: boolean; detailOpen: boolean }) {
@@ -61,6 +63,7 @@ function App() {
   useEffect(() => {
     void init();
   }, [init]);
+  useShortcuts();
 
   if (!ready) return null;
 
@@ -68,6 +71,7 @@ function App() {
     <>
       <GlobalTooltip />
       <AppToaster />
+      <CommandPalette />
       <div className="flex h-full flex-col">
         <TopBar />
         {hasConnection ? (

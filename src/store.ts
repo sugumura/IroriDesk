@@ -174,6 +174,8 @@ interface State {
   /** 詳細ペインに表示中のユーザー（ドキュメントの選択とは排他） */
   selectedUser: DisplayUser | null;
   detailOpen: boolean;
+  settingsOpen: boolean;
+  paletteOpen: boolean;
   /** 詳細パネルのドキュメント表示（ドキュメントを選び直しても保つ） */
   detailView: "tree" | "json";
   treeOpen: boolean;
@@ -220,6 +222,14 @@ interface State {
   loadUsers(tabId: string, reset: boolean): Promise<void>;
   searchUsers(tabId: string, kind: UserLookupKind, value: string): Promise<void>;
   setDetailOpen(open: boolean): void;
+  setSettingsOpen(open: boolean): void;
+  setPaletteOpen(open: boolean): void;
+  /** フォーカス中のグループの選択中のタブを閉じる */
+  closeActiveTab(): void;
+  /** 選択中のタブを読み込み直す（クエリは実行済みなら再実行） */
+  reloadActiveTab(): void;
+  /** フォーカス中のグループで前後のタブに切り替える */
+  cycleTab(delta: 1 | -1): void;
   setDetailView(view: "tree" | "json"): void;
   setTreeOpen(open: boolean): void;
 }
@@ -408,6 +418,8 @@ export const useStore = create<State>((set, get) => {
     selectedDocPath: null,
     selectedUser: null,
     detailOpen: true,
+    settingsOpen: false,
+    paletteOpen: false,
     detailView: "tree",
     treeOpen: true,
     appearance: DEFAULT_APPEARANCE,
@@ -841,6 +853,41 @@ export const useStore = create<State>((set, get) => {
 
     setDetailOpen(open) {
       set({ detailOpen: open });
+    },
+
+    setSettingsOpen(open) {
+      set({ settingsOpen: open });
+    },
+
+    setPaletteOpen(open) {
+      set({ paletteOpen: open });
+    },
+
+    closeActiveTab() {
+      const tab = focusedTab(get());
+      if (tab) get().closeTab(tab.id);
+    },
+
+    reloadActiveTab() {
+      const tab = focusedTab(get());
+      if (!tab) {
+        void get().loadRootCollections();
+      } else if (tab.kind === "browse") {
+        void get().loadPage(tab.id, true);
+      } else if (tab.kind === "auth") {
+        if (tab.search) void get().searchUsers(tab.id, tab.search.kind, tab.search.value);
+        else void get().loadUsers(tab.id, true);
+      } else if (tab.ranSpec) {
+        void get().executeQuery(tab.id);
+      }
+    },
+
+    cycleTab(delta) {
+      const { tabs, focusedGroup, activeTabIds } = get();
+      const group = tabs.filter((t) => t.group === focusedGroup);
+      if (group.length < 2) return;
+      const i = group.findIndex((t) => t.id === activeTabIds[focusedGroup]);
+      get().setActiveTab(group[(i + delta + group.length) % group.length].id);
     },
 
     setDetailView(view) {

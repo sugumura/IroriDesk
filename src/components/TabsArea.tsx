@@ -111,7 +111,7 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
 
   return (
     // どこかを操作したグループをフォーカス中にする（新しいタブはそこに開く）
-    <div className="flex h-full min-h-0 flex-col" onMouseDownCapture={() => focusGroup(group)}>
+    <div className="flex h-full min-h-0 flex-col" data-group={group} onMouseDownCapture={() => focusGroup(group)}>
       <div
         className={cn(
           "flex h-9 shrink-0 items-end border-b bg-muted/40 px-1",

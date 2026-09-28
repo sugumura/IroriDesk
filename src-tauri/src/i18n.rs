@@ -36,10 +36,14 @@ macro_rules! tr {
     };
 }
 
-/// 画面の言語（"ja" / "en"）を受け取る
+/// 画面の言語（"ja" / "en"）を受け取る。macOS のメニューも同じ言語で作り直す
 #[tauri::command]
-pub fn set_locale(lang: String) {
-    set_english(lang == "en");
+pub fn set_locale(app: tauri::AppHandle, lang: String) {
+    let english = lang == "en";
+    if english != is_english() {
+        set_english(english);
+        crate::menu::rebuild(&app);
+    }
 }
 
 #[cfg(test)]

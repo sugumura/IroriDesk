@@ -7,6 +7,7 @@ mod export;
 mod firebase_auth;
 mod firestore;
 mod gcloud;
+mod menu;
 
 use std::sync::{Arc, RwLock};
 
@@ -188,8 +189,11 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             migrate_legacy_settings(app.handle());
+            // macOS ではショートカットをアプリメニューに登録する
+            menu::rebuild(app.handle());
             Ok(())
         })
+        .on_menu_event(|app, event| menu::on_event(app, event.id().as_ref()))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
