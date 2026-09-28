@@ -117,7 +117,7 @@ Windows は署名しないと SmartScreen の警告が出ます（「詳細情�
 
 ### GitHub Releases で配布する
 
-`v0.1.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が macOS（Universal、署名・公証付き）/ Windows / Linux 向けにビルドし、Releases に**下書き**として登録します。内容を確認して「Publish release」を押すと公開されます。
+`v0.1.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が型チェック・テスト・clippy を実行し、通ったら macOS（Universal、署名・公証付き）/ Windows / Linux 向けにビルドして、Releases に**下書き**として登録します。ワークフローはタグの push でのみ動きます。内容を確認して「Publish release」を押すと公開されます。
 
 ```bash
 # src-tauri/tauri.conf.json の version を上げてコミットしてから

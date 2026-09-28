@@ -2,16 +2,49 @@
 # GitHub Releases に下書きとして登録する。内容を確認してから公開する
 name: Release
 
+# タグの push でのみ実行する（main への push では動かない）
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  # 型チェック・テスト・clippy。通ったときだけ各 OS 向けにビルドする
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+      - name: Linux の依存パッケージ
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      # tauri::generate_context! が dist を参照するため先にビルドする
+      - run: pnpm build
+      - name: Rust
+        working-directory: src-tauri
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+
   build:
+    needs: check
     strategy:
       fail-fast: false
       matrix:
