@@ -1,6 +1,7 @@
 mod auth;
 mod connection;
 mod error;
+mod export;
 mod firestore;
 
 use std::sync::Arc;
@@ -73,6 +74,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             http: firestore::build_http_client(),
             adc: Arc::default(),
@@ -81,7 +83,8 @@ pub fn run() {
             list_collection_ids,
             get_document,
             list_documents,
-            run_query
+            run_query,
+            export::save_text_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

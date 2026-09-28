@@ -18,6 +18,7 @@ import { useDefaultLayout } from "react-resizable-panels";
 import { layoutStorage } from "@/lib/layoutStorage";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ErrorBox } from "./ErrorBox";
+import { ExportMenu } from "./ExportMenu";
 import { FieldInput } from "./FieldInput";
 import { ResultsView, ViewToggle } from "./ResultsView";
 
@@ -360,6 +361,12 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
         {tab.readTime && <span title={tab.readTime}>readTime: {formatTimestamp(tab.readTime)}</span>}
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
+        {ran && (
+          <ExportMenu
+            docs={tab.docs}
+            baseName={`query_${tab.ranSpec?.targetKind === "collectionGroup" ? "group_" : ""}${tab.ranSpec?.target ?? ""}`}
+          />
+        )}
         <ViewToggle tab={tab} />
       </div>
     </div>

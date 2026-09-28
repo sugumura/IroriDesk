@@ -28,6 +28,9 @@ pub enum AppError {
     #[error("入力が不正です: {0}")]
     InvalidInput(String),
 
+    #[error("ファイルを保存できませんでした: {0}")]
+    File(String),
+
     /// Firestore のレスポンスが想定外の形式だった
     #[error("レスポンスを解析できませんでした: {0}")]
     Decode(String),
@@ -41,6 +44,7 @@ impl AppError {
             AppError::Network(_) => "NETWORK",
             AppError::InvalidInput(_) => "INVALID_INPUT",
             AppError::Decode(_) => "DECODE",
+            AppError::File(_) => "FILE",
         }
     }
 

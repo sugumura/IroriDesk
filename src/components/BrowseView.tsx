@@ -4,6 +4,7 @@ import { splitPath } from "@/lib/display";
 import { type BrowseTab, emptyQuerySpec, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "./ErrorBox";
+import { ExportMenu } from "./ExportMenu";
 import { ResultsView, ViewToggle } from "./ResultsView";
 
 function Breadcrumb({ path }: { path: string }) {
@@ -90,6 +91,7 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
         </span>
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
+        <ExportMenu docs={tab.docs} baseName={tab.collectionPath} />
         {tab.nextPageToken && (
           <Button size="xs" variant="outline" disabled={tab.loading} onClick={() => loadPage(tab.id, false)}>
             さらに読み込む

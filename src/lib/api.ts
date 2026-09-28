@@ -15,7 +15,7 @@ export interface ConnectionConfig {
 
 /** Rust 側 AppError のシリアライズ形式 */
 export interface AppError {
-  code: "AUTH" | "API" | "NETWORK" | "INVALID_INPUT" | "DECODE" | "INTERNAL";
+  code: "AUTH" | "API" | "NETWORK" | "INVALID_INPUT" | "DECODE" | "FILE" | "INTERNAL";
   message: string;
   detail: string | null;
 }
@@ -125,4 +125,14 @@ export interface QueryResult {
 
 export function runQuery(connection: ConnectionConfig, spec: QuerySpec): Promise<QueryResult> {
   return invoke("run_query", { connection, spec });
+}
+
+/** 保存ダイアログで選んだファイルに書き込む。キャンセル時は null */
+export function saveTextFile(
+  defaultName: string,
+  filterName: string,
+  extension: string,
+  contents: string,
+): Promise<string | null> {
+  return invoke("save_text_file", { defaultName, filterName, extension, contents });
 }
