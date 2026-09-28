@@ -1,7 +1,142 @@
-# Tauri + React + Typescript
+# Irori Desk
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Cloud Firestore と Firebase Authentication を閲覧・クエリするためのデスクトップアプリです（Tauri 2 + React）。
+現在のバージョンは**読み取り専用**で、Firestore や Authentication に書き込む API は一切呼びません。
 
-## Recommended IDE Setup
+## 主な機能
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- **閲覧**: コレクションツリー、ドキュメント一覧（ページング・仮想スクロール）、ドキュメント詳細（ツリー / JSON）、サブコレクション・参照先への移動
+- **クエリ**: コレクション / collectionGroup を対象に where（AND）・orderBy・limit。フィールド名の候補表示、インデックス不足時の作成リンク、接続ごとの履歴（直近20件）
+- **Authentication**: ユーザー一覧、UID / メール / 電話番号での検索、詳細（プロバイダ、カスタムクレームなど）
+- **エクスポート**: JSON（型情報を保持）/ CSV / TSV
+- **表示**: Doc ID 列の固定、列の表示・並び替え、画面の分割（左右・上下）、ライト / ダーク / システム、フォント・表示サイズ
+- **接続**: 本番（ADC または gcloud のアカウントを接続ごとに選択）と Emulator
+
+仕様と設計上の決定事項は [docs/SPEC.md](docs/SPEC.md) を参照してください。
+
+## 必要なもの
+
+| ツール | 用途 | 備考 |
+|---|---|---|
+| Node.js 24 / pnpm 10 | フロントエンド | |
+| Rust（stable） | バックエンド | `rustup` で導入 |
+| Xcode Command Line Tools（macOS） | ビルド | 初回は `sudo xcodebuild -license accept` が必要な場合あり |
+| Google Cloud SDK（gcloud） | 本番接続の認証 | |
+| Java 21 以上 | Firebase Emulator | 開発・動作確認時のみ。`.sdkmanrc` あり |
+
+Windows / Linux の前提は [Tauri の Prerequisites](https://tauri.app/start/prerequisites/) を参照してください。
+
+## セットアップと起動
+
+```bash
+pnpm install
+pnpm tauri dev
+```
+
+## 本番プロジェクトへの接続
+
+接続の管理（上部バーのサーバーアイコン）で「本番（Google Cloud）」の接続を追加し、アカウントを選びます。
+
+### ADC を使う場合
+
+マシン全体で1つのアカウントを使います。
+
+```bash
+gcloud auth application-default login --scopes=openid,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/cloud-platform
+```
+
+- `--scopes` を省略すると Cloud SQL のスコープも要求されます（このアプリには不要）。
+- ADC を別のアカウントで作り直したら、接続の管理の「ADC を再読み込み」を押します（再起動は不要）。
+
+### gcloud のアカウントを使う場合
+
+接続ごとに別のアカウントを使えます。接続の管理の「アカウントを追加」でブラウザが開き、Google にログインします（`gcloud auth login --no-activate` を実行。ターミナル側の gcloud の現在のアカウントは変わりません）。トークンの期限切れや組織の再認証ポリシーでエラーになったら「再ログイン」を押します。
+
+### 注意
+
+- アクセストークンは Rust 側のメモリにのみ保持し、画面や設定ファイルには渡しません。
+- Firebase Authentication の API はユーザーの認証情報だと quota project が必要なため、未指定なら接続先のプロジェクトを使います（`x-goog-user-project`）。
+- Authentication が未有効のプロジェクトでは `CONFIGURATION_NOT_FOUND` になります。Firebase コンソールの Authentication で「始める」を押してください。
+- 複合インデックスが必要なクエリは、エラー内のリンクから作成できます。
+
+## Emulator での動作確認
+
+```bash
+sdk env            # Java 21 に切り替え（sdkman を使う場合）
+pnpm emulator      # Firestore（8080）と Authentication（9099）
+pnpm seed          # テストデータ（ドキュメント128件、ユーザー33人）を投入
+```
+
+アプリの初回起動時に「Emulator (demo)」接続（プロジェクト ID `demo-firestore-viewer`）が作られます。
+テストデータにはネストした map・配列・Timestamp・Reference・GeoPoint・bytes・安全範囲外の整数・NaN・`$` で始まるキー・実体のない親ドキュメント・サブコレクション・ページング用の120件が含まれます。
+
+本番プロジェクトにも同じ Firestore のテストデータを入れられます（既存のドキュメントは上書きしません。Authentication のユーザーは投入しません）。
+
+```bash
+pnpm seed --project <projectId>
+```
+
+## テスト
+
+```bash
+pnpm test                                     # フロントエンド（vitest）
+pnpm typecheck
+cd src-tauri && cargo test                    # Rust
+cd src-tauri && cargo test -- --include-ignored   # Emulator を使う結合テストも含める（pnpm emulator と pnpm seed が必要）
+cd src-tauri && cargo clippy --all-targets
+```
+
+## リリースビルド
+
+### 署名なし（自分の Mac で使う場合）
+
+```bash
+pnpm tauri build
+```
+
+`src-tauri/target/release/bundle/` に `.app` と `.dmg` ができます。
+`.dmg` の作成時に Finder を操作するため、初回に「オートメーション」の許可を求められたら許可してください。
+
+### 署名・公証付き（配布する場合）
+
+配布したアプリがそのまま起動できるよう、Apple の Developer ID で署名し、公証（Notarization）します。
+
+1. [Apple Developer Program](https://developer.apple.com/programs/) に登録する（年額 99 米ドル）。
+2. 「Developer ID Application」証明書を作成し、キーチェーンに入れる。名前は `security find-identity -v -p codesigning` で確認できます。
+3. 公証の認証情報を用意する（App Store Connect の API キー、または Apple ID と App 用パスワード）。
+4. `.env.signing.example` を `.env.signing` にコピーして値を入れる（`.env.signing` と `*.p8` は git 管理外）。
+5. 実行する。
+
+```bash
+./scripts/release-mac.sh
+```
+
+Apple Silicon と Intel の Universal バイナリを作り、署名・公証・チケットの添付まで行ったうえで、`codesign` / `spctl` / `stapler` で確認します。成果物は `src-tauri/target/universal-apple-darwin/release/bundle/dmg/` にできます。
+
+Windows は署名しないと SmartScreen の警告が出ます（「詳細情報 → 実行」で起動可能）。
+
+## アイコン
+
+元データは `assets/icon.svg` です。編集したら次のコマンドで全サイズを作り直します（モバイル向けの画像は自動で削除されます）。
+
+```bash
+pnpm icons
+```
+
+## 構成
+
+```
+src/                    React（画面）
+  components/           画面の部品
+  lib/                  API 呼び出し、表示用の変換、エクスポート、列設定、履歴など
+  store.ts              アプリの状態（zustand）
+src-tauri/src/          Rust
+  firestore/            Firestore REST クライアント、型変換（value.rs）、クエリ組み立て
+  firebase_auth.rs      Firebase Authentication（Identity Toolkit）
+  auth.rs / gcloud.rs   ADC / gcloud アカウントのトークン
+  export.rs             保存ダイアログとファイル書き込み
+scripts/                テストデータ投入、macOS のリリースビルド
+docs/SPEC.md            仕様と決定事項
+```
+
+設定（接続、表示、列、クエリ履歴）は OS のアプリデータ領域の `settings.json` に保存されます（macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`）。
