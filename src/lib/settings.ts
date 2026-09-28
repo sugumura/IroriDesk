@@ -3,6 +3,7 @@ import type { ConnectionConfig } from "./api";
 import { type Appearance, normalizeAppearance } from "./appearance";
 import type { ColumnConfig } from "./columns";
 import type { HistoryEntry } from "./queryHistory";
+import type { SavedSession } from "./session";
 
 const FILE = "settings.json";
 
@@ -76,6 +77,17 @@ export async function loadQueryHistory(): Promise<Record<string, HistoryEntry[]>
 export async function saveQueryHistory(history: Record<string, HistoryEntry[]>): Promise<void> {
   const s = await store();
   await s.set("queryHistory", history);
+}
+
+/** 接続ごとに開いていたタブ（再起動・接続の切り替えで復元する） */
+export async function loadSessions(): Promise<Record<string, SavedSession>> {
+  const s = await store();
+  return (await s.get<Record<string, SavedSession>>("sessions")) ?? {};
+}
+
+export async function saveSessions(sessions: Record<string, SavedSession>): Promise<void> {
+  const s = await store();
+  await s.set("sessions", sessions);
 }
 
 export async function saveSettings(settings: PersistedSettings): Promise<void> {

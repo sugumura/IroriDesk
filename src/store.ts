@@ -20,9 +20,12 @@ import { resolveLang } from "@/i18n";
 import type { TFunction } from "@/i18n";
 import type { ColumnConfig } from "@/lib/columns";
 import { addToHistory, type HistoryEntry, summarizeQuery, whereText } from "@/lib/queryHistory";
+import type { SavedSession, SavedTab } from "@/lib/session";
 import {
   loadAppearance,
   loadColumnConfigs,
+  loadSessions,
+  saveSessions,
   loadQueryHistory,
   loadSettings,
   saveAppearance,
@@ -253,6 +256,36 @@ function syncLanguage(appearance: Appearance) {
   void invoke("set_locale", { lang }).catch(() => undefined);
 }
 
+let initStarted = false;
+
+/** 接続ごとの保存済みのタブ。変更は少し待ってまとめて保存する */
+let sessions: Record<string, SavedSession> = {};
+let sessionSaveTimer: ReturnType<typeof setTimeout> | undefined;
+/** 接続の切り替え・復元の途中は保存しない（空の状態で上書きしないため） */
+let sessionSaveSuspended = false;
+
+function toSession(s: Pick<State, "tabs" | "activeTabIds" | "split" | "focusedGroup">): SavedSession {
+  return {
+    split: s.split,
+    focusedGroup: s.focusedGroup,
+    tabs: s.tabs.map<SavedTab>((t) => ({
+      kind: t.kind,
+      group: t.group,
+      ...(t.kind === "browse" ? { path: t.collectionPath } : {}),
+      ...(t.kind === "query" ? { spec: t.spec } : {}),
+      view: t.view,
+      filter: t.filter,
+      sort: t.sort,
+      active: s.activeTabIds[t.group] === t.id,
+    })),
+  };
+}
+
+function writeSession(connectionId: string, session: SavedSession) {
+  sessions = { ...sessions, [connectionId]: session };
+  void saveSessions(sessions);
+}
+
 /** 件数の取得は一覧の読み込みとは別に走るため、タブごとに最新の要求だけを反映する */
 const countTokens = new Map<string, number>();
 
@@ -280,6 +313,69 @@ export const useStore = create<State>((set, get) => {
     } catch {
       // 件数の取得に失敗しても（権限・Emulator の制限など）表示しないだけにする
     }
+  };
+
+  /** 表示されたタブのデータを初めて読み込む（復元したタブは選ぶまで読み込まない） */
+  const ensureLoaded = (tabId: string) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab || tab.requestSeq !== 0 || tab.loading) return;
+    if (tab.kind === "browse") void get().loadPage(tabId, true);
+    else if (tab.kind === "auth") void get().loadUsers(tabId, true);
+  };
+
+  /** 今の接続のタブをすぐ保存する（接続の切り替え前など） */
+  const flushSession = () => {
+    clearTimeout(sessionSaveTimer);
+    const id = get().activeConnectionId;
+    if (id && get().ready) writeSession(id, toSession(get()));
+  };
+
+  /** 接続の保存済みのタブを開き直す。データは表示中のタブだけ読み込む */
+  const restoreSession = (connectionId: string) => {
+    const saved = sessions[connectionId];
+    if (!saved || saved.tabs.length === 0) return;
+    const tabs: Tab[] = [];
+    const activeTabIds: [string | null, string | null] = [null, null];
+    for (const st of saved.tabs) {
+      const id = newTabId();
+      const common = {
+        id,
+        group: st.group,
+        view: st.view,
+        filter: st.filter ?? "",
+        sort: st.sort ?? null,
+        loading: false,
+        error: null,
+        requestSeq: 0,
+      };
+      if (st.kind === "browse" && st.path) {
+        tabs.push({ ...common, kind: "browse", collectionPath: st.path, docs: [], nextPageToken: null, totalCount: null });
+      } else if (st.kind === "query" && st.spec) {
+        tabs.push({
+          ...common,
+          kind: "query",
+          spec: st.spec,
+          ranSpec: null,
+          totalCount: null,
+          docs: [],
+          readTime: null,
+          structuredQuery: null,
+        });
+      } else if (st.kind === "auth") {
+        tabs.push({ ...common, kind: "auth", users: [], nextPageToken: null, search: null });
+      } else {
+        continue;
+      }
+      if (st.active || activeTabIds[st.group] === null) activeTabIds[st.group] = id;
+    }
+    const hasGroup1 = tabs.some((t) => t.group === 1);
+    set({
+      tabs,
+      activeTabIds,
+      split: hasGroup1 ? (saved.split === "none" ? "horizontal" : saved.split) : "none",
+      focusedGroup: hasGroup1 ? saved.focusedGroup : 0,
+    });
+    for (const id of activeTabIds) if (id) ensureLoaded(id);
   };
 
   /** 接続を切り替えたら閲覧状態をすべて捨てる */
@@ -319,15 +415,23 @@ export const useStore = create<State>((set, get) => {
     queryHistory: {},
 
     async init() {
-      const [settings, appearance, columnConfigs, queryHistory] = await Promise.all([
+      // 開発時は React の StrictMode で2回呼ばれるため、1回だけ実行する
+      if (initStarted) return;
+      initStarted = true;
+      const [settings, appearance, columnConfigs, queryHistory, savedSessions] = await Promise.all([
         loadSettings(),
         loadAppearance(),
         loadColumnConfigs(),
         loadQueryHistory(),
+        loadSessions(),
       ]);
+      sessions = savedSessions;
       applyAppearance(appearance);
       syncLanguage(appearance);
+      sessionSaveSuspended = true;
       set({ ...settings, appearance, columnConfigs, queryHistory, ready: true });
+      if (settings.activeConnectionId) restoreSession(settings.activeConnectionId);
+      sessionSaveSuspended = false;
       if (activeConnection(get())) void get().loadRootCollections();
     },
 
@@ -349,8 +453,12 @@ export const useStore = create<State>((set, get) => {
 
     setActiveConnection(id) {
       if (id === get().activeConnectionId) return;
+      flushSession();
+      sessionSaveSuspended = true;
       set({ activeConnectionId: id });
       resetBrowsing();
+      if (id) restoreSession(id);
+      sessionSaveSuspended = false;
       persist();
       if (id) void get().loadRootCollections();
     },
@@ -365,17 +473,29 @@ export const useStore = create<State>((set, get) => {
       persist();
       // 編集中の接続が有効なら、設定変更を反映するため読み直す
       if (conn.id === get().activeConnectionId) {
+        flushSession();
+        sessionSaveSuspended = true;
         resetBrowsing();
+        restoreSession(conn.id);
+        sessionSaveSuspended = false;
         void get().loadRootCollections();
       }
     },
 
     deleteConnection(id) {
       set((s) => ({ connections: s.connections.filter((c) => c.id !== id) }));
+      clearTimeout(sessionSaveTimer);
+      const { [id]: _removed, ...rest } = sessions;
+      sessions = rest;
+      void saveSessions(sessions);
       if (get().activeConnectionId === id) {
-        set({ activeConnectionId: get().connections[0]?.id ?? null });
+        const next = get().connections[0]?.id ?? null;
+        sessionSaveSuspended = true;
+        set({ activeConnectionId: next });
         resetBrowsing();
-        if (get().activeConnectionId) void get().loadRootCollections();
+        if (next) restoreSession(next);
+        sessionSaveSuspended = false;
+        if (next) void get().loadRootCollections();
       }
       persist();
     },
@@ -464,6 +584,7 @@ export const useStore = create<State>((set, get) => {
       const tab = get().tabs.find((t) => t.id === id);
       if (!tab) return;
       set((s) => ({ focusedGroup: tab.group, activeTabIds: withActive(s.activeTabIds, tab.group, id) }));
+      ensureLoaded(id);
     },
 
     closeTab(id) {
@@ -730,4 +851,23 @@ export const useStore = create<State>((set, get) => {
       set({ treeOpen: open });
     },
   };
+});
+
+// タブ・分割・選択が変わったら、今の接続のタブとして少し待ってから保存する
+useStore.subscribe((s, prev) => {
+  if (sessionSaveSuspended || !s.ready || !s.activeConnectionId) return;
+  if (
+    s.tabs === prev.tabs &&
+    s.activeTabIds === prev.activeTabIds &&
+    s.split === prev.split &&
+    s.focusedGroup === prev.focusedGroup
+  ) {
+    return;
+  }
+  const connectionId = s.activeConnectionId;
+  clearTimeout(sessionSaveTimer);
+  sessionSaveTimer = setTimeout(() => {
+    const now = useStore.getState();
+    if (now.activeConnectionId === connectionId) writeSession(connectionId, toSession(now));
+  }, 500);
 });
