@@ -115,6 +115,32 @@ Apple Silicon と Intel の Universal バイナリを作り、署名・公証・
 
 Windows は署名しないと SmartScreen の警告が出ます（「詳細情報 → 実行」で起動可能）。
 
+### GitHub Releases で配布する
+
+`v0.1.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が macOS（Universal、署名・公証付き）/ Windows / Linux 向けにビルドし、Releases に**下書き**として登録します。内容を確認して「Publish release」を押すと公開されます。
+
+```bash
+# src-tauri/tauri.conf.json の version を上げてコミットしてから
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+タグと `tauri.conf.json` の `version` が一致しないとビルドは失敗します。
+
+macOS の署名・公証には、リポジトリの Secrets（Settings → Secrets and variables → Actions）が必要です。
+
+| Secret | 内容 |
+|---|---|
+| `APPLE_CERTIFICATE` | Developer ID Application 証明書と秘密鍵を書き出した `.p12` を base64 にしたもの |
+| `APPLE_CERTIFICATE_PASSWORD` | `.p12` を書き出したときのパスワード |
+| `APPLE_SIGNING_IDENTITY` | `Developer ID Application: 名前 (チームID)` |
+| `APPLE_API_ISSUER` | App Store Connect API の Issuer ID |
+| `APPLE_API_KEY` | App Store Connect API のキー ID |
+| `APPLE_API_PRIVATE_KEY` | `AuthKey_キーID.p8` の中身 |
+| `KEYCHAIN_PASSWORD` | CI で作る一時キーチェーンのパスワード（任意の文字列） |
+
+`.p12` はキーチェーンアクセスで証明書を右クリック →「書き出す」で作成し、`base64 -i 証明書.p12 | pbcopy` でコピーできます。
+
 ## アイコン
 
 元データは `assets/icon.svg` です。編集したら次のコマンドで全サイズを作り直します（モバイル向けの画像は自動で削除されます）。
