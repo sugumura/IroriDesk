@@ -6,6 +6,9 @@ use serde::Deserialize;
 use serde_json::json;
 
 use super::document::{DisplayDocument, DocumentPage, QueryResult, RestDocument};
+use super::indexes::{
+    CollectionIndexes, CompositeIndex, ListFieldsResponse, ListIndexesResponse, RestField,
+};
 use super::path::{collection_segments, document_segments};
 use super::query::{self, QuerySpec};
 use crate::auth::{EmulatorTokenSource, TokenSource};
@@ -35,10 +38,15 @@ pub trait FirestoreApi: Send + Sync {
 
     /// structuredQuery を実行する（MVP ではカーソルによるページングなし）
     async fn run_query(&self, spec: &QuerySpec) -> AppResult<QueryResult>;
+
+    /// コレクションID（コレクショングループ）の複合インデックスと単一フィールドの例外設定
+    async fn list_indexes(&self, collection_id: &str) -> AppResult<CollectionIndexes>;
 }
 
 pub struct RestClient {
     http: reqwest::Client,
+    /// Emulator は管理用 API（インデックス）に対応していない
+    is_emulator: bool,
     base_url: Url,
     project_id: String,
     database_id: String,
@@ -85,6 +93,7 @@ impl RestClient {
             .map_err(|e| AppError::InvalidInput(format!("接続先URLが不正です: {e}")))?;
         Ok(Self {
             http,
+            is_emulator: conn.kind == ConnectionKind::Emulator,
             base_url,
             project_id: project_id.to_owned(),
             database_id: conn.database_id().to_owned(),
@@ -118,6 +127,28 @@ impl RestClient {
             }
         }
         url
+    }
+
+    /// `v1/projects/{p}/databases/{db}/{segments...}`（管理用 API）
+    fn database_url(&self, segments: &[&str]) -> Url {
+        let mut url = self.base_url.clone();
+        url.path_segments_mut()
+            .expect("base URL は http(s)")
+            .clear()
+            .extend([
+                "v1",
+                "projects",
+                &self.project_id,
+                "databases",
+                &self.database_id,
+            ])
+            .extend(segments);
+        url
+    }
+
+    async fn get_json<T: serde::de::DeserializeOwned>(&self, url: Url) -> AppResult<T> {
+        let res = self.request(Method::GET, url).await?.send().await?;
+        Ok(check_status(res).await?.json().await?)
     }
 
     async fn request(&self, method: Method, url: Url) -> AppResult<RequestBuilder> {
@@ -321,6 +352,61 @@ impl FirestoreApi for RestClient {
             documents,
             read_time,
             structured_query: built.body,
+        })
+    }
+
+    async fn list_indexes(&self, collection_id: &str) -> AppResult<CollectionIndexes> {
+        if self.is_emulator {
+            return Err(AppError::InvalidInput(
+                "Firestore Emulator はインデックスの API に対応していません".into(),
+            ));
+        }
+        let cg = collection_id.trim();
+        if cg.is_empty() || cg.contains('/') {
+            return Err(AppError::InvalidInput(format!(
+                "コレクションIDが不正です: {collection_id}"
+            )));
+        }
+
+        let mut composite = Vec::new();
+        let mut token: Option<String> = None;
+        loop {
+            let mut url = self.database_url(&["collectionGroups", cg, "indexes"]);
+            if let Some(t) = &token {
+                url.query_pairs_mut().append_pair("pageToken", t);
+            }
+            let page: ListIndexesResponse = self.get_json(url).await?;
+            composite.extend(page.indexes.into_iter().map(CompositeIndex::from));
+            match page.next_page_token.filter(|t| !t.is_empty()) {
+                Some(t) => token = Some(t),
+                None => break,
+            }
+        }
+
+        let mut field_overrides = Vec::new();
+        let mut token: Option<String> = None;
+        loop {
+            let mut url = self.database_url(&["collectionGroups", cg, "fields"]);
+            {
+                let mut q = url.query_pairs_mut();
+                // 例外設定（既定から変更したフィールド）だけを取得する
+                q.append_pair("filter", "indexConfig.usesAncestorConfig:false");
+                if let Some(t) = &token {
+                    q.append_pair("pageToken", t);
+                }
+            }
+            let page: ListFieldsResponse = self.get_json(url).await?;
+            field_overrides.extend(page.fields.into_iter().filter_map(RestField::into_override));
+            match page.next_page_token.filter(|t| !t.is_empty()) {
+                Some(t) => token = Some(t),
+                None => break,
+            }
+        }
+
+        Ok(CollectionIndexes {
+            collection_group: cg.to_owned(),
+            composite,
+            field_overrides,
         })
     }
 }

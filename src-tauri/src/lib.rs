@@ -90,6 +90,18 @@ async fn run_query(
 }
 
 #[tauri::command]
+async fn list_indexes(
+    state: tauri::State<'_, AppState>,
+    connection: ConnectionConfig,
+    collection_id: String,
+) -> AppResult<firestore::indexes::CollectionIndexes> {
+    state
+        .client(&connection)?
+        .list_indexes(&collection_id)
+        .await
+}
+
+#[tauri::command]
 async fn list_auth_users(
     state: tauri::State<'_, AppState>,
     connection: ConnectionConfig,
@@ -180,6 +192,7 @@ pub fn run() {
             get_document,
             list_documents,
             run_query,
+            list_indexes,
             export::save_text_file,
             list_auth_users,
             lookup_auth_users,

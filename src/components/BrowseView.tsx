@@ -1,7 +1,8 @@
-import { Fragment } from "react";
-import { ChevronRight, Loader2, RefreshCw, Search } from "lucide-react";
+import { Fragment, useState } from "react";
+import { ChevronRight, ListTree, Loader2, RefreshCw, Search } from "lucide-react";
 import { splitPath } from "@/lib/display";
-import { type BrowseTab, emptyQuerySpec, useStore } from "@/store";
+import { activeConnection, type BrowseTab, emptyQuerySpec, useStore } from "@/store";
+import { IndexesDialog } from "./IndexesDialog";
 import { Button } from "@/components/ui/button";
 import { ErrorBox } from "./ErrorBox";
 import { columnScope } from "@/lib/columns";
@@ -50,6 +51,10 @@ function Breadcrumb({ path }: { path: string }) {
 export function BrowseView({ tab }: { tab: BrowseTab }) {
   const loadPage = useStore((s) => s.loadPage);
   const openQuery = useStore((s) => s.openQuery);
+  const conn = useStore(activeConnection);
+  const [indexesOpen, setIndexesOpen] = useState(false);
+  const segments = splitPath(tab.collectionPath);
+  const collectionId = segments[segments.length - 1] ?? tab.collectionPath;
   const layout = useColumnLayout(
     tab.docs,
     columnScope({ kind: "collection", path: tab.collectionPath }),
@@ -69,6 +74,22 @@ export function BrowseView({ tab }: { tab: BrowseTab }) {
         >
           <Search /> <span className="hidden @lg:inline">クエリ</span>
         </Button>
+        <Button
+          variant="outline"
+          size="xs"
+          title={`コレクション ${collectionId} のインデックスを表示`}
+          onClick={() => setIndexesOpen(true)}
+        >
+          <ListTree /> <span className="hidden @lg:inline">インデックス</span>
+        </Button>
+        {conn && (
+          <IndexesDialog
+            open={indexesOpen}
+            onOpenChange={setIndexesOpen}
+            connection={conn}
+            collectionId={collectionId}
+          />
+        )}
         {tab.view === "table" && <ColumnSettings layout={layout} />}
         <ViewToggle tab={tab} />
         <Button

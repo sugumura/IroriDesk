@@ -201,3 +201,34 @@ export function gcloudLogin(account?: string): Promise<GcloudAccount[]> {
 export function reloadCredentials(): Promise<void> {
   return invoke("reload_credentials");
 }
+
+export interface IndexField {
+  fieldPath: string;
+  mode: "asc" | "desc" | "array-contains" | "vector";
+}
+
+export interface CompositeIndex {
+  id: string;
+  collectionGroup: string;
+  queryScope: "COLLECTION" | "COLLECTION_GROUP" | string;
+  fields: IndexField[];
+  state: "READY" | "CREATING" | "NEEDS_REPAIR" | string;
+}
+
+export interface FieldOverride {
+  fieldPath: string;
+  /** 空なら自動インデックスを無効にしている */
+  indexes: { queryScope: string; mode: IndexField["mode"]; state: string }[];
+  ttl: boolean;
+}
+
+export interface CollectionIndexes {
+  collectionGroup: string;
+  composite: CompositeIndex[];
+  fieldOverrides: FieldOverride[];
+}
+
+/** コレクションID（コレクショングループ）単位のインデックス情報 */
+export function listIndexes(connection: ConnectionConfig, collectionId: string): Promise<CollectionIndexes> {
+  return invoke("list_indexes", { connection, collectionId });
+}

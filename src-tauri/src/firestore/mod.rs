@@ -1,5 +1,6 @@
 mod client;
 pub mod document;
+pub mod indexes;
 pub mod path;
 pub mod query;
 pub mod value;
