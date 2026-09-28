@@ -9,9 +9,9 @@ import { TopBar } from "./components/TopBar";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
 
-function MainPanes({ detailOpen }: { detailOpen: boolean }) {
-  // 詳細ペインの開閉ごとにレイアウトを別々に保存・復元する
-  const panelIds = detailOpen ? ["tree", "main", "detail"] : ["tree", "main"];
+function MainPanes({ treeOpen, detailOpen }: { treeOpen: boolean; detailOpen: boolean }) {
+  // 左右のペインの開閉の組み合わせごとにレイアウトを別々に保存・復元する
+  const panelIds = [...(treeOpen ? ["tree"] : []), "main", ...(detailOpen ? ["detail"] : [])];
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: "main-layout",
     panelIds,
@@ -25,10 +25,14 @@ function MainPanes({ detailOpen }: { detailOpen: boolean }) {
       onLayoutChanged={onLayoutChanged}
       className="min-h-0 flex-1"
     >
-      <ResizablePanel id="tree" defaultSize={240} minSize={160} maxSize="40">
-        <CollectionTree />
-      </ResizablePanel>
-      <ResizableHandle />
+      {treeOpen && (
+        <>
+          <ResizablePanel id="tree" defaultSize={240} minSize={160} maxSize="40">
+            <CollectionTree />
+          </ResizablePanel>
+          <ResizableHandle />
+        </>
+      )}
       <ResizablePanel id="main" minSize={320}>
         <TabsArea />
       </ResizablePanel>
@@ -49,6 +53,7 @@ function App() {
   const init = useStore((s) => s.init);
   const hasConnection = useStore((s) => s.activeConnectionId !== null);
   const detailOpen = useStore((s) => s.detailOpen);
+  const treeOpen = useStore((s) => s.treeOpen);
 
   useEffect(() => {
     void init();
@@ -61,7 +66,7 @@ function App() {
       <div className="flex h-full flex-col">
         <TopBar />
         {hasConnection ? (
-          <MainPanes detailOpen={detailOpen} />
+          <MainPanes treeOpen={treeOpen} detailOpen={detailOpen} />
         ) : (
           <div className="flex flex-1 items-center justify-center text-muted-foreground">
             左上の接続の管理ボタンから接続を追加してください

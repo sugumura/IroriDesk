@@ -95,6 +95,7 @@ interface State {
   split: SplitMode;
   selectedDocPath: string | null;
   detailOpen: boolean;
+  treeOpen: boolean;
   appearance: Appearance;
   columnConfigs: Record<string, ColumnConfig>;
 
@@ -124,6 +125,7 @@ interface State {
 
   selectDocument(path: string | null): void;
   setDetailOpen(open: boolean): void;
+  setTreeOpen(open: boolean): void;
 }
 
 let tabCounter = 0;
@@ -190,6 +192,7 @@ export const useStore = create<State>((set, get) => {
     split: "none",
     selectedDocPath: null,
     detailOpen: true,
+    treeOpen: true,
     appearance: DEFAULT_APPEARANCE,
     columnConfigs: {},
 
@@ -455,6 +458,10 @@ export const useStore = create<State>((set, get) => {
 
     setDetailOpen(open) {
       set({ detailOpen: open });
+    },
+
+    setTreeOpen(open) {
+      set({ treeOpen: open });
     },
   };
 });

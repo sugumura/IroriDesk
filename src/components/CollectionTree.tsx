@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Folder, Loader2, RefreshCw } from "lucide-react";
+import { Folder, Loader2, RefreshCw, X } from "lucide-react";
 import { isCollectionPath, splitPath } from "@/lib/display";
 import { cn } from "@/lib/utils";
 import { focusedTab, useStore } from "@/store";
@@ -37,6 +37,7 @@ export function CollectionTree() {
   const root = useStore((s) => s.rootCollections);
   const reload = useStore((s) => s.loadRootCollections);
   const openCollection = useStore((s) => s.openCollection);
+  const setTreeOpen = useStore((s) => s.setTreeOpen);
   const activePath = useStore((s) => {
     const tab = focusedTab(s);
     return tab?.kind === "browse" ? tab.collectionPath : null;
@@ -50,6 +51,9 @@ export function CollectionTree() {
         <div className="flex-1" />
         <Button variant="ghost" size="icon-sm" title="再読み込み" disabled={root.loading} onClick={() => reload()}>
           {root.loading ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+        </Button>
+        <Button variant="ghost" size="icon-sm" title="閉じる" onClick={() => setTreeOpen(false)}>
+          <X />
         </Button>
       </div>
       <OpenPathForm />

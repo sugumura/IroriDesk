@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CircleCheck, CircleX, Loader2, PanelRight, PlugZap, ServerCog, Settings } from "lucide-react";
+import { CircleCheck, CircleX, Loader2, PanelLeft, PanelRight, PlugZap, ServerCog, Settings } from "lucide-react";
 import { listCollectionIds, toAppError } from "@/lib/api";
 import { activeConnection, useStore } from "@/store";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,8 @@ export function TopBar() {
   const reloadRoot = useStore((s) => s.loadRootCollections);
   const detailOpen = useStore((s) => s.detailOpen);
   const setDetailOpen = useStore((s) => s.setDetailOpen);
+  const treeOpen = useStore((s) => s.treeOpen);
+  const setTreeOpen = useStore((s) => s.setTreeOpen);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -105,6 +107,14 @@ export function TopBar() {
           </Badge>
         </>
       )}
+      <Button
+        variant={treeOpen ? "secondary" : "ghost"}
+        size="icon-sm"
+        title="コレクションパネルの表示切替"
+        onClick={() => setTreeOpen(!treeOpen)}
+      >
+        <PanelLeft />
+      </Button>
       <Button
         variant={detailOpen ? "secondary" : "ghost"}
         size="icon-sm"
