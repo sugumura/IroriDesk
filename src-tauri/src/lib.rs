@@ -4,10 +4,11 @@ mod error;
 mod export;
 mod firebase_auth;
 mod firestore;
+mod gcloud;
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
-use auth::AdcTokenSource;
+use auth::{AdcTokenSource, TokenSource};
 use connection::ConnectionConfig;
 use error::AppResult;
 use firebase_auth::{AuthClient, DisplayUser, LookupKind, UserPage};
@@ -17,16 +18,29 @@ use firestore::{FirestoreApi, RestClient};
 
 struct AppState {
     http: reqwest::Client,
-    adc: Arc<AdcTokenSource>,
+    /// 再読み込みで作り直せるよう差し替え可能にしておく
+    adc: RwLock<Arc<AdcTokenSource>>,
+    gcloud_tokens: Arc<gcloud::GcloudTokenCache>,
 }
 
 impl AppState {
+    /// 接続にアカウントが指定されていれば gcloud、なければ ADC
+    fn production_tokens(&self, conn: &ConnectionConfig) -> Arc<dyn TokenSource> {
+        match conn.account() {
+            Some(account) => Arc::new(gcloud::GcloudTokenSource {
+                account: account.to_owned(),
+                cache: self.gcloud_tokens.clone(),
+            }),
+            None => self.adc.read().expect("adc lock").clone(),
+        }
+    }
+
     fn client(&self, conn: &ConnectionConfig) -> AppResult<RestClient> {
-        RestClient::from_connection(conn, self.http.clone(), self.adc.clone())
+        RestClient::from_connection(conn, self.http.clone(), self.production_tokens(conn))
     }
 
     fn auth_client(&self, conn: &ConnectionConfig) -> AppResult<AuthClient> {
-        AuthClient::from_connection(conn, self.http.clone(), self.adc.clone())
+        AuthClient::from_connection(conn, self.http.clone(), self.production_tokens(conn))
     }
 }
 
@@ -98,6 +112,30 @@ async fn lookup_auth_users(
     state.auth_client(&connection)?.lookup(kind, &value).await
 }
 
+#[tauri::command]
+async fn list_gcloud_accounts() -> AppResult<Vec<gcloud::GcloudAccount>> {
+    gcloud::list_accounts().await
+}
+
+/// ブラウザで Google にログインして gcloud にアカウントを追加する（account 指定で再ログイン）
+#[tauri::command]
+async fn gcloud_login(
+    state: tauri::State<'_, AppState>,
+    account: Option<String>,
+) -> AppResult<Vec<gcloud::GcloudAccount>> {
+    gcloud::login(account.as_deref()).await?;
+    state.gcloud_tokens.clear().await;
+    gcloud::list_accounts().await
+}
+
+/// ADC の読み直しと、gcloud のトークンキャッシュの破棄（アカウントを切り替えたとき用）
+#[tauri::command]
+async fn reload_credentials(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    *state.adc.write().expect("adc lock") = Arc::default();
+    state.gcloud_tokens.clear().await;
+    Ok(())
+}
+
 /// 旧名（Firestore Viewer）の識別子で保存された設定を、初回起動時に引き継ぐ
 fn migrate_legacy_settings(app: &tauri::AppHandle) {
     use tauri::Manager;
@@ -107,7 +145,10 @@ fn migrate_legacy_settings(app: &tauri::AppHandle) {
         return;
     };
     let target = dir.join(SETTINGS_FILE);
-    let Some(legacy) = dir.parent().map(|p| p.join(LEGACY_IDENTIFIER).join(SETTINGS_FILE)) else {
+    let Some(legacy) = dir
+        .parent()
+        .map(|p| p.join(LEGACY_IDENTIFIER).join(SETTINGS_FILE))
+    else {
         return;
     };
     if target.exists() || !legacy.exists() {
@@ -131,7 +172,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             http: firestore::build_http_client(),
-            adc: Arc::default(),
+            adc: RwLock::new(Arc::default()),
+            gcloud_tokens: Arc::default(),
         })
         .invoke_handler(tauri::generate_handler![
             list_collection_ids,
@@ -140,7 +182,10 @@ pub fn run() {
             run_query,
             export::save_text_file,
             list_auth_users,
-            lookup_auth_users
+            lookup_auth_users,
+            list_gcloud_accounts,
+            gcloud_login,
+            reload_credentials
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

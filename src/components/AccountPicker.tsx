@@ -1,0 +1,129 @@
+import { useEffect, useState } from "react";
+import { Check, Loader2, LogIn, RefreshCw, RotateCcw, UserPlus } from "lucide-react";
+import {
+  type AppError,
+  type GcloudAccount,
+  gcloudLogin,
+  listGcloudAccounts,
+  reloadCredentials,
+  toAppError,
+} from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ErrorBox } from "./ErrorBox";
+
+const ADC = "__adc__";
+
+/**
+ * 本番接続で使うアカウントの選択。ADC か、gcloud CLI に登録されたアカウント。
+ * 「アカウントを追加」「再ログイン」はブラウザで Google ログインを行う
+ */
+export function AccountPicker({
+  value,
+  onChange,
+}: {
+  value: string | undefined;
+  onChange: (account: string | undefined) => void;
+}) {
+  const [accounts, setAccounts] = useState<GcloudAccount[] | null>(null);
+  const [busy, setBusy] = useState<"list" | "login" | null>(null);
+  const [error, setError] = useState<AppError | null>(null);
+  const [reloaded, setReloaded] = useState(false);
+
+  const refresh = async () => {
+    setBusy("list");
+    setError(null);
+    try {
+      setAccounts(await listGcloudAccounts());
+    } catch (e) {
+      setError(toAppError(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  const login = async (account?: string) => {
+    setBusy("login");
+    setError(null);
+    const before = new Set((accounts ?? []).map((a) => a.account));
+    try {
+      const list = await gcloudLogin(account);
+      setAccounts(list);
+      // 新しく追加されたアカウントがあれば、それを選ぶ
+      const added = list.find((a) => !before.has(a.account));
+      if (added) onChange(added.account);
+    } catch (e) {
+      setError(toAppError(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // 保存済みの値が gcloud から消えていても選択肢に残す
+  const options = [...(accounts ?? [])];
+  if (value && !options.some((a) => a.account === value)) options.push({ account: value, active: false });
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex gap-1.5">
+        <Select value={value ?? ADC} onValueChange={(v) => onChange(v === ADC ? undefined : v)}>
+          <SelectTrigger className="min-w-0 flex-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ADC}>ADC（gcloud auth application-default login）</SelectItem>
+            {options.map((a) => (
+              <SelectItem key={a.account} value={a.account}>
+                {a.account}
+                {a.active && <span className="text-xs text-muted-foreground">gcloud の現在のアカウント</span>}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="ghost" size="icon" title="アカウント一覧を更新" disabled={busy !== null} onClick={refresh}>
+          {busy === "list" ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => login()}>
+          <UserPlus /> アカウントを追加
+        </Button>
+        {value ? (
+          <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => login(value)}>
+            <LogIn /> 再ログイン
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy !== null}
+            title="gcloud auth application-default login で ADC を作り直したあとに押す（再起動は不要）"
+            onClick={async () => {
+              await reloadCredentials();
+              setReloaded(true);
+              setTimeout(() => setReloaded(false), 2500);
+            }}
+          >
+            {reloaded ? <Check /> : <RotateCcw />} ADC を再読み込み
+          </Button>
+        )}
+        {busy === "login" && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" /> ブラウザで Google にログインしてください…
+          </span>
+        )}
+      </div>
+      {error && <ErrorBox error={error} className="text-xs" />}
+    </div>
+  );
+}

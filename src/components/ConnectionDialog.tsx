@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { AccountPicker } from "./AccountPicker";
 
 function blankConnection(): ConnectionConfig {
   return {
@@ -100,7 +101,7 @@ export function ConnectionDialog({
         <DialogHeader>
           <DialogTitle>接続の管理</DialogTitle>
           <DialogDescription>
-            本番接続は ADC（gcloud auth application-default login）の認証情報を使います。
+            本番接続は ADC、または gcloud に登録したアカウントの認証情報を使います。
           </DialogDescription>
         </DialogHeader>
 
@@ -137,7 +138,7 @@ export function ConnectionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="production">本番（ADC）</SelectItem>
+                  <SelectItem value="production">本番（Google Cloud）</SelectItem>
                   <SelectItem value="emulator">Emulator</SelectItem>
                 </SelectContent>
               </Select>
@@ -170,15 +171,23 @@ export function ConnectionDialog({
                 </Field>
               </>
             ) : (
-              <Field
-                label="quota project"
-                hint="任意。ユーザーADCで課金/クォータ用のプロジェクトが必要な場合に指定（x-goog-user-project）"
-              >
-                <Input
-                  value={draft.quotaProject ?? ""}
-                  onChange={(e) => update("quotaProject", e.target.value)}
-                />
-              </Field>
+              <>
+                <Field
+                  label="アカウント"
+                  hint="ADC はマシン全体で1つ。接続ごとに使い分けるなら gcloud のアカウントを選ぶ（ログインは gcloud が管理）"
+                >
+                  <AccountPicker value={draft.account} onChange={(a) => update("account", a)} />
+                </Field>
+                <Field
+                  label="quota project"
+                  hint="任意。ユーザーADCで課金/クォータ用のプロジェクトが必要な場合に指定（x-goog-user-project）"
+                >
+                  <Input
+                    value={draft.quotaProject ?? ""}
+                    onChange={(e) => update("quotaProject", e.target.value)}
+                  />
+                </Field>
+              </>
             )}
             <Field label="読み取り専用" hint="現在のバージョンは常に読み取りのみです（書き込みは今後対応）">
               <div className="pt-1.5">

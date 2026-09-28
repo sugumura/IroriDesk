@@ -31,6 +31,9 @@ pub struct ConnectionConfig {
     /// Firebase Auth Emulator のホスト（Emulator 接続のみ）
     #[serde(default)]
     pub auth_emulator_host: Option<String>,
+    /// 本番接続で使う gcloud のアカウント。未指定なら ADC
+    #[serde(default)]
+    pub account: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -52,6 +55,10 @@ impl ConnectionConfig {
 
     pub fn emulator_host(&self) -> &str {
         non_empty(&self.emulator_host).unwrap_or(DEFAULT_EMULATOR_HOST)
+    }
+
+    pub fn account(&self) -> Option<&str> {
+        non_empty(&self.account)
     }
 
     pub fn auth_emulator_host(&self) -> &str {

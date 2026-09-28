@@ -8,7 +8,7 @@ use serde_json::json;
 use super::document::{DisplayDocument, DocumentPage, QueryResult, RestDocument};
 use super::path::{collection_segments, document_segments};
 use super::query::{self, QuerySpec};
-use crate::auth::{AdcTokenSource, EmulatorTokenSource, TokenSource};
+use crate::auth::{EmulatorTokenSource, TokenSource};
 use crate::connection::{ConnectionConfig, ConnectionKind};
 use crate::error::{AppError, AppResult, ADC_LOGIN_HINT};
 
@@ -58,7 +58,8 @@ impl RestClient {
     pub fn from_connection(
         conn: &ConnectionConfig,
         http: reqwest::Client,
-        adc: Arc<AdcTokenSource>,
+        // 本番接続で使うトークンの取得元（ADC または gcloud のアカウント）
+        production_tokens: Arc<dyn TokenSource>,
     ) -> AppResult<Self> {
         let project_id = conn.project_id.trim();
         if project_id.is_empty() {
@@ -67,7 +68,7 @@ impl RestClient {
         let (base_url, tokens, quota_project): (String, Arc<dyn TokenSource>, _) = match conn.kind {
             ConnectionKind::Production => (
                 PRODUCTION_BASE_URL.to_owned(),
-                adc,
+                production_tokens,
                 conn.quota_project().map(str::to_owned),
             ),
             ConnectionKind::Emulator => {
@@ -339,8 +340,14 @@ mod tests {
             kind,
             emulator_host: None,
             auth_emulator_host: None,
+            account: None,
         };
-        RestClient::from_connection(&conn, reqwest::Client::new(), Arc::default()).unwrap()
+        RestClient::from_connection(
+            &conn,
+            reqwest::Client::new(),
+            Arc::new(crate::auth::AdcTokenSource::default()),
+        )
+        .unwrap()
     }
 
     #[test]
@@ -400,8 +407,14 @@ mod emulator_tests {
                 std::env::var("FIRESTORE_EMULATOR_HOST").unwrap_or("127.0.0.1:8080".into()),
             ),
             auth_emulator_host: None,
+            account: None,
         };
-        RestClient::from_connection(&conn, build_http_client(), Arc::default()).unwrap()
+        RestClient::from_connection(
+            &conn,
+            build_http_client(),
+            Arc::new(crate::auth::AdcTokenSource::default()),
+        )
+        .unwrap()
     }
 
     #[tokio::test]

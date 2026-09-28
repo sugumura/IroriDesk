@@ -65,7 +65,7 @@ export function TopBar() {
               {c.name}
               <span className="text-xs text-muted-foreground">
                 {c.projectId}
-                {c.kind === "emulator" && " · Emulator"}
+                {c.kind === "emulator" ? " · Emulator" : c.account ? ` · ${c.account}` : " · ADC"}
               </span>
             </SelectItem>
           ))}

@@ -13,6 +13,8 @@ export interface ConnectionConfig {
   emulatorHost?: string;
   /** Firebase Auth Emulator のホスト（Emulator 接続のみ） */
   authEmulatorHost?: string;
+  /** 本番接続で使う gcloud のアカウント。未指定なら ADC */
+  account?: string;
 }
 
 /** Rust 側 AppError のシリアライズ形式 */
@@ -178,4 +180,24 @@ export function lookupAuthUsers(
   value: string,
 ): Promise<DisplayUser[]> {
   return invoke("lookup_auth_users", { connection, kind, value });
+}
+
+export interface GcloudAccount {
+  account: string;
+  /** gcloud CLI で現在有効なアカウント */
+  active: boolean;
+}
+
+export function listGcloudAccounts(): Promise<GcloudAccount[]> {
+  return invoke("list_gcloud_accounts");
+}
+
+/** ブラウザで Google にログインして gcloud にアカウントを追加する（account 指定で再ログイン） */
+export function gcloudLogin(account?: string): Promise<GcloudAccount[]> {
+  return invoke("gcloud_login", { account });
+}
+
+/** ADC を読み直し、gcloud のトークンキャッシュを捨てる */
+export function reloadCredentials(): Promise<void> {
+  return invoke("reload_credentials");
 }

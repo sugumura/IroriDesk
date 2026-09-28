@@ -8,7 +8,7 @@ use reqwest::{Method, RequestBuilder, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
-use crate::auth::{AdcTokenSource, EmulatorTokenSource, TokenSource};
+use crate::auth::{EmulatorTokenSource, TokenSource};
 use crate::connection::{ConnectionConfig, ConnectionKind};
 use crate::error::{AppError, AppResult};
 use crate::firestore::check_status_for;
@@ -138,7 +138,8 @@ impl AuthClient {
     pub fn from_connection(
         conn: &ConnectionConfig,
         http: reqwest::Client,
-        adc: Arc<AdcTokenSource>,
+        // 本番接続で使うトークンの取得元（ADC または gcloud のアカウント）
+        production_tokens: Arc<dyn TokenSource>,
     ) -> AppResult<Self> {
         let project_id = conn.project_id.trim();
         if project_id.is_empty() {
@@ -151,7 +152,7 @@ impl AuthClient {
                 project_id: project_id.to_owned(),
                 // Identity Toolkit はユーザー ADC だと quota project が必須。未指定なら接続先を使う
                 quota_project: Some(conn.quota_project().unwrap_or(project_id).to_owned()),
-                tokens: adc,
+                tokens: production_tokens,
             },
             ConnectionKind::Emulator => {
                 let host = conn.auth_emulator_host();
@@ -334,6 +335,7 @@ mod tests {
             auth_emulator_host: Some(
                 std::env::var("FIREBASE_AUTH_EMULATOR_HOST").unwrap_or("127.0.0.1:9099".into()),
             ),
+            account: None,
         }
     }
 
@@ -348,8 +350,14 @@ mod tests {
         );
         let err = check_auth_status(res).await.unwrap_err();
         let text = err.to_string();
-        assert!(text.starts_with("Authentication API エラー (Bad Request)"), "{text}");
-        assert!(text.contains("Firebase Authentication が有効になっていません"), "{text}");
+        assert!(
+            text.starts_with("Authentication API エラー (Bad Request)"),
+            "{text}"
+        );
+        assert!(
+            text.contains("Firebase Authentication が有効になっていません"),
+            "{text}"
+        );
         assert!(text.contains("CONFIGURATION_NOT_FOUND"), "{text}");
     }
 
@@ -358,7 +366,7 @@ mod tests {
         let prod = AuthClient::from_connection(
             &conn(ConnectionKind::Production),
             reqwest::Client::new(),
-            Arc::default(),
+            Arc::new(crate::auth::AdcTokenSource::default()),
         )
         .unwrap();
         assert_eq!(
@@ -369,7 +377,7 @@ mod tests {
         let emu = AuthClient::from_connection(
             &conn(ConnectionKind::Emulator),
             reqwest::Client::new(),
-            Arc::default(),
+            Arc::new(crate::auth::AdcTokenSource::default()),
         )
         .unwrap();
         assert_eq!(
@@ -384,7 +392,7 @@ mod tests {
         let c = AuthClient::from_connection(
             &conn(ConnectionKind::Emulator),
             crate::firestore::build_http_client(),
-            Arc::default(),
+            Arc::new(crate::auth::AdcTokenSource::default()),
         )
         .unwrap();
         let mut all = Vec::new();
