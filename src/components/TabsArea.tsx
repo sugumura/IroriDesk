@@ -132,6 +132,7 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
                 e.stopPropagation();
                 close(t.id);
               }}
+              title="タブを閉じる"
               aria-label="タブを閉じる"
             >
               <X className="size-3" />

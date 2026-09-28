@@ -6,7 +6,7 @@ import { CollectionTree } from "./components/CollectionTree";
 import { DetailPane } from "./components/DetailPane";
 import { TabsArea } from "./components/TabsArea";
 import { TopBar } from "./components/TopBar";
-import { TooltipProvider } from "./components/ui/tooltip";
+import { GlobalTooltip } from "./components/GlobalTooltip";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
 
 function MainPanes({ treeOpen, detailOpen }: { treeOpen: boolean; detailOpen: boolean }) {
@@ -62,7 +62,8 @@ function App() {
   if (!ready) return null;
 
   return (
-    <TooltipProvider>
+    <>
+      <GlobalTooltip />
       <div className="flex h-full flex-col">
         <TopBar />
         {hasConnection ? (
@@ -73,7 +74,7 @@ function App() {
           </div>
         )}
       </div>
-    </TooltipProvider>
+    </>
   );
 }
 

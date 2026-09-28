@@ -44,6 +44,7 @@ function Node({
             type="button"
             className="flex size-4 shrink-0 items-center justify-center text-muted-foreground"
             onClick={() => setOpen((o) => !o)}
+            title={open ? "折りたたむ" : "展開する"}
             aria-label={open ? "折りたたむ" : "展開する"}
           >
             {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
