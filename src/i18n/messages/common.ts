@@ -1,0 +1,36 @@
+/** 画面全体で共通の文言 */
+export const ja = {
+  close: "閉じる",
+  cancel: "キャンセル",
+  save: "保存",
+  add: "追加",
+  delete: "削除",
+  reload: "再読み込み",
+  loading: "読み込み中…",
+  copy: "コピー",
+  copied: "コピーしました",
+  copyJson: "JSON をコピー",
+  clearSelection: "選択解除",
+  table: "テーブル",
+  json: "JSON",
+  none: "なし",
+  count: "{count} 件",
+};
+
+export const en: typeof ja = {
+  close: "Close",
+  cancel: "Cancel",
+  save: "Save",
+  add: "Add",
+  delete: "Delete",
+  reload: "Reload",
+  loading: "Loading…",
+  copy: "Copy",
+  copied: "Copied",
+  copyJson: "Copy JSON",
+  clearSelection: "Clear selection",
+  table: "Table",
+  json: "JSON",
+  none: "None",
+  count: "{count}",
+};

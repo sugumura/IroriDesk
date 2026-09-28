@@ -1,3 +1,5 @@
+#[macro_use]
+mod i18n;
 mod auth;
 mod connection;
 mod error;
@@ -198,7 +200,8 @@ pub fn run() {
             lookup_auth_users,
             list_gcloud_accounts,
             gcloud_login,
-            reload_credentials
+            reload_credentials,
+            i18n::set_locale
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

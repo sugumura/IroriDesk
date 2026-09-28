@@ -2,6 +2,8 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export type ThemeMode = "system" | "light" | "dark";
+/** 表示言語。system は OS の言語に従う */
+export type LanguageSetting = "system" | "ja" | "en";
 
 export interface Appearance {
   theme: ThemeMode;
@@ -10,6 +12,7 @@ export interface Appearance {
   fontMono: string;
   /** WebView の拡大率（1 = 100%） */
   zoom: number;
+  language: LanguageSetting;
 }
 
 const JP_FALLBACK = "'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif";
@@ -23,6 +26,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   fontSans: "",
   fontMono: "",
   zoom: 1,
+  language: "system",
 };
 
 export interface FontPreset {
@@ -71,6 +75,7 @@ export function normalizeAppearance(a: Partial<Appearance> | null | undefined): 
     fontSans: typeof a?.fontSans === "string" ? a.fontSans : "",
     fontMono: typeof a?.fontMono === "string" ? a.fontMono : "",
     zoom,
+    language: a?.language === "ja" || a?.language === "en" ? a.language : "system",
   };
 }
 

@@ -13,7 +13,9 @@ import {
   runQuery,
   toAppError,
 } from "@/lib/api";
+import { invoke } from "@tauri-apps/api/core";
 import { type Appearance, applyAppearance, DEFAULT_APPEARANCE } from "@/lib/appearance";
+import { resolveLang } from "@/i18n";
 import type { ColumnConfig } from "@/lib/columns";
 import { addToHistory, type HistoryEntry } from "@/lib/queryHistory";
 import {
@@ -195,6 +197,13 @@ function withActive(
   return next;
 }
 
+/** 画面の言語を HTML と Rust 側（エラーメッセージ）に伝える */
+function syncLanguage(appearance: Appearance) {
+  const lang = resolveLang(appearance.language);
+  document.documentElement.lang = lang;
+  void invoke("set_locale", { lang }).catch(() => undefined);
+}
+
 const emptyRoot: RootCollections = { ids: null, loading: false, error: null };
 
 export const useStore = create<State>((set, get) => {
@@ -250,6 +259,7 @@ export const useStore = create<State>((set, get) => {
         loadQueryHistory(),
       ]);
       applyAppearance(appearance);
+      syncLanguage(appearance);
       set({ ...settings, appearance, columnConfigs, queryHistory, ready: true });
       if (activeConnection(get())) void get().loadRootCollections();
     },
@@ -257,6 +267,7 @@ export const useStore = create<State>((set, get) => {
     setAppearance(patch) {
       const appearance = { ...get().appearance, ...patch };
       applyAppearance(appearance);
+      syncLanguage(appearance);
       set({ appearance });
       void saveAppearance(appearance);
     },
