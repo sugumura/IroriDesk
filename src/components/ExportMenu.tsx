@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { CircleCheck, Download, Loader2 } from "lucide-react";
-import { type AppError, type DisplayDocument, saveTextFile, toAppError } from "@/lib/api";
+import { Download, Loader2 } from "lucide-react";
+import { type DisplayDocument, saveTextFile, toAppError } from "@/lib/api";
+import { notifyError, notifySuccess } from "@/lib/notify";
 import { defaultFileName, EXPORT_FORMATS, type ExportFormat, exportContents } from "@/lib/export";
 import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -26,13 +27,11 @@ export function ExportMenu({
 }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<{ ok: true; path: string } | { ok: false; error: AppError } | null>(null);
   const count = docs.filter((d) => !d.missing).length;
 
   const run = async (format: ExportFormat) => {
     const f = EXPORT_FORMATS[format];
     setBusy(true);
-    setStatus(null);
     try {
       const path = await saveTextFile(
         defaultFileName(baseName, format),
@@ -40,12 +39,9 @@ export function ExportMenu({
         f.extension,
         exportContents(docs, format, fields),
       );
-      if (path) {
-        setStatus({ ok: true, path });
-        setTimeout(() => setStatus(null), 4000);
-      }
+      if (path) notifySuccess(t("export.saved"), path);
     } catch (e) {
-      setStatus({ ok: false, error: toAppError(e) });
+      notifyError(toAppError(e));
     } finally {
       setBusy(false);
     }
@@ -53,17 +49,6 @@ export function ExportMenu({
 
   return (
     <div className="flex min-w-0 items-center gap-2">
-      {status?.ok === true && (
-        <span className="flex min-w-0 items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400" title={status.path}>
-          <CircleCheck className="size-3.5 shrink-0" />
-          <span className="truncate">{t("export.saved")}</span>
-        </span>
-      )}
-      {status?.ok === false && (
-        <span className="truncate text-xs text-destructive" title={status.error.message}>
-          {status.error.message}
-        </span>
-      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="xs" disabled={busy || count === 0} title={t("export.buttonTitle")}>

@@ -8,6 +8,7 @@ import { DetailPane } from "./components/DetailPane";
 import { TabsArea } from "./components/TabsArea";
 import { TopBar } from "./components/TopBar";
 import { GlobalTooltip } from "./components/GlobalTooltip";
+import { AppToaster } from "./components/AppToaster";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
 
 function MainPanes({ treeOpen, detailOpen }: { treeOpen: boolean; detailOpen: boolean }) {
@@ -66,6 +67,7 @@ function App() {
   return (
     <>
       <GlobalTooltip />
+      <AppToaster />
       <div className="flex h-full flex-col">
         <TopBar />
         {hasConnection ? (

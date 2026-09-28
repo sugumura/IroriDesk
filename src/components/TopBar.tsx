@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { CircleCheck, CircleX, Loader2, PanelLeft, PanelRight, PlugZap, ServerCog, Settings } from "lucide-react";
+import { Loader2, PanelLeft, PanelRight, PlugZap, ServerCog, Settings } from "lucide-react";
 import { listCollectionIds, toAppError } from "@/lib/api";
+import { notifyError, notifySuccess } from "@/lib/notify";
 import { activeConnection, useStore } from "@/store";
 import { useT } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +15,6 @@ import {
 } from "@/components/ui/select";
 import { AppSettingsDialog } from "./AppSettingsDialog";
 import { ConnectionDialog } from "./ConnectionDialog";
-
-type TestResult = { ok: true; count: number } | { ok: false; message: string } | null;
 
 export function TopBar() {
   const t = useT();
@@ -31,19 +30,16 @@ export function TopBar() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [result, setResult] = useState<TestResult>(null);
 
   const runTest = async () => {
     if (!conn) return;
     setTesting(true);
-    setResult(null);
     try {
       const ids = await listCollectionIds(conn);
-      setResult({ ok: true, count: ids.length });
+      notifySuccess(t("topbar.testOk", { count: ids.length }), conn.name);
       void reloadRoot();
     } catch (e) {
-      const err = toAppError(e);
-      setResult({ ok: false, message: err.message });
+      notifyError(toAppError(e));
     } finally {
       setTesting(false);
     }
@@ -53,10 +49,7 @@ export function TopBar() {
     <header className="flex h-11 shrink-0 items-center gap-2 border-b px-3">
       <Select
         value={activeId ?? ""}
-        onValueChange={(id) => {
-          setResult(null);
-          setActive(id);
-        }}
+        onValueChange={(id) => setActive(id)}
       >
         <SelectTrigger size="sm" className="w-64">
           <SelectValue placeholder={t("topbar.selectConnection")} />
@@ -80,21 +73,6 @@ export function TopBar() {
         {testing ? <Loader2 className="animate-spin" /> : <PlugZap />}
         {t("topbar.testConnection")}
       </Button>
-      {result?.ok === true && (
-        <span className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400">
-          <CircleCheck className="size-3.5" /> {t("topbar.testOk", { count: result.count })}
-        </span>
-      )}
-      {result?.ok === false && (
-        <span
-          className="flex min-w-0 items-center gap-1 text-xs text-destructive"
-          title={result.message}
-        >
-          <CircleX className="size-3.5 shrink-0" />
-          <span className="truncate">{result.message}</span>
-        </span>
-      )}
-
       <div className="flex-1" />
       {conn && (
         <>

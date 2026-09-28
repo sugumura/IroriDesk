@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Loader2, LogIn, RefreshCw, RotateCcw, UserPlus } from "lucide-react";
+import { Loader2, LogIn, RefreshCw, RotateCcw, UserPlus } from "lucide-react";
 import {
   type AppError,
   type GcloudAccount,
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { notifySuccess } from "@/lib/notify";
 import { ErrorBox } from "./ErrorBox";
 
 const ADC = "__adc__";
@@ -36,7 +37,6 @@ export function AccountPicker({
   const [accounts, setAccounts] = useState<GcloudAccount[] | null>(null);
   const [busy, setBusy] = useState<"list" | "login" | null>(null);
   const [error, setError] = useState<AppError | null>(null);
-  const [reloaded, setReloaded] = useState(false);
 
   const refresh = async () => {
     setBusy("list");
@@ -112,11 +112,10 @@ export function AccountPicker({
             title={t("connection.accountPicker.reloadAdcHint")}
             onClick={async () => {
               await reloadCredentials();
-              setReloaded(true);
-              setTimeout(() => setReloaded(false), 2500);
+              notifySuccess(t("connection.accountPicker.reloadedAdc"));
             }}
           >
-            {reloaded ? <Check /> : <RotateCcw />} {t("connection.accountPicker.reloadAdc")}
+            <RotateCcw /> {t("connection.accountPicker.reloadAdc")}
           </Button>
         )}
         {busy === "login" && (
