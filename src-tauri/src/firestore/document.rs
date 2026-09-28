@@ -12,6 +12,16 @@ pub struct DocumentPage {
     pub next_page_token: Option<String>,
 }
 
+/// runQuery の結果
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryResult {
+    pub documents: Vec<DisplayDocument>,
+    pub read_time: Option<String>,
+    /// 送信した structuredQuery（画面で確認できるようにする）
+    pub structured_query: Value,
+}
+
 /// REST の Document リソース
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

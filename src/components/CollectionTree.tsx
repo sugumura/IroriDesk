@@ -39,7 +39,7 @@ export function CollectionTree() {
   const openCollection = useStore((s) => s.openCollection);
   const activePath = useStore((s) => {
     const tab = s.tabs.find((t) => t.id === s.activeTabId);
-    return tab?.collectionPath ?? null;
+    return tab?.kind === "browse" ? tab.collectionPath : null;
   });
   const activeRoot = activePath ? splitPath(activePath)[0] : null;
 

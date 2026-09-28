@@ -73,3 +73,56 @@ export function listDocuments(
 ): Promise<DocumentPage> {
   return invoke("list_documents", { connection, collectionPath, pageSize, pageToken });
 }
+
+export type WhereOp =
+  | "=="
+  | "!="
+  | "<"
+  | "<="
+  | ">"
+  | ">="
+  | "in"
+  | "not-in"
+  | "array-contains"
+  | "array-contains-any";
+
+export type QueryValueType =
+  | "string"
+  | "integer"
+  | "double"
+  | "boolean"
+  | "null"
+  | "timestamp"
+  | "reference";
+
+export interface WhereClause {
+  field: string;
+  op: WhereOp;
+  valueType: QueryValueType;
+  /** in / not-in / array-contains-any はカンマ区切り */
+  value: string;
+}
+
+export interface OrderClause {
+  field: string;
+  direction: "asc" | "desc";
+}
+
+export interface QuerySpec {
+  targetKind: "collection" | "collectionGroup";
+  /** collection ならコレクションパス、collectionGroup ならコレクションID */
+  target: string;
+  where: WhereClause[];
+  orderBy: OrderClause[];
+  limit: number | null;
+}
+
+export interface QueryResult {
+  documents: DisplayDocument[];
+  readTime: string | null;
+  structuredQuery: unknown;
+}
+
+export function runQuery(connection: ConnectionConfig, spec: QuerySpec): Promise<QueryResult> {
+  return invoke("run_query", { connection, spec });
+}

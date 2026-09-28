@@ -5,6 +5,8 @@ import {
   type DisplayDocument,
   listCollectionIds,
   listDocuments,
+  type QuerySpec,
+  runQuery,
   toAppError,
 } from "@/lib/api";
 import { loadSettings, saveSettings } from "@/lib/settings";
@@ -24,7 +26,40 @@ export interface BrowseTab {
   requestSeq: number;
 }
 
-export type Tab = BrowseTab;
+export interface QueryTab {
+  id: string;
+  kind: "query";
+  spec: QuerySpec;
+  /** 最後に実行したときの spec（結果と対応） */
+  ranSpec: QuerySpec | null;
+  docs: DisplayDocument[];
+  readTime: string | null;
+  structuredQuery: unknown;
+  loading: boolean;
+  error: AppError | null;
+  view: "table" | "json";
+  requestSeq: number;
+}
+
+export type Tab = BrowseTab | QueryTab;
+
+export const DEFAULT_QUERY_LIMIT = 100;
+
+export function emptyQuerySpec(collectionPath = ""): QuerySpec {
+  return {
+    targetKind: "collection",
+    target: collectionPath,
+    where: [],
+    orderBy: [],
+    limit: DEFAULT_QUERY_LIMIT,
+  };
+}
+
+export function tabTitle(t: Tab): string {
+  if (t.kind === "browse") return t.collectionPath;
+  const target = t.spec.target || "(未指定)";
+  return t.spec.targetKind === "collectionGroup" ? `クエリ: group(${target})` : `クエリ: ${target}`;
+}
 
 interface RootCollections {
   ids: string[] | null;
@@ -52,7 +87,12 @@ interface State {
   loadPage(tabId: string, reset: boolean): Promise<void>;
   setActiveTab(id: string): void;
   closeTab(id: string): void;
-  setView(tabId: string, view: BrowseTab["view"]): void;
+  setView(tabId: string, view: Tab["view"]): void;
+
+  openQuery(spec?: QuerySpec): void;
+  /** 最新の spec に patch を当てる（連続した更新で古い値に上書きされないように） */
+  patchQuerySpec(tabId: string, patch: Partial<QuerySpec> | ((spec: QuerySpec) => Partial<QuerySpec>)): void;
+  executeQuery(tabId: string): Promise<void>;
 
   selectDocument(path: string | null): void;
   setDetailOpen(open: boolean): void;
@@ -73,8 +113,8 @@ export const useStore = create<State>((set, get) => {
     void saveSettings({ connections, activeConnectionId });
   };
 
-  const updateTab = (id: string, patch: Partial<BrowseTab>) =>
-    set((s) => ({ tabs: s.tabs.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
+  const updateTab = <T extends Tab>(id: string, patch: Partial<T>) =>
+    set((s) => ({ tabs: s.tabs.map((t) => (t.id === id ? ({ ...t, ...patch } as Tab) : t)) }));
 
   /** 接続を切り替えたら閲覧状態をすべて捨てる */
   const resetBrowsing = () =>
@@ -145,7 +185,8 @@ export const useStore = create<State>((set, get) => {
 
     openCollection(path, opts) {
       const { tabs, activeTabId } = get();
-      const current = tabs.find((t) => t.id === activeTabId);
+      // クエリタブは上書きせず、閲覧タブのときだけ現在のタブを再利用する
+      const current = tabs.find((t) => t.id === activeTabId && t.kind === "browse");
       const base: Omit<BrowseTab, "id"> = {
         kind: "browse",
         collectionPath: path,
@@ -171,9 +212,9 @@ export const useStore = create<State>((set, get) => {
     async loadPage(tabId, reset) {
       const conn = activeConnection(get());
       const tab = get().tabs.find((t) => t.id === tabId);
-      if (!conn || !tab) return;
+      if (!conn || tab?.kind !== "browse") return;
       const seq = tab.requestSeq + 1;
-      updateTab(tabId, {
+      updateTab<BrowseTab>(tabId, {
         loading: true,
         error: null,
         requestSeq: seq,
@@ -189,7 +230,7 @@ export const useStore = create<State>((set, get) => {
         );
         if (!isCurrent()) return;
         const prev = reset ? [] : (get().tabs.find((t) => t.id === tabId)?.docs ?? []);
-        updateTab(tabId, {
+        updateTab<BrowseTab>(tabId, {
           docs: [...prev, ...page.documents],
           nextPageToken: page.nextPageToken,
           loading: false,
@@ -217,6 +258,55 @@ export const useStore = create<State>((set, get) => {
 
     setView(tabId, view) {
       updateTab(tabId, { view });
+    },
+
+    openQuery(spec) {
+      const id = newTabId();
+      const tab: QueryTab = {
+        id,
+        kind: "query",
+        spec: spec ?? emptyQuerySpec(),
+        ranSpec: null,
+        docs: [],
+        readTime: null,
+        structuredQuery: null,
+        loading: false,
+        error: null,
+        view: "table",
+        requestSeq: 0,
+      };
+      set((s) => ({ tabs: [...s.tabs, tab], activeTabId: id }));
+    },
+
+    patchQuerySpec(tabId, patch) {
+      const tab = get().tabs.find((t) => t.id === tabId);
+      if (tab?.kind !== "query") return;
+      const p = typeof patch === "function" ? patch(tab.spec) : patch;
+      updateTab<QueryTab>(tabId, { spec: { ...tab.spec, ...p } });
+    },
+
+    async executeQuery(tabId) {
+      const conn = activeConnection(get());
+      const tab = get().tabs.find((t) => t.id === tabId);
+      if (!conn || tab?.kind !== "query") return;
+      const seq = tab.requestSeq + 1;
+      const spec = tab.spec;
+      updateTab<QueryTab>(tabId, { loading: true, error: null, requestSeq: seq });
+      const isCurrent = () => get().tabs.find((t) => t.id === tabId)?.requestSeq === seq;
+      try {
+        const result = await runQuery(conn, spec);
+        if (!isCurrent()) return;
+        updateTab<QueryTab>(tabId, {
+          loading: false,
+          ranSpec: spec,
+          docs: result.documents,
+          readTime: result.readTime,
+          structuredQuery: result.structuredQuery,
+        });
+      } catch (e) {
+        if (!isCurrent()) return;
+        updateTab<QueryTab>(tabId, { loading: false, error: toAppError(e) });
+      }
     },
 
     selectDocument(path) {

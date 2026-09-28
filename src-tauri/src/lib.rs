@@ -8,7 +8,8 @@ use std::sync::Arc;
 use auth::AdcTokenSource;
 use connection::ConnectionConfig;
 use error::AppResult;
-use firestore::document::{DisplayDocument, DocumentPage};
+use firestore::document::{DisplayDocument, DocumentPage, QueryResult};
+use firestore::query::QuerySpec;
 use firestore::{FirestoreApi, RestClient};
 
 struct AppState {
@@ -58,6 +59,15 @@ async fn list_documents(
         .await
 }
 
+#[tauri::command]
+async fn run_query(
+    state: tauri::State<'_, AppState>,
+    connection: ConnectionConfig,
+    spec: QuerySpec,
+) -> AppResult<QueryResult> {
+    state.client(&connection)?.run_query(&spec).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -70,7 +80,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             list_collection_ids,
             get_document,
-            list_documents
+            list_documents,
+            run_query
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

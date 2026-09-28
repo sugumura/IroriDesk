@@ -1,13 +1,16 @@
-import { Table2, X } from "lucide-react";
+import { Plus, Search, Table2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/store";
+import { tabTitle, useStore } from "@/store";
+import { Button } from "@/components/ui/button";
 import { BrowseView } from "./BrowseView";
+import { QueryView } from "./QueryView";
 
 export function TabsArea() {
   const tabs = useStore((s) => s.tabs);
   const activeId = useStore((s) => s.activeTabId);
   const setActive = useStore((s) => s.setActiveTab);
   const close = useStore((s) => s.closeTab);
+  const openQuery = useStore((s) => s.openQuery);
   const active = tabs.find((t) => t.id === activeId);
 
   return (
@@ -22,10 +25,14 @@ export function TabsArea() {
             )}
             onClick={() => setActive(t.id)}
             onAuxClick={(e) => e.button === 1 && close(t.id)}
-            title={t.collectionPath}
+            title={tabTitle(t)}
           >
-            <Table2 className="size-3.5 shrink-0" />
-            <span className="truncate font-mono">{t.collectionPath}</span>
+            {t.kind === "browse" ? (
+              <Table2 className="size-3.5 shrink-0" />
+            ) : (
+              <Search className="size-3.5 shrink-0" />
+            )}
+            <span className="truncate font-mono">{tabTitle(t)}</span>
             <button
               type="button"
               className="rounded p-0.5 opacity-50 hover:bg-accent hover:opacity-100"
@@ -39,13 +46,24 @@ export function TabsArea() {
             </button>
           </div>
         ))}
+        <Button
+          variant="ghost"
+          size="xs"
+          className="mb-1 ml-1 shrink-0"
+          title="新しいクエリタブ"
+          onClick={() => openQuery()}
+        >
+          <Plus /> クエリ
+        </Button>
       </div>
       <div className="min-h-0 flex-1">
-        {active ? (
+        {active?.kind === "browse" ? (
           <BrowseView tab={active} />
+        ) : active?.kind === "query" ? (
+          <QueryView key={active.id} tab={active} />
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground">
-            左のコレクションを選択してください（⌘/Ctrl+クリックで新しいタブ）
+            左のコレクションを選択するか、「+ クエリ」でクエリタブを開いてください
           </div>
         )}
       </div>

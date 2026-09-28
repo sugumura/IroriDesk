@@ -5,8 +5,9 @@ use reqwest::{Method, RequestBuilder, Response, Url};
 use serde::Deserialize;
 use serde_json::json;
 
-use super::document::{DisplayDocument, DocumentPage, RestDocument};
+use super::document::{DisplayDocument, DocumentPage, QueryResult, RestDocument};
 use super::path::{collection_segments, document_segments};
+use super::query::{self, QuerySpec};
 use crate::auth::{AdcTokenSource, EmulatorTokenSource, TokenSource};
 use crate::connection::{ConnectionConfig, ConnectionKind};
 use crate::error::{AppError, AppResult, ADC_LOGIN_HINT};
@@ -31,6 +32,9 @@ pub trait FirestoreApi: Send + Sync {
         page_size: u32,
         page_token: Option<&str>,
     ) -> AppResult<DocumentPage>;
+
+    /// structuredQuery を実行する（MVP ではカーソルによるページングなし）
+    async fn run_query(&self, spec: &QuerySpec) -> AppResult<QueryResult>;
 }
 
 pub struct RestClient {
@@ -138,6 +142,23 @@ struct GoogleError {
     status: String,
 }
 
+/// エラー本文から (status, message) を取り出す。
+/// runQuery などのストリーミング系は `[{"error": {...}}]` の配列で返す
+fn parse_error_body(text: String) -> (String, String) {
+    // serde の構造体は配列からも位置指定で読めてしまうため、先頭の文字で分岐する
+    let parsed = if text.trim_start().starts_with('[') {
+        serde_json::from_str::<Vec<GoogleErrorBody>>(&text)
+            .ok()
+            .and_then(|v| v.into_iter().next())
+    } else {
+        serde_json::from_str::<GoogleErrorBody>(&text).ok()
+    };
+    match parsed {
+        Some(b) => (b.error.status, b.error.message),
+        None => (String::new(), text),
+    }
+}
+
 /// 非2xxレスポンスを AppError に変換する
 async fn check_status(res: Response) -> AppResult<Response> {
     let http_status = res.status();
@@ -145,10 +166,7 @@ async fn check_status(res: Response) -> AppResult<Response> {
         return Ok(res);
     }
     let text = res.text().await.unwrap_or_default();
-    let (status, message) = match serde_json::from_str::<GoogleErrorBody>(&text) {
-        Ok(b) => (b.error.status, b.error.message),
-        Err(_) => (String::new(), text),
-    };
+    let (status, message) = parse_error_body(text);
     if http_status.as_u16() == 401 || status == "UNAUTHENTICATED" {
         return Err(AppError::Auth {
             message: format!("認証に失敗しました。{ADC_LOGIN_HINT}"),
@@ -182,6 +200,22 @@ struct ListDocumentsResponse {
     documents: Vec<RestDocument>,
     #[serde(default)]
     next_page_token: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RunQueryItem {
+    document: Option<RestDocument>,
+    read_time: Option<String>,
+}
+
+impl RestClient {
+    fn documents_root(&self) -> String {
+        format!(
+            "projects/{}/databases/{}/documents",
+            self.project_id, self.database_id
+        )
+    }
 }
 
 #[async_trait::async_trait]
@@ -254,6 +288,34 @@ impl FirestoreApi for RestClient {
             next_page_token: page.next_page_token.filter(|t| !t.is_empty()),
         })
     }
+
+    async fn run_query(&self, spec: &QuerySpec) -> AppResult<QueryResult> {
+        let built = query::build(spec, &self.documents_root())?;
+        let parent: Vec<&str> = built.parent_segments.iter().map(String::as_str).collect();
+        let url = self.documents_url(&parent, ":runQuery");
+        let res = self
+            .request(Method::POST, url)
+            .await?
+            .json(&built.body)
+            .send()
+            .await?;
+        let items: Vec<RunQueryItem> = check_status(res).await?.json().await?;
+        let mut documents = Vec::new();
+        let mut read_time = None;
+        for item in items {
+            if let Some(doc) = item.document {
+                documents.push(DisplayDocument::from_rest(doc)?);
+            }
+            if item.read_time.is_some() {
+                read_time = item.read_time;
+            }
+        }
+        Ok(QueryResult {
+            documents,
+            read_time,
+            structured_query: built.body,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -272,6 +334,26 @@ mod tests {
             emulator_host: None,
         };
         RestClient::from_connection(&conn, reqwest::Client::new(), Arc::default()).unwrap()
+    }
+
+    #[test]
+    fn parses_object_and_array_error_bodies() {
+        let index_msg = "The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/p/firestore/indexes?create_composite=abc";
+        let array = json!([{ "error": { "code": 400, "message": index_msg, "status": "FAILED_PRECONDITION" } }]);
+        assert_eq!(
+            parse_error_body(array.to_string()),
+            ("FAILED_PRECONDITION".to_owned(), index_msg.to_owned())
+        );
+        let object =
+            json!({ "error": { "code": 403, "message": "denied", "status": "PERMISSION_DENIED" } });
+        assert_eq!(
+            parse_error_body(object.to_string()),
+            ("PERMISSION_DENIED".to_owned(), "denied".to_owned())
+        );
+        assert_eq!(
+            parse_error_body("oops".into()),
+            (String::new(), "oops".to_owned())
+        );
     }
 
     #[test]
@@ -413,5 +495,97 @@ mod emulator_tests {
         );
 
         assert!(c.list_documents("users/alice", 50, None).await.is_err());
+    }
+
+    fn spec(v: serde_json::Value) -> QuerySpec {
+        serde_json::from_value(v).unwrap()
+    }
+
+    #[tokio::test]
+    #[ignore = "Firestore Emulator が必要"]
+    async fn runs_queries() {
+        let c = emulator_client();
+
+        // where + orderBy + limit
+        let r = c
+            .run_query(&spec(json!({
+                "targetKind": "collection", "target": "logs",
+                "where": [{ "field": "level", "op": "==", "valueType": "string", "value": "error" }],
+                "orderBy": [{ "field": "seq", "direction": "desc" }],
+                "limit": 3
+            })))
+            .await
+            .unwrap();
+        let seqs: Vec<_> = r
+            .documents
+            .iter()
+            .map(|d| d.fields["seq"].clone())
+            .collect();
+        assert_eq!(seqs, vec![json!(119), json!(116), json!(113)]);
+        assert!(r.read_time.is_some());
+
+        // collectionGroup（実体のない親 ghost 配下も含む）
+        let r = c
+            .run_query(&spec(
+                json!({ "targetKind": "collectionGroup", "target": "orders", "limit": 100 }),
+            ))
+            .await
+            .unwrap();
+        let mut paths: Vec<_> = r.documents.iter().map(|d| d.path.as_str()).collect();
+        paths.sort();
+        assert_eq!(
+            paths,
+            vec![
+                "users/alice/orders/o1",
+                "users/alice/orders/o2",
+                "users/ghost/orders/o9"
+            ]
+        );
+
+        // サブコレクション + timestamp 比較
+        let r = c
+            .run_query(&spec(json!({
+                "targetKind": "collection", "target": "users/alice/orders",
+                "where": [{ "field": "orderedAt", "op": ">", "valueType": "timestamp", "value": "2026-03-02T00:00:00Z" }]
+            })))
+            .await
+            .unwrap();
+        assert_eq!(
+            r.documents
+                .iter()
+                .map(|d| d.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["o2"]
+        );
+
+        // null（unaryFilter）、__name__、array-contains-any、ネストしたフィールド
+        let ids = |r: QueryResult| r.documents.into_iter().map(|d| d.id).collect::<Vec<_>>();
+        let q = |w: serde_json::Value| {
+            spec(json!({ "targetKind": "collection", "target": "users", "where": [w] }))
+        };
+        assert_eq!(
+            ids(c
+                .run_query(&q(
+                    json!({ "field": "nickname", "op": "==", "valueType": "null" })
+                ))
+                .await
+                .unwrap()),
+            vec!["alice"]
+        );
+        assert_eq!(
+            ids(c.run_query(&q(json!({ "field": "__name__", "op": "==", "valueType": "string", "value": "bob" }))).await.unwrap()),
+            vec!["bob"]
+        );
+        let mut any = ids(c.run_query(&q(json!({ "field": "tags", "op": "array-contains-any", "valueType": "string", "value": "admin,beta" }))).await.unwrap());
+        any.sort();
+        assert_eq!(any, vec!["alice", "bob"]);
+        assert_eq!(
+            ids(c.run_query(&q(json!({ "field": "profile.address.city", "op": "==", "valueType": "string", "value": "Tokyo" }))).await.unwrap()),
+            vec!["alice"]
+        );
+        assert_eq!(
+            ids(c.run_query(&q(json!({ "field": "bestFriend", "op": "==", "valueType": "reference", "value": "users/bob" }))).await.unwrap()),
+            vec!["alice"]
+        );
     }
 }
