@@ -2,6 +2,7 @@ import { load, type Store } from "@tauri-apps/plugin-store";
 import type { ConnectionConfig } from "./api";
 import { type Appearance, normalizeAppearance } from "./appearance";
 import type { ColumnConfig } from "./columns";
+import type { HistoryEntry } from "./queryHistory";
 
 const FILE = "settings.json";
 
@@ -64,6 +65,17 @@ export async function loadColumnConfigs(): Promise<Record<string, ColumnConfig>>
 export async function saveColumnConfigs(configs: Record<string, ColumnConfig>): Promise<void> {
   const s = await store();
   await s.set("columns", configs);
+}
+
+/** 接続ごとのクエリ履歴 */
+export async function loadQueryHistory(): Promise<Record<string, HistoryEntry[]>> {
+  const s = await store();
+  return (await s.get<Record<string, HistoryEntry[]>>("queryHistory")) ?? {};
+}
+
+export async function saveQueryHistory(history: Record<string, HistoryEntry[]>): Promise<void> {
+  const s = await store();
+  await s.set("queryHistory", history);
 }
 
 export async function saveSettings(settings: PersistedSettings): Promise<void> {

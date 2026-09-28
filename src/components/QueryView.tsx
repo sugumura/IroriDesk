@@ -23,6 +23,7 @@ import { ColumnSettings } from "./ColumnSettings";
 import { ExportMenu } from "./ExportMenu";
 import { FieldInput } from "./FieldInput";
 import { JsonCode } from "./JsonCode";
+import { HistoryButton, HistoryList } from "./QueryHistory";
 import { ResultsView, ViewToggle } from "./ResultsView";
 
 const OPS: WhereOp[] = [
@@ -210,7 +211,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
 
   return (
     <form
-      className="space-y-2 p-3"
+      className="@container space-y-2 p-3"
       onSubmit={(e) => {
         e.preventDefault();
         void execute(tab.id);
@@ -247,6 +248,7 @@ function QueryForm({ tab }: { tab: QueryTab }) {
           placeholder="なし"
           className="h-7 w-24 text-xs"
         />
+        <HistoryButton tab={tab} />
         <Button type="submit" size="sm" disabled={tab.loading || !spec.target.trim()} title="実行（⌘/Ctrl+Enter）">
           {tab.loading ? <Loader2 className="animate-spin" /> : <Play />}
           実行
@@ -363,7 +365,10 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
       {ran && tab.structuredQuery !== null && <SentQuery query={tab.structuredQuery} />}
       <div className="min-h-0 flex-1">
         {!ran ? (
-          <div className="p-4 text-muted-foreground">条件を入力して実行してください</div>
+          <div className="h-full overflow-auto p-3">
+            <div className="mb-1 text-muted-foreground">条件を入力して実行するか、最近のクエリから選んでください</div>
+            <HistoryList tab={tab} className="max-w-2xl" />
+          </div>
         ) : tab.docs.length === 0 ? (
           <div className="p-4 text-muted-foreground">該当するドキュメントはありません</div>
         ) : (

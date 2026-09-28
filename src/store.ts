@@ -15,12 +15,15 @@ import {
 } from "@/lib/api";
 import { type Appearance, applyAppearance, DEFAULT_APPEARANCE } from "@/lib/appearance";
 import type { ColumnConfig } from "@/lib/columns";
+import { addToHistory, type HistoryEntry } from "@/lib/queryHistory";
 import {
   loadAppearance,
   loadColumnConfigs,
+  loadQueryHistory,
   loadSettings,
   saveAppearance,
   saveColumnConfigs,
+  saveQueryHistory,
   saveSettings,
 } from "@/lib/settings";
 
@@ -124,6 +127,8 @@ interface State {
   treeOpen: boolean;
   appearance: Appearance;
   columnConfigs: Record<string, ColumnConfig>;
+  /** 接続IDごとのクエリ履歴（新しい順） */
+  queryHistory: Record<string, HistoryEntry[]>;
 
   init(): Promise<void>;
   setAppearance(patch: Partial<Appearance>): void;
@@ -148,6 +153,10 @@ interface State {
   /** 最新の spec に patch を当てる（連続した更新で古い値に上書きされないように） */
   patchQuerySpec(tabId: string, patch: Partial<QuerySpec> | ((spec: QuerySpec) => Partial<QuerySpec>)): void;
   executeQuery(tabId: string): Promise<void>;
+  /** 履歴のクエリをタブに読み込んで実行する */
+  runHistoryEntry(tabId: string, entry: HistoryEntry): void;
+  removeHistoryEntry(ranAt: string): void;
+  clearHistory(): void;
 
   selectDocument(path: string | null): void;
   selectUser(user: DisplayUser | null): void;
@@ -231,15 +240,17 @@ export const useStore = create<State>((set, get) => {
     treeOpen: true,
     appearance: DEFAULT_APPEARANCE,
     columnConfigs: {},
+    queryHistory: {},
 
     async init() {
-      const [settings, appearance, columnConfigs] = await Promise.all([
+      const [settings, appearance, columnConfigs, queryHistory] = await Promise.all([
         loadSettings(),
         loadAppearance(),
         loadColumnConfigs(),
+        loadQueryHistory(),
       ]);
       applyAppearance(appearance);
-      set({ ...settings, appearance, columnConfigs, ready: true });
+      set({ ...settings, appearance, columnConfigs, queryHistory, ready: true });
       if (activeConnection(get())) void get().loadRootCollections();
     },
 
@@ -472,6 +483,10 @@ export const useStore = create<State>((set, get) => {
       const seq = tab.requestSeq + 1;
       const spec = tab.spec;
       updateTab<QueryTab>(tabId, { loading: true, error: null, requestSeq: seq });
+      // 失敗したクエリも残す（インデックス作成後に再実行しやすいように）
+      const history = { ...get().queryHistory, [conn.id]: addToHistory(get().queryHistory[conn.id] ?? [], spec) };
+      set({ queryHistory: history });
+      void saveQueryHistory(history);
       const isCurrent = () => get().tabs.find((t) => t.id === tabId)?.requestSeq === seq;
       try {
         const result = await runQuery(conn, spec);
@@ -487,6 +502,31 @@ export const useStore = create<State>((set, get) => {
         if (!isCurrent()) return;
         updateTab<QueryTab>(tabId, { loading: false, error: toAppError(e) });
       }
+    },
+
+    runHistoryEntry(tabId, entry) {
+      updateTab<QueryTab>(tabId, { spec: structuredClone(entry.spec) });
+      void get().executeQuery(tabId);
+    },
+
+    removeHistoryEntry(ranAt) {
+      const id = get().activeConnectionId;
+      if (!id) return;
+      const history = {
+        ...get().queryHistory,
+        [id]: (get().queryHistory[id] ?? []).filter((h) => h.ranAt !== ranAt),
+      };
+      set({ queryHistory: history });
+      void saveQueryHistory(history);
+    },
+
+    clearHistory() {
+      const id = get().activeConnectionId;
+      if (!id) return;
+      const history = { ...get().queryHistory };
+      delete history[id];
+      set({ queryHistory: history });
+      void saveQueryHistory(history);
     },
 
     selectDocument(path) {
