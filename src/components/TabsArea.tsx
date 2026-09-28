@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useDefaultLayout } from "react-resizable-panels";
 import {
   ArrowLeftRight,
@@ -75,6 +76,7 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
   const moveTab = useStore((s) => s.moveTabToOtherGroup);
   const tr = useT();
 
+  const stripRef = useRef<HTMLDivElement>(null);
   const groupTabs = tabs.filter((t) => t.group === group);
   const active = groupTabs.find((t) => t.id === activeId);
   const moveLabel =
@@ -86,62 +88,87 @@ function TabGroup({ group, showSplitMenu }: { group: GroupIndex; showSplitMenu: 
         ? tr("tabs.moveLeft")
         : tr("tabs.moveRightSplit");
 
+  // 選択したタブ（新しく開いたタブを含む）が見えるようにスクロールする
+  useEffect(() => {
+    if (!activeId) return;
+    stripRef.current
+      ?.querySelector(`[data-tab-id="${CSS.escape(activeId)}"]`)
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeId, groupTabs.length]);
+
+  // 縦のホイールで横にスクロールする（スクロールバーは表示しない）
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || el.scrollWidth <= el.clientWidth) return;
+      el.scrollLeft += e.deltaY;
+      e.preventDefault();
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   return (
     // どこかを操作したグループをフォーカス中にする（新しいタブはそこに開く）
     <div className="flex h-full min-h-0 flex-col" onMouseDownCapture={() => focusGroup(group)}>
       <div
         className={cn(
-          "flex h-9 shrink-0 items-end gap-0.5 overflow-x-auto border-b bg-muted/40 px-1",
+          "flex h-9 shrink-0 items-end border-b bg-muted/40 px-1",
           split !== "none" && focused && "bg-muted",
         )}
       >
-        {groupTabs.map((t) => (
-          <div
-            key={t.id}
-            className={cn(
-              "group flex h-8 max-w-56 shrink-0 cursor-pointer items-center gap-1.5 rounded-t-md border border-b-0 px-2 text-xs",
-              t.id === activeId ? "bg-background" : "border-transparent text-muted-foreground hover:bg-muted",
-              // 分割中は、フォーカス中のグループの選択タブに色の線を付ける
-              t.id === activeId && split !== "none" && focused && "shadow-[inset_0_2px_0_var(--primary)]",
-            )}
-            onClick={() => setActive(t.id)}
-            onAuxClick={(e) => e.button === 1 && close(t.id)}
-            title={tabTitle(t, tr)}
-          >
-            {t.kind === "browse" ? (
-              <Table2 className="size-3.5 shrink-0" />
-            ) : t.kind === "auth" ? (
-              <Users className="size-3.5 shrink-0" />
-            ) : (
-              <Search className="size-3.5 shrink-0" />
-            )}
-            <span className="truncate font-mono">{tabTitle(t, tr)}</span>
-            <button
-              type="button"
-              className="rounded p-0.5 opacity-0 group-hover:opacity-60 hover:bg-accent hover:opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                moveTab(t.id);
-              }}
-              title={moveLabel}
-              aria-label={moveLabel}
+        {/* タブが多いときはこの部分だけ横にスクロールする。スクロールバーが高さを奪わないよう非表示 */}
+        <div ref={stripRef} className="flex min-w-0 shrink items-end gap-0.5 overflow-x-auto scrollbar-none">
+          {groupTabs.map((t) => (
+            <div
+              key={t.id}
+              data-tab-id={t.id}
+              className={cn(
+                "group flex h-8 max-w-56 shrink-0 cursor-pointer items-center gap-1.5 rounded-t-md border border-b-0 px-2 text-xs",
+                t.id === activeId ? "bg-background" : "border-transparent text-muted-foreground hover:bg-muted",
+                // 分割中は、フォーカス中のグループの選択タブに色の線を付ける
+                t.id === activeId && split !== "none" && focused && "shadow-[inset_0_2px_0_var(--primary)]",
+              )}
+              onClick={() => setActive(t.id)}
+              onAuxClick={(e) => e.button === 1 && close(t.id)}
+              title={tabTitle(t, tr)}
             >
-              {split === "vertical" ? <ArrowUpDown className="size-3" /> : <ArrowLeftRight className="size-3" />}
-            </button>
-            <button
-              type="button"
-              className="rounded p-0.5 opacity-50 hover:bg-accent hover:opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                close(t.id);
-              }}
-              title={tr("tabs.closeTab")}
-              aria-label={tr("tabs.closeTab")}
-            >
-              <X className="size-3" />
-            </button>
-          </div>
-        ))}
+              {t.kind === "browse" ? (
+                <Table2 className="size-3.5 shrink-0" />
+              ) : t.kind === "auth" ? (
+                <Users className="size-3.5 shrink-0" />
+              ) : (
+                <Search className="size-3.5 shrink-0" />
+              )}
+              <span className="truncate font-mono">{tabTitle(t, tr)}</span>
+              <button
+                type="button"
+                className="rounded p-0.5 opacity-0 group-hover:opacity-60 hover:bg-accent hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  moveTab(t.id);
+                }}
+                title={moveLabel}
+                aria-label={moveLabel}
+              >
+                {split === "vertical" ? <ArrowUpDown className="size-3" /> : <ArrowLeftRight className="size-3" />}
+              </button>
+              <button
+                type="button"
+                className="rounded p-0.5 opacity-50 hover:bg-accent hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  close(t.id);
+                }}
+                title={tr("tabs.closeTab")}
+                aria-label={tr("tabs.closeTab")}
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ))}
+        </div>
         <Button
           variant="ghost"
           size="xs"

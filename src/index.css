@@ -150,3 +150,11 @@
     font-size: 13px;
   }
 }
+
+/* スクロールはできるがスクロールバーは表示しない（タブ列など高さが固定の領域用） */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
