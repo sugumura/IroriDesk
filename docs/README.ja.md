@@ -20,6 +20,17 @@ Cloud Firestore と Firebase Authentication を閲覧・クエリするための
   </tr>
 </table>
 
+## ダウンロード
+
+最新版は [GitHub Releases](https://github.com/sugumura/IroriDesk/releases/latest) からダウンロードできます。
+
+| OS | ファイル | 備考 |
+|---|---|---|
+| macOS 11 以降（Apple Silicon / Intel） | `IroriDesk_<version>_universal.dmg` | 署名・公証済み |
+| Windows 10 / 11（x64） | `IroriDesk_<version>_x64-setup.exe` または `_x64.msi` | まだコード署名していません（下記） |
+
+Windows のインストーラーはまだ署名していません（SignPath Foundation による署名を準備中です。[CODE_SIGNING.md](../CODE_SIGNING.md)）。「Windows によって PC が保護されました」と表示された場合は、「詳細情報 → 実行」で起動できます。
+
 ## 主な機能
 
 - **閲覧**: コレクションツリー、ドキュメント一覧（ページング・仮想スクロール）、ドキュメント詳細（ツリー / JSON）、サブコレクション・参照先への移動
@@ -141,13 +152,13 @@ pnpm tauri build
 
 Apple Silicon と Intel の Universal バイナリを作り、署名・公証・チケットの添付まで行ったうえで、`codesign` / `spctl` / `stapler` で確認します。成果物は `src-tauri/target/universal-apple-darwin/release/bundle/dmg/` にできます。
 
-Windows は署名しないと SmartScreen の警告が出ます（「詳細情報 → 実行」で起動可能）。
+Windows は署名しないと SmartScreen の警告が出ます（「詳細情報 → 実行」で起動可能）。署名の方針は [CODE_SIGNING.md](../CODE_SIGNING.md) を参照してください。
 
 ### GitHub Releases で配布する
 
-`v0.2.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が macOS（Universal、署名・公証付き）向けにビルドし、Releases に**下書き**として登録します。内容を確認して「Publish release」を押すと公開されます。
+`v0.2.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が macOS（Universal、署名・公証付き）と Windows（x64、現在は署名なし）向けにビルドし、Releases に**下書き**として登録します。内容を確認して「Publish release」を押すと公開されます。
 
-Windows / Linux 版はまだ配布していません（ワークフローのビルド対象ではコメントにしています）。手元では `pnpm tauri build` でビルドできます。
+Linux 版はまだ配布していません（ワークフローのビルド対象ではコメントにしています）。手元では `pnpm tauri build` でビルドできます。
 
 ```bash
 # src-tauri/tauri.conf.json の version を上げてコミットしてから
@@ -196,7 +207,15 @@ scripts/                テストデータ投入、macOS のリリースビル�
 docs/                   仕様と決定事項（SPEC.md）、日本語の README
 ```
 
-設定（接続、表示、列、クエリ履歴）は OS のアプリデータ領域の `settings.json` に保存されます（macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`）。
+設定（接続、表示、列、クエリ履歴）は OS のアプリデータ領域の `settings.json` に保存されます（macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`、Windows: `%APPDATA%\dev.sugumura.iroridesk\`）。
+
+## プライバシー
+
+Irori Desk はテレメトリ（利用状況の送信）を行いません。接続するのは、設定したプロジェクトの Google Cloud API（またはローカルの Emulator）だけで、認証にはあなた自身の Google の認証情報を使います。詳しくは [CODE_SIGNING.md](../CODE_SIGNING.md#privacy-policy) のプライバシーポリシーを参照してください。
+
+## コントリビュート
+
+Issue や Pull Request を歓迎します。[行動規範](../CODE_OF_CONDUCT.md)に従ってください。
 
 ## ライセンス
 

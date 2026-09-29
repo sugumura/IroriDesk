@@ -20,6 +20,17 @@ The current version is **read-only**: it never calls any API that writes to Fire
   </tr>
 </table>
 
+## Download
+
+Get the latest version from [GitHub Releases](https://github.com/sugumura/IroriDesk/releases/latest).
+
+| OS | File | Notes |
+|---|---|---|
+| macOS 11+ (Apple Silicon / Intel) | `IroriDesk_<version>_universal.dmg` | Signed and notarized |
+| Windows 10 / 11 (x64) | `IroriDesk_<version>_x64-setup.exe` or `_x64.msi` | Not code-signed yet — see below |
+
+The Windows installers are not signed yet (we are setting up signing with the SignPath Foundation, see [CODE_SIGNING.md](CODE_SIGNING.md)). Windows SmartScreen may show "Windows protected your PC"; click **More info → Run anyway**.
+
 ## Features
 
 - **Browse**: collection tree, document list (paging, virtual scrolling), document details (tree / JSON), jump to subcollections and referenced documents
@@ -141,13 +152,13 @@ So that distributed builds open without Gatekeeper warnings, the app is signed w
 
 It builds a universal binary (Apple Silicon + Intel), signs, notarizes and staples it, then verifies with `codesign` / `spctl` / `stapler`. Output goes to `src-tauri/target/universal-apple-darwin/release/bundle/dmg/`.
 
-On Windows, unsigned builds show a SmartScreen warning ("More info → Run anyway").
+On Windows, unsigned builds show a SmartScreen warning ("More info → Run anyway"). See [CODE_SIGNING.md](CODE_SIGNING.md) for the signing policy.
 
 ### Publishing with GitHub Releases
 
-Pushing a tag like `v0.2.0` runs GitHub Actions (`.github/workflows/release.yml`), which builds for macOS (universal, signed and notarized) and creates a **draft** release. Review it and click **Publish release**.
+Pushing a tag like `v0.2.0` runs GitHub Actions (`.github/workflows/release.yml`), which builds for macOS (universal, signed and notarized) and Windows (x64, not signed yet), and creates a **draft** release. Review it and click **Publish release**.
 
-Windows / Linux builds are not distributed yet (they are commented out in the workflow's build matrix). You can still build them locally with `pnpm tauri build`.
+Linux builds are not distributed yet (commented out in the workflow's build matrix). You can still build them locally with `pnpm tauri build`.
 
 ```bash
 # bump "version" in src-tauri/tauri.conf.json and commit first
@@ -196,7 +207,15 @@ scripts/                Test data loading, macOS release build
 docs/                   Specification (SPEC.md) and the Japanese README
 ```
 
-Settings (connections, appearance, columns, query history) are stored in `settings.json` in the OS app data directory (macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`).
+Settings (connections, appearance, columns, query history) are stored in `settings.json` in the OS app data directory (macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`, Windows: `%APPDATA%\dev.sugumura.iroridesk\`).
+
+## Privacy
+
+Irori Desk has no telemetry. It connects only to the Google Cloud APIs of the projects you configure (or a local Emulator), using your own Google credentials. See the privacy policy in [CODE_SIGNING.md](CODE_SIGNING.md#privacy-policy).
+
+## Contributing
+
+Issues and pull requests are welcome. Please follow the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

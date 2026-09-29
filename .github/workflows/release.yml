@@ -1,4 +1,4 @@
-# タグ（v0.2.0 など）を push すると macOS 向けにビルドし、
+# タグ（v0.2.0 など）を push すると macOS / Windows 向けにビルドし、
 # GitHub Releases に下書きとして登録する。内容を確認してから公開する
 name: Release
 
@@ -18,9 +18,10 @@ jobs:
         include:
           - platform: macos-latest
             args: --target universal-apple-darwin
-          # Windows / Linux はまだ配布しない。再開するときは次の行のコメントを外す
-          # - platform: windows-latest
-          #   args: ""
+          # Windows は現在署名なし（SignPath Foundation に申請予定。CODE_SIGNING.md）
+          - platform: windows-latest
+            args: ""
+          # Linux はまだ配布しない。再開するときは次の行のコメントを外す
           # - platform: ubuntu-22.04
           #   args: ""
     runs-on: ${{ matrix.platform }}
@@ -85,13 +86,14 @@ jobs:
           releaseName: "Irori Desk ${{ github.ref_name }}"
           releaseBody: |
             ## ダウンロード
-            - **macOS**（Apple Silicon / Intel）: `IroriDesk_<version>_universal.dmg`（署名・公証済み）
+            - **macOS** (Apple Silicon / Intel): `IroriDesk_<version>_universal.dmg` — signed and notarized
+            - **Windows** (x64): `IroriDesk_<version>_x64-setup.exe` or `IroriDesk_<version>_x64.msi` — **not code-signed yet**. Windows SmartScreen may show "Windows protected your PC"; click **More info → Run anyway**.
 
-            Windows / Linux 版は現在配布していません。
+            Linux builds are not distributed yet.
 
-            セットアップと使い方は [README](https://github.com/${{ github.repository }}#readme) を参照してください。
+            See the [README](https://github.com/${{ github.repository }}#readme) for setup and usage.
           # アプリ名（Irori Desk）の空白が GitHub で "." に置き換わるため、ファイル名は空白なしにする
-          # 例: IroriDesk_0.2.0_universal.dmg
+          # 例: IroriDesk_0.2.0_universal.dmg / IroriDesk_0.2.0_x64-setup.exe / IroriDesk_0.2.0_x64.msi
           assetNamePattern: "IroriDesk_[version]_[arch][setup][ext]"
           releaseDraft: true
           prerelease: false

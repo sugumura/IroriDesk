@@ -76,17 +76,20 @@ pub fn find_gcloud() -> AppResult<PathBuf> {
 /// 標準出力を返す。失敗時は標準エラーを detail に入れる（トークンは標準出力にしか出ない）
 async fn run_gcloud(args: &[&str]) -> Result<String, String> {
     let gcloud = find_gcloud().map_err(|e| e.to_string())?;
-    let out = Command::new(gcloud)
-        .args(args)
-        .stdin(Stdio::null())
-        .output()
-        .await
-        .map_err(|e| {
-            tr!(
-                "gcloud を実行できませんでした: {e}",
-                "Could not run gcloud: {e}"
-            )
-        })?;
+    let mut cmd = Command::new(gcloud);
+    cmd.args(args).stdin(Stdio::null());
+    // GUI アプリから gcloud.cmd を実行するとコンソールウィンドウが一瞬開くため、開かないようにする
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let out = cmd.output().await.map_err(|e| {
+        tr!(
+            "gcloud を実行できませんでした: {e}",
+            "Could not run gcloud: {e}"
+        )
+    })?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).trim().to_owned())
     } else {
