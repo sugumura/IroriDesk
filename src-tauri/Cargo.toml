@@ -1,6 +1,6 @@
 [package]
 name = "irori-desk"
-version = "0.2.0"
+version = "0.2.1"
 description = "Irori Desk - a desktop viewer for Firestore and Firebase Authentication"
 authors = ["sugumura"]
 license = "MIT"
