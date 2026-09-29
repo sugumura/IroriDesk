@@ -1,4 +1,4 @@
-# タグ（v0.1.0 など）を push すると macOS / Windows / Linux 向けにビルドし、
+# タグ（v0.2.0 など）を push すると macOS 向けにビルドし、
 # GitHub Releases に下書きとして登録する。内容を確認してから公開する
 name: Release
 
@@ -18,10 +18,11 @@ jobs:
         include:
           - platform: macos-latest
             args: --target universal-apple-darwin
-          - platform: windows-latest
-            args: ""
-          - platform: ubuntu-22.04
-            args: ""
+          # Windows / Linux はまだ配布しない。再開するときは次の行のコメントを外す
+          # - platform: windows-latest
+          #   args: ""
+          # - platform: ubuntu-22.04
+          #   args: ""
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -84,9 +85,9 @@ jobs:
           releaseName: "Irori Desk ${{ github.ref_name }}"
           releaseBody: |
             ## ダウンロード
-            - **macOS**（Apple Silicon / Intel）: `.dmg`
-            - **Windows**: `.msi` または `-setup.exe`（署名なしのため SmartScreen の警告が出たら「詳細情報 → 実行」）
-            - **Linux**: `.AppImage` / `.deb` / `.rpm`
+            - **macOS**（Apple Silicon / Intel）: `.dmg`（署名・公証済み）
+
+            Windows / Linux 版は現在配布していません。
 
             セットアップと使い方は [README](https://github.com/${{ github.repository }}#readme) を参照してください。
           releaseDraft: true

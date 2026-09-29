@@ -121,12 +121,14 @@ Windows は署名しないと SmartScreen の警告が出ます（「詳細情�
 
 ### GitHub Releases で配布する
 
-`v0.1.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が macOS（Universal、署名・公証付き）/ Windows / Linux 向けにビルドし、Releases に**下書き**として登録します。内容を確認して「Publish release」を押すと公開されます。
+`v0.2.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が macOS（Universal、署名・公証付き）向けにビルドし、Releases に**下書き**として登録します。内容を確認して「Publish release」を押すと公開されます。
+
+Windows / Linux 版はまだ配布していません（ワークフローのビルド対象ではコメントにしています）。手元では `pnpm tauri build` でビルドできます。
 
 ```bash
 # src-tauri/tauri.conf.json の version を上げてコミットしてから
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 タグと `tauri.conf.json` の `version` が一致しないとビルドは失敗します。

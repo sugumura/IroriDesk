@@ -121,12 +121,14 @@ On Windows, unsigned builds show a SmartScreen warning ("More info → Run anywa
 
 ### Publishing with GitHub Releases
 
-Pushing a tag like `v0.1.1` runs GitHub Actions (`.github/workflows/release.yml`), which builds for macOS (universal, signed and notarized), Windows and Linux and creates a **draft** release. Review it and click **Publish release**.
+Pushing a tag like `v0.2.0` runs GitHub Actions (`.github/workflows/release.yml`), which builds for macOS (universal, signed and notarized) and creates a **draft** release. Review it and click **Publish release**.
+
+Windows / Linux builds are not distributed yet (they are commented out in the workflow's build matrix). You can still build them locally with `pnpm tauri build`.
 
 ```bash
 # bump "version" in src-tauri/tauri.conf.json and commit first
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 The build fails if the tag doesn't match `version` in `tauri.conf.json`.
