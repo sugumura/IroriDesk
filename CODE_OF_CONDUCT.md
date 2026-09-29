@@ -6,4 +6,4 @@ We want Irori Desk to be a welcoming project for everyone. Be respectful and con
 
 ## Reporting
 
-If you experience or witness unacceptable behavior, please contact the maintainer, [@sugumura](https://github.com/sugumura), privately (for example through the contact details on the GitHub profile) instead of opening a public issue. All reports will be handled confidentially.
+If you experience or witness unacceptable behavior, please contact the maintainer, [@sugumura](https://github.com/sugumura), privately at **sugumura@gmail.com** instead of opening a public issue. All reports will be handled confidentially.
