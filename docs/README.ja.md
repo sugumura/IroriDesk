@@ -182,3 +182,15 @@ docs/                   仕様と決定事項（SPEC.md）、日本語の README
 ```
 
 設定（接続、表示、列、クエリ履歴）は OS のアプリデータ領域の `settings.json` に保存されます（macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`）。
+
+## ライセンス
+
+[MIT](../LICENSE) © 2026 Suguru Murakami
+
+同梱しているサードパーティ製ソフトウェアのライセンスは `src-tauri/THIRD_PARTY_LICENSES.txt` にまとめています。このファイルはアプリにも含まれ（設定 → 情報、macOS ではヘルプ → サードパーティのライセンス）、リリースビルドの前に自動で作り直されます。手動で更新する場合:
+
+```bash
+pnpm notices
+```
+
+Irori Desk は個人の独立したプロジェクトであり、Google による提携・承認・後援を受けたものではありません。Firebase、Cloud Firestore、Google Cloud は Google LLC の商標です。

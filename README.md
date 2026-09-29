@@ -182,3 +182,15 @@ docs/                   Specification (SPEC.md) and the Japanese README
 ```
 
 Settings (connections, appearance, columns, query history) are stored in `settings.json` in the OS app data directory (macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`).
+
+## License
+
+[MIT](LICENSE) © 2026 Suguru Murakami
+
+The licenses of the bundled third-party software are listed in `src-tauri/THIRD_PARTY_LICENSES.txt`. The file is included in the app (Settings → About, or Help → Third-Party Licenses on macOS) and is regenerated before every release build. To update it by hand:
+
+```bash
+pnpm notices
+```
+
+Irori Desk is an independent project and is not affiliated with, endorsed by, or sponsored by Google. Firebase, Cloud Firestore and Google Cloud are trademarks of Google LLC.

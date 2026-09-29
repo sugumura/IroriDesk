@@ -4,7 +4,7 @@
 //! Windows / Linux ではメニューバーを出さず、画面側のキー操作（Ctrl）で同じ操作を行う
 
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
-use tauri::{AppHandle, Emitter, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_opener::OpenerExt;
 
 /// 画面に送る操作の ID と、メニューの文言・ショートカット
@@ -134,7 +134,15 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         }
         help = help.item(&MenuItemBuilder::with_id(*id, label(ja, en)).build(app)?);
     }
-    let help = help.build()?;
+    let help = help
+        .item(
+            &MenuItemBuilder::with_id(
+                "licenses",
+                label("サードパーティのライセンス", "Third-Party Licenses"),
+            )
+            .build(app)?,
+        )
+        .build()?;
     MenuBuilder::new(app)
         .items(&[&app_menu, &file, &edit, &view, &window, &help])
         .build()
@@ -146,7 +154,21 @@ pub fn on_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
         let _ = app.emit("menu-action", id);
     } else if let Some((.., url)) = LINKS.iter().find(|(l, ..)| *l == id) {
         let _ = app.opener().open_url(*url, None::<&str>);
+    } else if id == "licenses" {
+        let _ = open_licenses(app);
     }
+}
+
+/// 同梱したサードパーティのライセンス一覧を OS の既定のアプリで開く
+pub fn open_licenses<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
+    let path = app
+        .path()
+        .resource_dir()
+        .map_err(|e| e.to_string())?
+        .join("THIRD_PARTY_LICENSES.txt");
+    app.opener()
+        .open_path(path.to_string_lossy(), None::<&str>)
+        .map_err(|e| e.to_string())
 }
 
 /// メニューを今の言語で作り直す（macOS のみ）

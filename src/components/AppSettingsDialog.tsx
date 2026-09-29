@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Heart, Monitor, Moon, Sun } from "lucide-react";
+import { FileText, Heart, Monitor, Moon, Sun } from "lucide-react";
+import { getVersion } from "@tauri-apps/api/app";
 import {
   customFontFamily,
   DEFAULT_APPEARANCE,
@@ -13,7 +14,9 @@ import {
   DOCUMENT_PAGE_SIZES,
   USER_PAGE_SIZES,
 } from "@/lib/appearance";
-import { SUPPORT_LINKS } from "@/lib/support";
+import { openLicenses, toAppError } from "@/lib/api";
+import { notifyError } from "@/lib/notify";
+import { REPOSITORY_URL, SUPPORT_LINKS } from "@/lib/support";
 import { useStore } from "@/store";
 import { type MessageKey, useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -133,6 +136,10 @@ export function AppSettingsDialog({
   const t = useT();
   const appearance = useStore((s) => s.appearance);
   const setAppearance = useStore((s) => s.setAppearance);
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    getVersion().then(setVersion, () => {});
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -259,6 +266,23 @@ export function AppSettingsDialog({
               ))}
             </div>
             <p className="text-xs text-muted-foreground">{t("settings.supportHint")}</p>
+          </Row>
+
+          <Row label={t("settings.about")}>
+            <p className="pt-2 text-sm">
+              Irori Desk {version} ·{" "}
+              <button className="underline underline-offset-2" onClick={() => void openUrl(REPOSITORY_URL)}>
+                GitHub
+              </button>
+            </p>
+            <p className="text-xs text-muted-foreground">{t("settings.license")}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openLicenses().catch((e) => notifyError(toAppError(e)))}
+            >
+              <FileText /> {t("settings.thirdPartyLicenses")}
+            </Button>
           </Row>
         </div>
 

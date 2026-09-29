@@ -20,6 +20,9 @@ export const ja = {
   reset: "既定に戻す",
   support: "開発を支援",
   supportHint: "Irori Desk は無料です。役に立ったら寄付で開発を応援してください。",
+  about: "情報",
+  license: "MIT ライセンスで公開しています。",
+  thirdPartyLicenses: "サードパーティのライセンス",
   presets: {
     sansDefault: "既定（Geist + システム）",
     sansSystem: "システム",
@@ -53,6 +56,9 @@ export const en: typeof ja = {
   reset: "Reset to defaults",
   support: "Support",
   supportHint: "Irori Desk is free. If it helps you, consider supporting its development.",
+  about: "About",
+  license: "Released under the MIT License.",
+  thirdPartyLicenses: "Third-party licenses",
   presets: {
     sansDefault: "Default (Geist + system)",
     sansSystem: "System",

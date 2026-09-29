@@ -3,6 +3,8 @@ name = "irori-desk"
 version = "0.2.0"
 description = "Irori Desk - a desktop viewer for Firestore and Firebase Authentication"
 authors = ["sugumura"]
+license = "MIT"
+repository = "https://github.com/sugumura/IroriDesk"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

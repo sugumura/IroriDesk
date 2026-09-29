@@ -197,6 +197,11 @@ export function gcloudLogin(account?: string): Promise<GcloudAccount[]> {
   return invoke("gcloud_login", { account });
 }
 
+/** 同梱したサードパーティのライセンス一覧を開く */
+export function openLicenses(): Promise<void> {
+  return invoke("open_licenses");
+}
+
 /** ADC を読み直し、gcloud のトークンキャッシュを捨てる */
 export function reloadCredentials(): Promise<void> {
   return invoke("reload_credentials");

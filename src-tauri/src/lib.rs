@@ -161,6 +161,11 @@ async fn reload_credentials(state: tauri::State<'_, AppState>) -> AppResult<()> 
 }
 
 /// 旧名（Firestore Viewer）の識別子で保存された設定を、初回起動時に引き継ぐ
+#[tauri::command]
+fn open_licenses(app: tauri::AppHandle) -> Result<(), String> {
+    menu::open_licenses(&app)
+}
+
 fn migrate_legacy_settings(app: &tauri::AppHandle) {
     use tauri::Manager;
     const LEGACY_IDENTIFIER: &str = "dev.sugumura.firestore-viewer";
@@ -215,6 +220,7 @@ pub fn run() {
             list_gcloud_accounts,
             gcloud_login,
             reload_credentials,
+            open_licenses,
             i18n::set_locale
         ])
         .run(tauri::generate_context!())
