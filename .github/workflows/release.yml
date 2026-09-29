@@ -18,13 +18,16 @@ jobs:
         include:
           - platform: macos-latest
             args: --target universal-apple-darwin
-          # Windows は現在署名なし（SignPath Foundation に申請予定。CODE_SIGNING.md）
+          # Windows は SSL.com の個人向けコード署名証明書（eSigner）で署名する。Secrets が無ければ署名なし
           - platform: windows-latest
             args: ""
           # Linux はまだ配布しない。再開するときは次の行のコメントを外す
           # - platform: ubuntu-22.04
           #   args: ""
     runs-on: ${{ matrix.platform }}
+    env:
+      # Windows の署名の Secrets が登録されているか（`if` では secrets を直接参照できないため）
+      HAS_WINDOWS_SIGNING: ${{ secrets.ES_USERNAME != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -70,6 +73,37 @@ jobs:
           chmod 600 "$key_path"
           echo "APPLE_API_KEY_PATH=$key_path" >> "$GITHUB_ENV"
 
+      # Windows の署名（SSL.com eSigner）。Secrets が未登録なら署名せずにビルドする
+      - uses: actions/setup-java@v4
+        if: matrix.platform == 'windows-latest' && env.HAS_WINDOWS_SIGNING == 'true'
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Windows の署名ツール（SSL.com CodeSignTool）を準備
+        id: winsign
+        if: matrix.platform == 'windows-latest' && env.HAS_WINDOWS_SIGNING == 'true'
+        shell: bash
+        env:
+          CODESIGNTOOL_VERSION: v1.3.2
+        run: |
+          tmp="$(cygpath -u "$RUNNER_TEMP")"
+          dir="$tmp/codesigntool"
+          curl -fsSL -o "$tmp/codesigntool.zip" \
+            "https://github.com/SSLcom/CodeSignTool/releases/download/$CODESIGNTOOL_VERSION/CodeSignTool-$CODESIGNTOOL_VERSION.zip"
+          mkdir -p "$dir"
+          unzip -q "$tmp/codesigntool.zip" -d "$dir"
+          # zip の中にフォルダが1段あれば、その中を使う
+          [ -d "$dir/jar" ] || dir="$(dirname "$(find "$dir" -type d -name jar -not -path '*__MACOSX*' | head -1)")"
+          echo "CODESIGNTOOL_DIR=$(cygpath -w "$dir")" >> "$GITHUB_ENV"
+          script="$(cygpath -w "$GITHUB_WORKSPACE/scripts/sign-windows.ps1")"
+          conf="$(cygpath -w "$tmp/tauri.sign.json")"
+          node -e '
+            const [conf, script] = process.argv.slice(1);
+            require("fs").writeFileSync(conf, JSON.stringify({ bundle: { windows: { signCommand: {
+              cmd: "pwsh", args: ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "%1"] } } } }));
+          ' "$conf" "$script"
+          echo "args=--config $conf" >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -81,6 +115,11 @@ jobs:
           # macOS の公証（App Store Connect API キー）
           APPLE_API_ISSUER: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_API_ISSUER || '' }}
           APPLE_API_KEY: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_API_KEY || '' }}
+          # Windows の署名（scripts/sign-windows.ps1 が使う）
+          ES_USERNAME: ${{ matrix.platform == 'windows-latest' && secrets.ES_USERNAME || '' }}
+          ES_PASSWORD: ${{ matrix.platform == 'windows-latest' && secrets.ES_PASSWORD || '' }}
+          ES_CREDENTIAL_ID: ${{ matrix.platform == 'windows-latest' && secrets.ES_CREDENTIAL_ID || '' }}
+          ES_TOTP_SECRET: ${{ matrix.platform == 'windows-latest' && secrets.ES_TOTP_SECRET || '' }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Irori Desk ${{ github.ref_name }}"
@@ -97,4 +136,4 @@ jobs:
           assetNamePattern: "IroriDesk_[version]_[arch][setup][ext]"
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} ${{ steps.winsign.outputs.args }}

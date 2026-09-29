@@ -29,7 +29,7 @@ Cloud Firestore と Firebase Authentication を閲覧・クエリするための
 | macOS 11 以降（Apple Silicon / Intel） | `IroriDesk_<version>_universal.dmg` | 署名・公証済み |
 | Windows 10 / 11（x64） | `IroriDesk_<version>_x64-setup.exe` または `_x64.msi` | まだコード署名していません（下記） |
 
-Windows のインストーラーはまだ署名していません（SignPath Foundation による署名を準備中です。[CODE_SIGNING.md](../CODE_SIGNING.md)）。「Windows によって PC が保護されました」と表示された場合は、「詳細情報 → 実行」で起動できます。
+Windows のインストーラーはまだ署名していません（コード署名証明書を発行中です。[CODE_SIGNING.md](../CODE_SIGNING.md)）。「Windows によって PC が保護されました」と表示された場合は、「詳細情報 → 実行」で起動できます。
 
 ## 主な機能
 
@@ -182,6 +182,17 @@ macOS の署名・公証には、リポジトリの Secrets（Settings → Secre
 
 `.p12` はキーチェーンアクセスで証明書を右クリック →「書き出す」で作成し、`base64 -i 証明書.p12 | pbcopy` でコピーできます。
 
+Windows の署名には、SSL.com のコード署名証明書とクラウド署名（eSigner）を使います（[`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1)。Tauri が署名するファイルごとに呼び出します）。次の Secrets を登録すると有効になります。登録していない場合、Windows 版は署名なしでビルドされます。
+
+| Secret | 値 |
+|---|---|
+| `ES_USERNAME` | SSL.com のユーザー名 |
+| `ES_PASSWORD` | SSL.com のパスワード |
+| `ES_CREDENTIAL_ID` | コード署名証明書の eSigner の Credential ID |
+| `ES_TOTP_SECRET` | eSigner の TOTP シークレット（eSigner の二段階認証を設定するとき、QR コードの横に表示される文字列） |
+
+1ファイルの署名で eSigner の署名回数を1回使います（1回のリリースで4〜5回）。
+
 ## アイコン
 
 元データは `assets/icon.svg` です。編集したら次のコマンドで全サイズを作り直します（モバイル向けの画像は自動で削除されます）。
@@ -211,7 +222,7 @@ docs/                   仕様と決定事項（SPEC.md）、日本語の README
 
 ## プライバシー
 
-Irori Desk はテレメトリ（利用状況の送信）を行いません。接続するのは、設定したプロジェクトの Google Cloud API（またはローカルの Emulator）だけで、認証にはあなた自身の Google の認証情報を使います。詳しくは [CODE_SIGNING.md](../CODE_SIGNING.md#privacy-policy) のプライバシーポリシーを参照してください。
+Irori Desk はテレメトリ（利用状況の送信）、アクセス解析、クラッシュレポートの送信を行いません。接続するのは、設定したプロジェクトの Google Cloud API（Cloud Firestore、Firebase Authentication）か、ローカルの Firebase Emulator だけで、認証にはあなた自身の Google の認証情報を使います。アクセストークンはメモリ上にのみ保持し、設定はお使いのコンピューター内に保存します。
 
 ## コントリビュート
 

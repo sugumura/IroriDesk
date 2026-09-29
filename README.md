@@ -29,7 +29,7 @@ Get the latest version from [GitHub Releases](https://github.com/sugumura/IroriD
 | macOS 11+ (Apple Silicon / Intel) | `IroriDesk_<version>_universal.dmg` | Signed and notarized |
 | Windows 10 / 11 (x64) | `IroriDesk_<version>_x64-setup.exe` or `_x64.msi` | Not code-signed yet — see below |
 
-The Windows installers are not signed yet (we are setting up signing with the SignPath Foundation, see [CODE_SIGNING.md](CODE_SIGNING.md)). Windows SmartScreen may show "Windows protected your PC"; click **More info → Run anyway**.
+The Windows installers are not signed yet (a code signing certificate is being issued, see [CODE_SIGNING.md](CODE_SIGNING.md)). Windows SmartScreen may show "Windows protected your PC"; click **More info → Run anyway**.
 
 ## Features
 
@@ -182,6 +182,17 @@ Signing and notarizing on macOS needs these repository secrets (Settings → Sec
 
 Export the `.p12` from Keychain Access (right-click the certificate under **My Certificates** → **Export**), then copy it with `base64 -i certificate.p12 | pbcopy`.
 
+Signing on Windows uses an SSL.com code signing certificate with eSigner cloud signing ([`scripts/sign-windows.ps1`](scripts/sign-windows.ps1), called by Tauri for every file it signs). Add these secrets to enable it; without them, the Windows build is not signed:
+
+| Secret | Value |
+|---|---|
+| `ES_USERNAME` | SSL.com account username |
+| `ES_PASSWORD` | SSL.com account password |
+| `ES_CREDENTIAL_ID` | eSigner credential ID of the code signing certificate |
+| `ES_TOTP_SECRET` | eSigner TOTP secret (the text shown next to the QR code when you set up eSigner two-factor authentication) |
+
+Each signed file uses one eSigner signing (about 4–5 per release).
+
 ## Icon
 
 The source is `assets/icon.svg`. After editing it, regenerate every size (mobile icons are removed automatically):
@@ -211,7 +222,7 @@ Settings (connections, appearance, columns, query history) are stored in `settin
 
 ## Privacy
 
-Irori Desk has no telemetry. It connects only to the Google Cloud APIs of the projects you configure (or a local Emulator), using your own Google credentials. See the privacy policy in [CODE_SIGNING.md](CODE_SIGNING.md#privacy-policy).
+Irori Desk has no telemetry, analytics or crash reporting. It connects only to the Google Cloud APIs (Cloud Firestore, Firebase Authentication) of the projects you configure, or to a local Firebase Emulator, using your own Google credentials. Access tokens are kept in memory only, and settings are stored locally on your computer.
 
 ## Contributing
 
