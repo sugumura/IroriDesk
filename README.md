@@ -5,6 +5,21 @@ English | [日本語](docs/README.ja.md)
 A desktop app for browsing and querying Cloud Firestore and Firebase Authentication (Tauri 2 + React).
 The current version is **read-only**: it never calls any API that writes to Firestore or Authentication.
 
+![Browsing a collection with the document details panel](docs/images/browse.png)
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/images/query.png" alt="Query with where / orderBy and the JSON view"></td>
+    <td width="33%"><img src="docs/images/auth.png" alt="Firebase Authentication users and custom claims"></td>
+    <td width="33%"><img src="docs/images/split.png" alt="Split view with two collections side by side"></td>
+  </tr>
+  <tr>
+    <td align="center">Queries (dark theme)</td>
+    <td align="center">Authentication users</td>
+    <td align="center">Split view</td>
+  </tr>
+</table>
+
 ## Features
 
 - **Browse**: collection tree, document list (paging, virtual scrolling), document details (tree / JSON), jump to subcollections and referenced documents

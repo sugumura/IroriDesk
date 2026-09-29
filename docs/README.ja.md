@@ -5,6 +5,21 @@
 Cloud Firestore と Firebase Authentication を閲覧・クエリするためのデスクトップアプリです（Tauri 2 + React）。
 現在のバージョンは**読み取り専用**で、Firestore や Authentication に書き込む API は一切呼びません。
 
+![コレクションの閲覧とドキュメント詳細パネル](images/browse.png)
+
+<table>
+  <tr>
+    <td width="33%"><img src="images/query.png" alt="where・orderBy のクエリと JSON 表示"></td>
+    <td width="33%"><img src="images/auth.png" alt="Firebase Authentication のユーザーとカスタムクレーム"></td>
+    <td width="33%"><img src="images/split.png" alt="2つのコレクションを並べた分割表示"></td>
+  </tr>
+  <tr>
+    <td align="center">クエリ（ダークテーマ）</td>
+    <td align="center">Authentication のユーザー</td>
+    <td align="center">分割表示</td>
+  </tr>
+</table>
+
 ## 主な機能
 
 - **閲覧**: コレクションツリー、ドキュメント一覧（ページング・仮想スクロール）、ドキュメント詳細（ツリー / JSON）、サブコレクション・参照先への移動

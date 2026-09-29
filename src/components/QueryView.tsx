@@ -394,27 +394,29 @@ function QueryResults({ tab, ran }: { tab: QueryTab; ran: boolean }) {
       </div>
       <div className="flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs text-muted-foreground">
         {ran && (
-          <span title={t("query.totalTitle")}>
+          <span className="min-w-0 truncate" title={t("query.totalTitle")}>
             {t("common.count", { count: tab.docs.length })}
             {tab.totalCount !== null && t("query.totalSuffix", { count: tab.totalCount })}
           </span>
         )}
-        {tab.readTime && <span className="hidden @xl:inline" title={tab.readTime}>readTime: {formatTimestamp(tab.readTime)}</span>}
+        {tab.readTime && <span className="hidden shrink-0 whitespace-nowrap @3xl:inline" title={tab.readTime}>readTime: {formatTimestamp(tab.readTime)}</span>}
         {tab.loading && <Loader2 className="size-3.5 animate-spin" />}
         <div className="flex-1" />
         {ran && tab.filter && (
           <span className="shrink-0 text-primary">{t("browse.filtered", { shown: shown.length, total: tab.docs.length })}</span>
         )}
-        {ran && <FilterInput className="w-40" value={tab.filter} onChange={(v) => setTabFilter(tab.id, v)} />}
-        {ran && (
-          <ExportMenu
-            docs={tab.docs}
-            fields={layout.visible}
-            baseName={`query_${tab.ranSpec?.targetKind === "collectionGroup" ? "group_" : ""}${tab.ranSpec?.target ?? ""}`}
-          />
-        )}
-        {ran && tab.view === "table" && <ColumnSettings layout={layout} />}
-        <ViewToggle tab={tab} />
+        {ran && <FilterInput className="w-40 min-w-24 shrink" value={tab.filter} onChange={(v) => setTabFilter(tab.id, v)} />}
+        <div className="flex shrink-0 items-center gap-3">
+          {ran && (
+            <ExportMenu
+              docs={tab.docs}
+              fields={layout.visible}
+              baseName={`query_${tab.ranSpec?.targetKind === "collectionGroup" ? "group_" : ""}${tab.ranSpec?.target ?? ""}`}
+            />
+          )}
+          {ran && tab.view === "table" && <ColumnSettings layout={layout} />}
+          <ViewToggle tab={tab} />
+        </div>
       </div>
     </div>
   );
