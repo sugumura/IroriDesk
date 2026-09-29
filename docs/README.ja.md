@@ -185,7 +185,7 @@ docs/                   仕様と決定事項（SPEC.md）、日本語の README
 
 ## ライセンス
 
-[MIT](../LICENSE) © 2026 Suguru Murakami
+[MIT](../LICENSE) © 2026 sugumura
 
 同梱しているサードパーティ製ソフトウェアのライセンスは `src-tauri/THIRD_PARTY_LICENSES.txt` にまとめています。このファイルはアプリにも含まれ（設定 → 情報、macOS ではヘルプ → サードパーティのライセンス）、リリースビルドの前に自動で作り直されます。手動で更新する場合:
 

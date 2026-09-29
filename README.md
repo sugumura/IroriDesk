@@ -185,7 +185,7 @@ Settings (connections, appearance, columns, query history) are stored in `settin
 
 ## License
 
-[MIT](LICENSE) © 2026 Suguru Murakami
+[MIT](LICENSE) © 2026 sugumura
 
 The licenses of the bundled third-party software are listed in `src-tauri/THIRD_PARTY_LICENSES.txt`. The file is included in the app (Settings → About, or Help → Third-Party Licenses on macOS) and is regenerated before every release build. To update it by hand:
 

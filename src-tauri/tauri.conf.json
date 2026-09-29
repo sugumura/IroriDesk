@@ -65,8 +65,8 @@
     "category": "DeveloperTool",
     "shortDescription": "Firestore と Firebase Authentication のデスクトップビューア",
     "longDescription": "Irori Desk は Cloud Firestore のドキュメントと Firebase Authentication のユーザーを閲覧・クエリするためのデスクトップアプリです（読み取り専用）。",
-    "copyright": "© 2026 Suguru Murakami",
-    "publisher": "Suguru Murakami",
+    "copyright": "© 2026 sugumura",
+    "publisher": "sugumura",
     "macOS": {
       "minimumSystemVersion": "11.0"
     }
