@@ -85,11 +85,14 @@ jobs:
           releaseName: "Irori Desk ${{ github.ref_name }}"
           releaseBody: |
             ## ダウンロード
-            - **macOS**（Apple Silicon / Intel）: `.dmg`（署名・公証済み）
+            - **macOS**（Apple Silicon / Intel）: `IroriDesk_<version>_universal.dmg`（署名・公証済み）
 
             Windows / Linux 版は現在配布していません。
 
             セットアップと使い方は [README](https://github.com/${{ github.repository }}#readme) を参照してください。
+          # アプリ名（Irori Desk）の空白が GitHub で "." に置き換わるため、ファイル名は空白なしにする
+          # 例: IroriDesk_0.2.0_universal.dmg
+          assetNamePattern: "IroriDesk_[version]_[arch][setup][ext]"
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
