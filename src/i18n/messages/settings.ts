@@ -18,6 +18,8 @@ export const ja = {
   userPageSize: "ユーザーの読み込み件数",
   pageSizeHint: "1回に読み込む件数です。「さらに読み込む」で追加する件数も同じです。",
   reset: "既定に戻す",
+  support: "開発を支援",
+  supportHint: "Irori Desk は無料です。役に立ったら寄付で開発を応援してください。",
   presets: {
     sansDefault: "既定（Geist + システム）",
     sansSystem: "システム",
@@ -49,6 +51,8 @@ export const en: typeof ja = {
   userPageSize: "Users per page",
   pageSizeHint: "Number of items loaded at a time, including “Load more”.",
   reset: "Reset to defaults",
+  support: "Support",
+  supportHint: "Irori Desk is free. If it helps you, consider supporting its development.",
   presets: {
     sansDefault: "Default (Geist + system)",
     sansSystem: "System",

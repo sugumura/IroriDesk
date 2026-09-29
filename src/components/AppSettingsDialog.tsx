@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { Heart, Monitor, Moon, Sun } from "lucide-react";
 import {
   customFontFamily,
   DEFAULT_APPEARANCE,
@@ -12,6 +13,7 @@ import {
   DOCUMENT_PAGE_SIZES,
   USER_PAGE_SIZES,
 } from "@/lib/appearance";
+import { SUPPORT_LINKS } from "@/lib/support";
 import { useStore } from "@/store";
 import { type MessageKey, useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -246,6 +248,17 @@ export function AppSettingsDialog({
                 ))}
               </SelectContent>
             </Select>
+          </Row>
+
+          <Row label={t("settings.support")}>
+            <div className="flex flex-wrap gap-2">
+              {SUPPORT_LINKS.map((l) => (
+                <Button key={l.id} variant="outline" size="sm" onClick={() => void openUrl(l.url)}>
+                  <Heart /> {l.label}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("settings.supportHint")}</p>
           </Row>
         </div>
 

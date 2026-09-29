@@ -5,6 +5,7 @@
 
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Runtime};
+use tauri_plugin_opener::OpenerExt;
 
 /// 画面に送る操作の ID と、メニューの文言・ショートカット
 const ACTIONS: &[(&str, &str, &str, &str)] = &[
@@ -43,6 +44,28 @@ const ACTIONS: &[(&str, &str, &str, &str)] = &[
         "CmdOrCtrl+Shift+BracketRight",
     ),
     ("settings", "設定…", "Settings…", "CmdOrCtrl+Comma"),
+];
+
+/// ヘルプメニューから開く外部ページ（src/lib/support.ts と同じ URL）
+const LINKS: &[(&str, &str, &str, &str)] = &[
+    (
+        "link:kofi",
+        "Ko-fi で開発を支援…",
+        "Support on Ko-fi…",
+        "https://ko-fi.com/sugumura",
+    ),
+    (
+        "link:bmc",
+        "Buy Me a Coffee で開発を支援…",
+        "Support on Buy Me a Coffee…",
+        "https://www.buymeacoffee.com/sugumura",
+    ),
+    (
+        "link:repo",
+        "GitHub リポジトリ",
+        "GitHub Repository",
+        "https://github.com/sugumura/IroriDesk",
+    ),
 ];
 
 fn label(ja: &str, en: &str) -> String {
@@ -104,8 +127,16 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .minimize_with_text(label("しまう", "Minimize"))
         .maximize_with_text(label("拡大／縮小", "Zoom"))
         .build()?;
+    let mut help = SubmenuBuilder::new(app, label("ヘルプ", "Help"));
+    for (i, (id, ja, en, _)) in LINKS.iter().enumerate() {
+        if i == 2 {
+            help = help.separator();
+        }
+        help = help.item(&MenuItemBuilder::with_id(*id, label(ja, en)).build(app)?);
+    }
+    let help = help.build()?;
     MenuBuilder::new(app)
-        .items(&[&app_menu, &file, &edit, &view, &window])
+        .items(&[&app_menu, &file, &edit, &view, &window, &help])
         .build()
 }
 
@@ -113,6 +144,8 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
 pub fn on_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
     if ACTIONS.iter().any(|(a, ..)| *a == id) {
         let _ = app.emit("menu-action", id);
+    } else if let Some((.., url)) = LINKS.iter().find(|(l, ..)| *l == id) {
+        let _ = app.opener().open_url(*url, None::<&str>);
     }
 }
 
