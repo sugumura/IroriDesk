@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { FileText, Heart, Monitor, Moon, Sun } from "lucide-react";
+import { CheckCircle2, FileText, FolderOpen, Heart, Loader2, Monitor, Moon, Sun, XCircle } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import {
   customFontFamily,
@@ -14,7 +14,7 @@ import {
   DOCUMENT_PAGE_SIZES,
   USER_PAGE_SIZES,
 } from "@/lib/appearance";
-import { openLicenses, toAppError } from "@/lib/api";
+import { type GcloudStatus, gcloudStatus, openLicenses, pickGcloudPath, toAppError } from "@/lib/api";
 import { notifyError } from "@/lib/notify";
 import { REPOSITORY_URL, SUPPORT_LINKS } from "@/lib/support";
 import { useStore } from "@/store";
@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 
 const CUSTOM = "__custom__";
+const isWindows = typeof navigator !== "undefined" && /Win/i.test(navigator.userAgent);
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -126,6 +127,113 @@ function FontPicker({
   );
 }
 
+/** gcloud CLI の場所。空欄なら Rust 側が自動で探す（PATH・よくある場所・ログインシェル） */
+function GcloudPathSetting({ open }: { open: boolean }) {
+  const t = useT();
+  const saved = useStore((s) => s.gcloudPath);
+  const setGcloudPath = useStore((s) => s.setGcloudPath);
+  const [draft, setDraft] = useState(saved ?? "");
+  const [status, setStatus] = useState<GcloudStatus | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const check = async () => {
+    setChecking(true);
+    try {
+      setStatus(await gcloudStatus());
+    } finally {
+      setChecking(false);
+    }
+  };
+  const apply = async (path: string | null) => {
+    try {
+      await setGcloudPath(path);
+      setDraft(path ?? "");
+      await check();
+    } catch (e) {
+      notifyError(toAppError(e));
+    }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    setDraft(saved ?? "");
+    void check();
+    // 開いたときだけ確認する（saved の変更では確認し直さない）
+  }, [open]);
+
+  const dirty = draft.trim() !== (saved ?? "");
+  return (
+    <>
+      <div className="flex gap-2">
+        <Input
+          className="min-w-0 flex-1 font-mono text-xs"
+          value={draft}
+          placeholder={t("settings.gcloudPlaceholder")}
+          spellCheck={false}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && dirty) void apply(draft);
+          }}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            const picked = await pickGcloudPath().catch(() => null);
+            if (picked) await apply(picked);
+          }}
+        >
+          <FolderOpen /> {t("settings.gcloudBrowse")}
+        </Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {dirty && (
+          <Button size="sm" onClick={() => void apply(draft)}>
+            {t("settings.gcloudApply")}
+          </Button>
+        )}
+        {saved && (
+          <Button variant="ghost" size="sm" onClick={() => void apply(null)}>
+            {t("settings.gcloudAuto")}
+          </Button>
+        )}
+        <Button variant="ghost" size="sm" disabled={checking} onClick={() => void check()}>
+          {t("settings.gcloudCheck")}
+        </Button>
+      </div>
+      <div className="text-xs">
+        {checking ? (
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" /> {t("settings.gcloudChecking")}
+          </span>
+        ) : status?.path && !status.error ? (
+          <div className="flex items-start gap-1.5">
+            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <div className="min-w-0">
+              <div>
+                {status.version ?? "gcloud"}
+                <span className="text-muted-foreground">
+                  {" · "}
+                  {status.custom ? t("settings.gcloudFoundCustom") : t("settings.gcloudFoundAuto")}
+                </span>
+              </div>
+              <div className="break-all font-mono text-muted-foreground">{status.path}</div>
+            </div>
+          </div>
+        ) : status ? (
+          <div className="flex items-start gap-1.5 text-destructive">
+            <XCircle className="mt-0.5 size-3.5 shrink-0" />
+            <span className="break-all">{status.error}</span>
+          </div>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {t("settings.gcloudHint", { command: isWindows ? "where gcloud" : "which gcloud" })}
+      </p>
+    </>
+  );
+}
+
 export function AppSettingsDialog({
   open,
   onOpenChange,
@@ -143,7 +251,7 @@ export function AppSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{t("settings.title")}</DialogTitle>
           <DialogDescription>{t("settings.description")}</DialogDescription>
@@ -255,6 +363,10 @@ export function AppSettingsDialog({
                 ))}
               </SelectContent>
             </Select>
+          </Row>
+
+          <Row label={t("settings.gcloud")}>
+            <GcloudPathSetting open={open} />
           </Row>
 
           <Row label={t("settings.support")}>

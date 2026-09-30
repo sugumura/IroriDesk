@@ -161,6 +161,39 @@ async fn reload_credentials(state: tauri::State<'_, AppState>) -> AppResult<()> 
 }
 
 /// 旧名（Firestore Viewer）の識別子で保存された設定を、初回起動時に引き継ぐ
+/// 設定で指定した gcloud の場所を反映する（空なら自動で探す）。トークンのキャッシュは捨てる
+#[tauri::command]
+async fn set_gcloud_path(path: Option<String>, state: tauri::State<'_, AppState>) -> AppResult<()> {
+    let path = path
+        .map(|p| p.trim().to_owned())
+        .filter(|p| !p.is_empty())
+        .map(std::path::PathBuf::from);
+    gcloud::set_custom_path(path);
+    state.gcloud_tokens.clear().await;
+    Ok(())
+}
+
+/// 使う gcloud の場所とバージョン（設定画面の表示用）
+#[tauri::command]
+async fn gcloud_status() -> gcloud::GcloudStatus {
+    gcloud::status().await
+}
+
+/// gcloud の実行ファイルを選ぶダイアログ。キャンセル時は None
+#[tauri::command]
+async fn pick_gcloud_path(app: tauri::AppHandle) -> Option<String> {
+    use tauri_plugin_dialog::DialogExt;
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    app.dialog().file().pick_file(move |path| {
+        let _ = tx.send(path);
+    });
+    rx.await
+        .ok()
+        .flatten()
+        .and_then(|p| p.into_path().ok())
+        .map(|p| p.display().to_string())
+}
+
 #[tauri::command]
 fn open_licenses(app: tauri::AppHandle) -> Result<(), String> {
     menu::open_licenses(&app)
@@ -220,6 +253,9 @@ pub fn run() {
             list_gcloud_accounts,
             gcloud_login,
             reload_credentials,
+            set_gcloud_path,
+            gcloud_status,
+            pick_gcloud_path,
             open_licenses,
             i18n::set_locale
         ])

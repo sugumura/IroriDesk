@@ -202,6 +202,30 @@ export function openLicenses(): Promise<void> {
   return invoke("open_licenses");
 }
 
+export interface GcloudStatus {
+  /** 使う gcloud の場所（見つからなければ null） */
+  path: string | null;
+  /** 設定で指定した場所か */
+  custom: boolean;
+  /** `gcloud --version` の1行目 */
+  version: string | null;
+  error: string | null;
+}
+
+/** 設定で指定した gcloud の場所を Rust 側に反映する（null なら自動で探す） */
+export function setGcloudPath(path: string | null): Promise<void> {
+  return invoke("set_gcloud_path", { path });
+}
+
+export function gcloudStatus(): Promise<GcloudStatus> {
+  return invoke("gcloud_status");
+}
+
+/** gcloud の実行ファイルを選ぶ。キャンセル時は null */
+export function pickGcloudPath(): Promise<string | null> {
+  return invoke("pick_gcloud_path");
+}
+
 /** ADC を読み直し、gcloud のトークンキャッシュを捨てる */
 export function reloadCredentials(): Promise<void> {
   return invoke("reload_credentials");

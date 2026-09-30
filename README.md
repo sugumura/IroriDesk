@@ -90,6 +90,10 @@ gcloud auth application-default login --scopes=openid,https://www.googleapis.com
 
 Each connection can use a different account. **Add account** in Manage connections opens a browser to sign in with Google (it runs `gcloud auth login --no-activate`, so the active account of your gcloud CLI doesn't change). If a token expires or your organization requires reauthentication, press **Sign in again**.
 
+If gcloud is installed somewhere Irori Desk doesn't find (for example with asdf, mise or Nix), it also asks your login shell for it. You can set the location yourself under **Settings → gcloud CLI** (use the output of `which gcloud`, or `where gcloud` on Windows).
+
+On Windows, Irori Desk needs the Windows version of the Google Cloud SDK; gcloud installed inside WSL can't be run from a Windows app. If you only use ADC, you can instead copy `~/.config/gcloud/application_default_credentials.json` from WSL to `%APPDATA%\gcloud\` and press **Reload ADC**.
+
 ### Notes
 
 - Access tokens are kept only in memory on the Rust side; they are never passed to the UI or written to the settings file.

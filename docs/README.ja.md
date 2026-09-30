@@ -90,6 +90,10 @@ gcloud auth application-default login --scopes=openid,https://www.googleapis.com
 
 接続ごとに別のアカウントを使えます。接続の管理の「アカウントを追加」でブラウザが開き、Google にログインします（`gcloud auth login --no-activate` を実行。ターミナル側の gcloud の現在のアカウントは変わりません）。トークンの期限切れや組織の再認証ポリシーでエラーになったら「再ログイン」を押します。
 
+gcloud が見つからない場所（asdf、mise、Nix など）に入っている場合は、ログインシェルにも問い合わせて探します。**設定 → gcloud CLI** で場所を指定することもできます（`which gcloud`、Windows では `where gcloud` の結果を入力）。
+
+Windows では、Windows 版の Google Cloud SDK が必要です。WSL の中の gcloud は Windows のアプリから実行できません。ADC だけを使う場合は、WSL の `~/.config/gcloud/application_default_credentials.json` を `%APPDATA%\gcloud\` にコピーして「ADC を再読み込み」を押す方法もあります。
+
 ### 注意
 
 - アクセストークンは Rust 側のメモリにのみ保持し、画面や設定ファイルには渡しません。

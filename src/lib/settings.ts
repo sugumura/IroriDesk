@@ -79,6 +79,17 @@ export async function saveQueryHistory(history: Record<string, HistoryEntry[]>):
   await s.set("queryHistory", history);
 }
 
+/** 設定で指定した gcloud CLI の場所（null なら自動で探す） */
+export async function loadGcloudPath(): Promise<string | null> {
+  const s = await store();
+  return (await s.get<string | null>("gcloudPath")) ?? null;
+}
+
+export async function saveGcloudPath(path: string | null): Promise<void> {
+  const s = await store();
+  await s.set("gcloudPath", path);
+}
+
 /** 接続ごとに開いていたタブ（再起動・接続の切り替えで復元する） */
 export async function loadSessions(): Promise<Record<string, SavedSession>> {
   const s = await store();
