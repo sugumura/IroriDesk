@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { FolderOpen, Heart, Keyboard, Search, Table2, Users } from "lucide-react";
+import { FolderOpen, Keyboard, Search, Table2, Users } from "lucide-react";
 import { useT } from "@/i18n";
 import { isCollectionPath, splitPath } from "@/lib/display";
-import { SUPPORT_LINKS } from "@/lib/support";
 import { type ActionId, runAction, SHORTCUTS, shortcutLabel } from "@/lib/shortcuts";
 import { tabTitle, useStore } from "@/store";
 import {
@@ -114,15 +112,6 @@ export function CommandPalette() {
                 <Keyboard />
                 {t(`shortcuts.actions.${id}`)}
                 <CommandShortcut>{shortcutLabel(id)}</CommandShortcut>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-
-          <CommandGroup heading={t("shortcuts.groups.support")}>
-            {SUPPORT_LINKS.map((l) => (
-              <CommandItem key={l.id} value={`support donate ${l.label}`} onSelect={() => run(() => void openUrl(l.url))}>
-                <Heart />
-                {t("shortcuts.supportVia", { name: l.label })}
               </CommandItem>
             ))}
           </CommandGroup>

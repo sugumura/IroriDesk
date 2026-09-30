@@ -7,9 +7,7 @@ export const ja = {
     tabs: "開いているタブ",
     collections: "コレクション",
     actions: "操作",
-    support: "開発を支援",
   },
-  supportVia: "{name} で支援する",
   openPath: "パスを開く: {path}",
   openAuth: "Authentication のユーザーを開く",
   actions: {
@@ -34,9 +32,7 @@ export const en: typeof ja = {
     tabs: "Open tabs",
     collections: "Collections",
     actions: "Actions",
-    support: "Support development",
   },
-  supportVia: "Support on {name}",
   openPath: "Open path: {path}",
   openAuth: "Open Authentication users",
   actions: {

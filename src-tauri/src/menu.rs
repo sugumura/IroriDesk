@@ -47,26 +47,12 @@ const ACTIONS: &[(&str, &str, &str, &str)] = &[
 ];
 
 /// ヘルプメニューから開く外部ページ（src/lib/support.ts と同じ URL）
-const LINKS: &[(&str, &str, &str, &str)] = &[
-    (
-        "link:kofi",
-        "Ko-fi で開発を支援…",
-        "Support on Ko-fi…",
-        "https://ko-fi.com/sugumura",
-    ),
-    (
-        "link:bmc",
-        "Buy Me a Coffee で開発を支援…",
-        "Support on Buy Me a Coffee…",
-        "https://www.buymeacoffee.com/sugumura",
-    ),
-    (
-        "link:repo",
-        "GitHub リポジトリ",
-        "GitHub Repository",
-        "https://github.com/sugumura/IroriDesk",
-    ),
-];
+const LINKS: &[(&str, &str, &str, &str)] = &[(
+    "link:repo",
+    "GitHub リポジトリ",
+    "GitHub Repository",
+    "https://github.com/sugumura/IroriDesk",
+)];
 
 fn label(ja: &str, en: &str) -> String {
     if crate::i18n::is_english() { en } else { ja }.to_owned()
@@ -128,10 +114,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .maximize_with_text(label("拡大／縮小", "Zoom"))
         .build()?;
     let mut help = SubmenuBuilder::new(app, label("ヘルプ", "Help"));
-    for (i, (id, ja, en, _)) in LINKS.iter().enumerate() {
-        if i == 2 {
-            help = help.separator();
-        }
+    for (id, ja, en, _) in LINKS {
         help = help.item(&MenuItemBuilder::with_id(*id, label(ja, en)).build(app)?);
     }
     let help = help

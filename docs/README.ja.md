@@ -50,8 +50,6 @@ Irori Desk は無料です。役に立ったら、寄付で開発を応援して
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/sugumura)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/sugumura)
 
-アプリ内では**設定**、コマンドパレット（⌘K）、macOS の**ヘルプ**メニューから同じページを開けます。
-
 ## 必要なもの
 
 | ツール | 用途 | 備考 |

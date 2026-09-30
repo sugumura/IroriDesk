@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { CheckCircle2, FileText, FolderOpen, Heart, Loader2, Monitor, Moon, Sun, XCircle } from "lucide-react";
+import { CheckCircle2, FileText, FolderOpen, Loader2, Monitor, Moon, Sun, XCircle } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import {
   customFontFamily,
@@ -16,7 +16,7 @@ import {
 } from "@/lib/appearance";
 import { type GcloudStatus, gcloudStatus, openLicenses, pickGcloudPath, toAppError } from "@/lib/api";
 import { notifyError } from "@/lib/notify";
-import { REPOSITORY_URL, SUPPORT_LINKS } from "@/lib/support";
+import { REPOSITORY_URL } from "@/lib/support";
 import { useStore } from "@/store";
 import { type MessageKey, useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -367,17 +367,6 @@ export function AppSettingsDialog({
 
           <Row label={t("settings.gcloud")}>
             <GcloudPathSetting open={open} />
-          </Row>
-
-          <Row label={t("settings.support")}>
-            <div className="flex flex-wrap gap-2">
-              {SUPPORT_LINKS.map((l) => (
-                <Button key={l.id} variant="outline" size="sm" onClick={() => void openUrl(l.url)}>
-                  <Heart /> {l.label}
-                </Button>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">{t("settings.supportHint")}</p>
           </Row>
 
           <Row label={t("settings.about")}>
