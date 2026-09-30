@@ -22,7 +22,7 @@ Cloud Firestore と Firebase Authentication を閲覧・クエリするための
 
 ## ダウンロード
 
-最新版は [GitHub Releases](https://github.com/sugumura/IroriDesk/releases/latest) からダウンロードできます。
+最新版は [GitHub Releases](https://github.com/sugumura/IroriDesk/releases/latest) からダウンロードできます。各バージョンの変更点は [CHANGELOG.md](../CHANGELOG.md) を参照してください。
 
 | OS | ファイル | 備考 |
 |---|---|---|
@@ -162,8 +162,10 @@ Windows は署名しないと SmartScreen の警告が出ます（「詳細情�
 
 Linux 版はまだ配布していません（ワークフローのビルド対象ではコメントにしています）。手元では `pnpm tauri build` でビルドできます。
 
+タグを付ける前に、`src-tauri/tauri.conf.json`・`package.json`・`src-tauri/Cargo.toml` の `version` を上げ、[CHANGELOG.md](../CHANGELOG.md) の **Unreleased** にある項目を新しい `## [x.y.z] - YYYY-MM-DD` の節に移してください。リリースノートはこの節から作られ、節が無いとビルドは失敗します。
+
 ```bash
-# src-tauri/tauri.conf.json の version を上げてコミットしてから
+# バージョンと CHANGELOG の変更をコミットしてから
 git tag v0.2.0
 git push origin v0.2.0
 ```

@@ -40,6 +40,8 @@ jobs:
             echo "タグ ${GITHUB_REF_NAME} と tauri.conf.json の version ($version) が一致しません" >&2
             exit 1
           fi
+          # CHANGELOG.md にこのバージョンの節があるか（無ければ失敗する）
+          node scripts/release-notes.mjs "$version" > /dev/null
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -104,6 +106,28 @@ jobs:
           ' "$conf" "$script"
           echo "args=--config $conf" >> "$GITHUB_OUTPUT"
 
+      # リリースノート: ダウンロードの案内 + CHANGELOG.md のこのバージョンの節
+      - name: リリースノートを作成
+        id: notes
+        shell: bash
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          {
+            echo "body<<__RELEASE_NOTES__"
+            cat <<'EOF'
+          ## Download
+          - **macOS** (Apple Silicon / Intel): `IroriDesk_<version>_universal.dmg` — signed and notarized
+          - **Windows** (x64): `IroriDesk_<version>_x64-setup.exe` or `IroriDesk_<version>_x64.msi`. If Windows SmartScreen shows "Windows protected your PC", click **More info → Run anyway** (see [CODE_SIGNING.md](https://github.com/sugumura/IroriDesk/blob/main/CODE_SIGNING.md)).
+
+          Linux builds are not distributed yet. See the [README](https://github.com/sugumura/IroriDesk#readme) for setup and usage.
+
+          ## Changes
+
+          EOF
+            node scripts/release-notes.mjs "$version" || echo "See [CHANGELOG.md](https://github.com/sugumura/IroriDesk/blob/main/CHANGELOG.md)."
+            echo "__RELEASE_NOTES__"
+          } | sed "s/<version>/$version/g" >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -123,14 +147,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Irori Desk ${{ github.ref_name }}"
-          releaseBody: |
-            ## ダウンロード
-            - **macOS** (Apple Silicon / Intel): `IroriDesk_<version>_universal.dmg` — signed and notarized
-            - **Windows** (x64): `IroriDesk_<version>_x64-setup.exe` or `IroriDesk_<version>_x64.msi` — **not code-signed yet**. Windows SmartScreen may show "Windows protected your PC"; click **More info → Run anyway**.
-
-            Linux builds are not distributed yet.
-
-            See the [README](https://github.com/${{ github.repository }}#readme) for setup and usage.
+          releaseBody: ${{ steps.notes.outputs.body }}
           # アプリ名（Irori Desk）の空白が GitHub で "." に置き換わるため、ファイル名は空白なしにする
           # 例: IroriDesk_0.2.0_universal.dmg / IroriDesk_0.2.0_x64-setup.exe / IroriDesk_0.2.0_x64.msi
           assetNamePattern: "IroriDesk_[version]_[arch][setup][ext]"

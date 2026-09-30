@@ -22,7 +22,7 @@ The current version is **read-only**: it never calls any API that writes to Fire
 
 ## Download
 
-Get the latest version from [GitHub Releases](https://github.com/sugumura/IroriDesk/releases/latest).
+Get the latest version from [GitHub Releases](https://github.com/sugumura/IroriDesk/releases/latest). See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
 | OS | File | Notes |
 |---|---|---|
@@ -162,8 +162,10 @@ Pushing a tag like `v0.2.0` runs GitHub Actions (`.github/workflows/release.yml`
 
 Linux builds are not distributed yet (commented out in the workflow's build matrix). You can still build them locally with `pnpm tauri build`.
 
+Before tagging, bump `version` in `src-tauri/tauri.conf.json`, `package.json` and `src-tauri/Cargo.toml`, and move the entries under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) to a new `## [x.y.z] - YYYY-MM-DD` section. The release notes are generated from that section, and the build fails if it is missing.
+
 ```bash
-# bump "version" in src-tauri/tauri.conf.json and commit first
+# commit the version bump and CHANGELOG first
 git tag v0.2.0
 git push origin v0.2.0
 ```
