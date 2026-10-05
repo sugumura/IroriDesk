@@ -38,6 +38,7 @@ The Windows installers are not signed yet (a code signing certificate is being i
 - **Authentication**: user list, search by UID / email / phone number, details (providers, custom claims, …)
 - **Indexes**: composite indexes and single-field exemptions per collection
 - **Export**: JSON (keeps type information) / CSV / TSV
+- **Copy**: select cells like a spreadsheet (click, Shift+click, drag, arrow keys, Cmd/Ctrl+A), then Cmd/Ctrl+C to copy as TSV or Cmd/Ctrl+Shift+C as JSON
 - **View**: pinned Doc ID column, column visibility and order, split view (side by side / stacked), light / dark / system theme, fonts and zoom, English / Japanese
 - **Connections**: production (ADC, or a gcloud account per connection) and the Firebase Emulator
 

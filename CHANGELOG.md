@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Select cells in tables like a spreadsheet: click, Shift+click or drag to select a range, move with the arrow keys (Shift to extend, Cmd/Ctrl + arrows to jump to the edge, Page Up / Page Down, Home / End), and press Esc to go back to a single cell.
+- Cmd/Ctrl+A selects every loaded row (only the visible rows while filtering).
+- Cmd/Ctrl+C copies the selection as TSV, which pastes straight into Excel or Google Sheets (a header row is added when more than one cell is selected). Cmd/Ctrl+Shift+C copies it as JSON with type information.
+
 ## [0.3.0] - 2026-09-30
 
 ### Added

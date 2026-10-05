@@ -51,6 +51,9 @@
 }
 
 :root {
+    /* 表で選択したセル範囲の背景（固定列でも下の列が透けない不透明な色） */
+    --cell-selected: oklch(0.94 0.035 250);
+    --cell-focus: oklch(0.55 0.15 250);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -89,6 +92,8 @@
 .dark {
     /* スクロールバーなどブラウザ標準の部品もダーク表示にする */
     color-scheme: dark;
+    --cell-selected: #2f3e52;
+    --cell-focus: #539bf5;
     --background: #22272e;
     --foreground: #c5d1de;
     --card: #2d333b;

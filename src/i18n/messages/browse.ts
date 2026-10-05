@@ -16,6 +16,10 @@ export const ja = {
   missingSuffix: "（うち実体なし {count} 件）",
   more: "続き",
   loadMore: "さらに読み込む",
+  copiedCell: "セルの値をコピーしました",
+  copiedRange: "{rows} 行 × {cols} 列をコピーしました（TSV）",
+  copiedJson: "{rows} 行を JSON でコピーしました",
+  copiedCellJson: "セルの値を JSON でコピーしました",
 };
 
 export const en: typeof ja = {
@@ -34,4 +38,8 @@ export const en: typeof ja = {
   missingSuffix: " ({count} missing)",
   more: "More",
   loadMore: "Load more",
+  copiedCell: "Copied the cell value",
+  copiedRange: "Copied {rows} rows × {cols} columns (TSV)",
+  copiedJson: "Copied {rows} rows as JSON",
+  copiedCellJson: "Copied the cell value as JSON",
 };

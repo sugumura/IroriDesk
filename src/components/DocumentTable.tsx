@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   type ColumnDef,
   flexRender,
@@ -12,6 +12,21 @@ import type { TableSort } from "@/store";
 import type { DisplayDocument } from "@/lib/api";
 import { displayKey } from "@/lib/display";
 import { cn } from "@/lib/utils";
+import { notifySuccess } from "@/lib/notify";
+import { isMac } from "@/lib/shortcuts";
+import {
+  bounds,
+  type Cell,
+  type CellRange,
+  clampRange,
+  type ColumnKey,
+  contains,
+  moveTo,
+  rangeToJson,
+  rangeToTsv,
+  selectAll,
+  single,
+} from "@/lib/tableSelection";
 import { ValueView } from "./ValueView";
 import { useT } from "@/i18n";
 
@@ -92,6 +107,30 @@ export function DocumentTable({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const rows = table.getRowModel().rows;
+  /** 列の位置 → Doc ID 列（null）かフィールド名 */
+  const columnKeys = useMemo<ColumnKey[]>(() => [null, ...fieldNames], [fieldNames]);
+  const rowCount = sortedDocs.length;
+  const colCount = columnKeys.length;
+
+  // セル範囲の選択。focus のセルの行が「選択中のドキュメント」（詳細パネルに表示）になる
+  const [range, setRange] = useState<CellRange | null>(null);
+  const dragging = useRef(false);
+
+  // 外から選択が変わった（詳細パネルで解除した、並べ替えた、など）ときは範囲を合わせる
+  useEffect(() => {
+    setRange((prev) => {
+      if (!selectedPath) return null;
+      if (prev && sortedDocs[prev.focus.row]?.path === selectedPath) return clampRange(prev, rowCount, colCount);
+      const row = sortedDocs.findIndex((d) => d.path === selectedPath);
+      return row < 0 ? null : single(row, Math.min(prev?.focus.col ?? 0, colCount - 1));
+    });
+  }, [selectedPath, sortedDocs, rowCount, colCount]);
+
+  useEffect(() => {
+    const stop = () => (dragging.current = false);
+    window.addEventListener("mouseup", stop);
+    return () => window.removeEventListener("mouseup", stop);
+  }, []);
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
@@ -100,8 +139,112 @@ export function DocumentTable({
   });
   const totalWidth = table.getTotalSize();
 
+  /** 横スクロールで focus の列が見えるようにする（Doc ID 列は固定なのでその幅を除く） */
+  const scrollToCell = (cell: Cell) => {
+    virtualizer.scrollToIndex(cell.row, { align: "auto" });
+    const el = scrollRef.current;
+    if (!el || cell.col === 0) return;
+    const sizes = table.getVisibleLeafColumns().map((c) => c.getSize());
+    const left = sizes.slice(0, cell.col).reduce((a, b) => a + b, 0);
+    const right = left + sizes[cell.col];
+    if (left < el.scrollLeft + sizes[0]) el.scrollLeft = left - sizes[0];
+    else if (right > el.scrollLeft + el.clientWidth) el.scrollLeft = right - el.clientWidth;
+  };
+
+  const apply = (next: CellRange | null, scroll = true) => {
+    setRange(next);
+    if (!next) return;
+    const doc = sortedDocs[next.focus.row];
+    if (doc && doc.path !== selectedPath) onSelect(doc);
+    if (scroll) scrollToCell(next.focus);
+  };
+
+  const copy = async (asJson: boolean) => {
+    if (!range) return;
+    const b = bounds(range);
+    const one = b.r0 === b.r1 && b.c0 === b.c1;
+    const text = asJson ? rangeToJson(sortedDocs, columnKeys, b) : rangeToTsv(sortedDocs, columnKeys, b, idLabel);
+    await navigator.clipboard.writeText(text);
+    const rows = b.r1 - b.r0 + 1;
+    notifySuccess(
+      asJson
+        ? one
+          ? t("browse.copiedCellJson")
+          : t("browse.copiedJson", { rows })
+        : one
+          ? t("browse.copiedCell")
+          : t("browse.copiedRange", { rows, cols: b.c1 - b.c0 + 1 }),
+    );
+  };
+
+  // 矢印で移動（Shift で範囲を広げる）、Cmd/Ctrl+A で全選択、Cmd/Ctrl+C で TSV、Cmd/Ctrl+Shift+C で JSON
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const mod = isMac ? e.metaKey : e.ctrlKey;
+    if (mod && e.code === "KeyA" && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      // 詳細パネルは先頭行のままにするため、focus を左上にする
+      const all = selectAll(rowCount, colCount);
+      if (all) apply({ anchor: all.focus, focus: all.anchor }, false);
+      return;
+    }
+    if (mod && e.code === "KeyC" && !e.altKey) {
+      if (!range) return;
+      e.preventDefault();
+      void copy(e.shiftKey);
+      return;
+    }
+    if (rowCount === 0 || e.altKey) return;
+    const cur = range ?? single(0, 0);
+    const { row, col } = cur.focus;
+    const page = Math.max(1, Math.floor((scrollRef.current?.clientHeight ?? 0) / ROW_HEIGHT) - 2);
+    let target: Cell | null = null;
+    switch (e.key) {
+      case "ArrowUp":
+        target = { row: mod ? 0 : row - 1, col };
+        break;
+      case "ArrowDown":
+        target = { row: mod ? rowCount - 1 : row + 1, col };
+        break;
+      case "ArrowLeft":
+        target = { row, col: mod ? 0 : col - 1 };
+        break;
+      case "ArrowRight":
+        target = { row, col: mod ? colCount - 1 : col + 1 };
+        break;
+      case "PageUp":
+        target = { row: row - page, col };
+        break;
+      case "PageDown":
+        target = { row: row + page, col };
+        break;
+      case "Home":
+        target = mod ? { row: 0, col: 0 } : { row, col: 0 };
+        break;
+      case "End":
+        target = mod ? { row: rowCount - 1, col: colCount - 1 } : { row, col: colCount - 1 };
+        break;
+      case "Escape":
+        if (range && (range.anchor.row !== row || range.anchor.col !== col)) {
+          e.preventDefault();
+          apply(single(row, col), false);
+        }
+        return;
+      default:
+        return;
+    }
+    e.preventDefault();
+    apply(range ? moveTo(cur, target, e.shiftKey, rowCount, colCount) : moveTo(cur, target, false, rowCount, colCount));
+  };
+
+  const selection = range ? bounds(range) : null;
+
   return (
-    <div ref={scrollRef} className="h-full overflow-auto">
+    <div
+      ref={scrollRef}
+      className="h-full overflow-auto outline-none"
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+    >
       <div style={{ width: totalWidth, minWidth: "100%" }}>
         <div className="sticky top-0 z-20 flex border-b bg-muted">
           {table.getHeaderGroups()[0].headers.map((h) => (
@@ -153,28 +296,47 @@ export function DocumentTable({
                   selected && "bg-accent hover:bg-accent",
                 )}
                 style={{ top: vr.start, height: ROW_HEIGHT }}
-                onClick={() => onSelect(row.original)}
                 title={row.original.missing ? t("detail.missingDocument") : undefined}
               >
-                {row.getVisibleCells().map((cell) => (
-                  <div
-                    key={cell.id}
-                    className={cn(
-                      "flex shrink-0 items-center truncate border-r px-2 font-mono text-xs",
-                      // 固定列は下の列が透けないよう行と同じ不透明な背景にする
-                      cell.column.id === ID_COLUMN &&
-                        cn(
-                          "sticky left-0 z-[1] bg-background shadow-[1px_0_0_var(--border)] group-hover/row:bg-muted",
-                          selected && "bg-accent group-hover/row:bg-accent",
-                        ),
-                    )}
-                    style={{ width: cell.column.getSize() }}
-                  >
-                    <span className="truncate">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </span>
-                  </div>
-                ))}
+                {row.getVisibleCells().map((cell, colIndex) => {
+                  const inRange = selection !== null && contains(selection, vr.index, colIndex);
+                  const isFocus = range?.focus.row === vr.index && range.focus.col === colIndex;
+                  const target = { row: vr.index, col: colIndex };
+                  return (
+                    <div
+                      key={cell.id}
+                      className={cn(
+                        "flex shrink-0 select-none items-center truncate border-r px-2 font-mono text-xs",
+                        // 固定列は下の列が透けないよう行と同じ不透明な背景にする
+                        cell.column.id === ID_COLUMN &&
+                          cn(
+                            "sticky left-0 z-[1] bg-background shadow-[1px_0_0_var(--border)] group-hover/row:bg-muted",
+                            selected && "bg-accent group-hover/row:bg-accent",
+                          ),
+                        // 選択範囲の色は、行の選択・ホバー・固定列の背景より優先する
+                        inRange && "bg-(--cell-selected)!",
+                        isFocus && "outline-2 -outline-offset-2 outline-(--cell-focus)",
+                      )}
+                      style={{ width: cell.column.getSize() }}
+                      onMouseDown={(e) => {
+                        if (e.button !== 0) return;
+                        if (e.shiftKey && range) {
+                          apply(moveTo(range, target, true, rowCount, colCount), false);
+                        } else {
+                          dragging.current = true;
+                          apply(single(target.row, target.col), false);
+                        }
+                      }}
+                      onMouseEnter={() => {
+                        if (dragging.current && range) apply(moveTo(range, target, true, rowCount, colCount), false);
+                      }}
+                    >
+                      <span className="truncate">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}

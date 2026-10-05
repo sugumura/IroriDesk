@@ -52,7 +52,7 @@ export function cellText(v: DisplayValue | undefined): string {
 }
 
 /** RFC 4180 と同じ規則で、区切り文字・引用符・改行を含むときだけ引用する */
-function quote(text: string, delimiter: string): string {
+export function quote(text: string, delimiter: string): string {
   if (text.includes(delimiter) || /["\r\n]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;
   }
