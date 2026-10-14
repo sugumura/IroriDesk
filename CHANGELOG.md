@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-14
+
 ### Added
 
 - **Auto-update**: Irori Desk checks for a new version on startup and can download, install and restart in the app. Check manually from Settings, the command palette or **Irori Desk → Check for Updates…** on macOS, and turn off the startup check in **Settings → Update**. Versions before this one need to be updated by hand once.
@@ -83,7 +85,8 @@ First public release.
 - Connections to production projects (ADC or a gcloud account per connection) and the Firebase Emulator. Read-only: no API that writes data is ever called.
 - Signed and notarized macOS build (Apple Silicon / Intel).
 
-[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/sugumura/IroriDesk/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/sugumura/IroriDesk/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/sugumura/IroriDesk/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/sugumura/IroriDesk/compare/v0.2.2...v0.3.0
