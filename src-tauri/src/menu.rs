@@ -45,7 +45,12 @@ const ACTIONS: &[(&str, &str, &str, &str)] = &[
     ),
     ("settings", "設定…", "Settings…", "CmdOrCtrl+Comma"),
     // ショートカットなし。画面側で "checkUpdates" を受け取ってアップデートを確認する
-    ("checkUpdates", "アップデートを確認…", "Check for Updates…", ""),
+    (
+        "checkUpdates",
+        "アップデートを確認…",
+        "Check for Updates…",
+        "",
+    ),
 ];
 
 /// ヘルプメニューから開く外部ページ（src/lib/support.ts と同じ URL）
