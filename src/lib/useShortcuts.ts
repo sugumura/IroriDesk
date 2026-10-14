@@ -1,11 +1,16 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { type ActionId, isMac, matchShortcut, runAction } from "./shortcuts";
+import { checkForUpdatesManually } from "@/components/UpdateDialog";
 
 /** アプリメニュー（macOS）と Ctrl キー（Windows / Linux）からの操作を受け取る */
 export function useShortcuts() {
   useEffect(() => {
-    const unlisten = listen<string>("menu-action", (e) => runAction(e.payload as ActionId));
+    const unlisten = listen<string>("menu-action", (e) => {
+      // アプリメニューの「アップデートを確認…」（ショートカットは無い）
+      if (e.payload === "checkUpdates") void checkForUpdatesManually();
+      else runAction(e.payload as ActionId);
+    });
     // macOS はメニューがキーを処理するため、ここで拾うと二重になる
     const onKeyDown = (e: KeyboardEvent) => {
       if (isMac) return;

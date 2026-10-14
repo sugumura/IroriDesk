@@ -119,6 +119,22 @@ You can load the same Firestore test data into a production project as well (exi
 pnpm seed --project <projectId>
 ```
 
+## Auto-update
+
+Irori Desk checks GitHub Releases for a new version a few seconds after it starts (you can turn this off in **Settings → Update**), and you can check any time from **Settings**, the command palette (⌘K) or **Irori Desk → Check for Updates…** on macOS. Updates are downloaded, verified and installed in the app, and then the app restarts. Only published releases are offered; drafts are not.
+
+Update files are signed with a separate updater key (not the Apple or Windows code signing certificate), and the app only installs files signed with that key. To set it up for releases:
+
+```bash
+pnpm tauri signer generate -w ~/.tauri/irori-desk.key
+```
+
+1. Put the printed public key in `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
+2. Add the repository secrets `TAURI_SIGNING_PRIVATE_KEY` (the contents of `~/.tauri/irori-desk.key`) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+3. **Back up the private key.** Without it, installed apps can no longer receive updates.
+
+Release builds fail early if the key or the public key is missing. For local release builds, set `TAURI_SIGNING_PRIVATE_KEY_PATH` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (see `.env.signing.example`).
+
 ## AI agents (MCP)
 
 AI agents such as Claude Code, Claude Desktop and Cursor can read your data through Irori Desk as an MCP server. It is read-only, like the app.

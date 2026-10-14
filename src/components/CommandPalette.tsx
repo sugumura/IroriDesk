@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { FolderOpen, Keyboard, Search, Table2, Users } from "lucide-react";
+import { Download, FolderOpen, Keyboard, Search, Table2, Users } from "lucide-react";
 import { useT } from "@/i18n";
 import { isCollectionPath, splitPath } from "@/lib/display";
+import { checkForUpdatesManually } from "./UpdateDialog";
 import { type ActionId, runAction, SHORTCUTS, shortcutLabel } from "@/lib/shortcuts";
 import { tabTitle, useStore } from "@/store";
 import {
@@ -114,6 +115,10 @@ export function CommandPalette() {
                 <CommandShortcut>{shortcutLabel(id)}</CommandShortcut>
               </CommandItem>
             ))}
+            <CommandItem value="update check for updates" onSelect={() => run(() => void checkForUpdatesManually())}>
+              <Download />
+              {t("updates.check")}
+            </CommandItem>
           </CommandGroup>
         </CommandList>
       </Command>

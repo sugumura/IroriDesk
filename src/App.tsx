@@ -10,6 +10,7 @@ import { TopBar } from "./components/TopBar";
 import { GlobalTooltip } from "./components/GlobalTooltip";
 import { AppToaster } from "./components/AppToaster";
 import { CommandPalette } from "./components/CommandPalette";
+import { UpdateDialog, useAutoUpdateCheck } from "./components/UpdateDialog";
 import { useShortcuts } from "./lib/useShortcuts";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
 
@@ -64,6 +65,7 @@ function App() {
     void init();
   }, [init]);
   useShortcuts();
+  useAutoUpdateCheck(ready);
 
   if (!ready) return null;
 
@@ -72,6 +74,7 @@ function App() {
       <GlobalTooltip />
       <AppToaster />
       <CommandPalette />
+      <UpdateDialog />
       <div className="flex h-full flex-col">
         <TopBar />
         {hasConnection ? (

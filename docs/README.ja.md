@@ -119,6 +119,22 @@ pnpm seed          # テストデータ（ドキュメント128件、ユーザ�
 pnpm seed --project <projectId>
 ```
 
+## 自動アップデート
+
+Irori Desk は起動して数秒後に、GitHub Releases に新しい版があるかを確認します（**設定 → アップデート** でオフにできます）。**設定**、コマンドパレット（⌘K）、macOS の **Irori Desk → アップデートを確認…** からいつでも確認できます。更新ファイルのダウンロード・検証・インストールはアプリの中で行い、終わるとアプリが再起動します。対象は公開（Publish）したリリースだけで、下書きは含まれません。
+
+更新ファイルは専用の鍵（Apple や Windows のコード署名とは別）で署名し、アプリはその鍵で署名されたファイルだけをインストールします。リリースのための準備:
+
+```bash
+pnpm tauri signer generate -w ~/.tauri/irori-desk.key
+```
+
+1. 表示された公開鍵を `src-tauri/tauri.conf.json` の `plugins.updater.pubkey` に入れる
+2. リポジトリの Secrets に `TAURI_SIGNING_PRIVATE_KEY`（`~/.tauri/irori-desk.key` の中身）と `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` を登録する
+3. **秘密鍵は必ずバックアップする。** 失くすと、インストール済みのアプリにアップデートを届けられなくなります
+
+鍵や公開鍵が無いと、リリースのビルドは最初の段階で失敗します。手元でリリースビルドするときは、`TAURI_SIGNING_PRIVATE_KEY_PATH` と `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` を設定してください（`.env.signing.example`）。
+
 ## AI エージェント（MCP）
 
 Claude Code・Claude Desktop・Cursor などの AI エージェントから、MCP サーバーとして Irori Desk 経由でデータを読み取れます。アプリと同じく読み取り専用です。

@@ -44,6 +44,8 @@ const ACTIONS: &[(&str, &str, &str, &str)] = &[
         "CmdOrCtrl+Shift+BracketRight",
     ),
     ("settings", "設定…", "Settings…", "CmdOrCtrl+Comma"),
+    // ショートカットなし。画面側で "checkUpdates" を受け取ってアップデートを確認する
+    ("checkUpdates", "アップデートを確認…", "Check for Updates…", ""),
 ];
 
 /// ヘルプメニューから開く外部ページ（src/lib/support.ts と同じ URL）
@@ -63,9 +65,13 @@ fn action<R: Runtime>(app: &AppHandle<R>, id: &str) -> tauri::Result<tauri::menu
         .iter()
         .find(|(a, ..)| *a == id)
         .expect("ACTIONS に登録済みの ID");
-    MenuItemBuilder::with_id(id, label(ja, en))
-        .accelerator(*accel)
-        .build(app)
+    let item = MenuItemBuilder::with_id(id, label(ja, en));
+    let item = if accel.is_empty() {
+        item
+    } else {
+        item.accelerator(*accel)
+    };
+    item.build(app)
 }
 
 pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
@@ -73,6 +79,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .about(None)
         .separator()
         .item(&action(app, "settings")?)
+        .item(&action(app, "checkUpdates")?)
         .separator()
         .services_with_text(label("サービス", "Services"))
         .separator()

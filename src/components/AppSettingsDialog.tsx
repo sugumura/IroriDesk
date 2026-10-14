@@ -24,6 +24,9 @@ import {
   toAppError,
 } from "@/lib/api";
 import { CopyButton } from "./CopyButton";
+import { checkForUpdatesManually } from "./UpdateDialog";
+import { useUpdates } from "@/lib/updates";
+import { Switch } from "@/components/ui/switch";
 import { notifyError } from "@/lib/notify";
 import { REPOSITORY_URL } from "@/lib/support";
 import { useStore } from "@/store";
@@ -243,6 +246,27 @@ function GcloudPathSetting({ open }: { open: boolean }) {
   );
 }
 
+/** 起動時の自動確認と、今すぐ確認 */
+function UpdateSetting({ open }: { open: boolean }) {
+  const t = useT();
+  const { autoCheck, setAutoCheck, loadSettings, phase } = useUpdates();
+  useEffect(() => {
+    if (open) void loadSettings();
+  }, [open, loadSettings]);
+  return (
+    <>
+      <label className="flex items-center gap-2 pt-1.5 text-sm">
+        <Switch checked={autoCheck} onCheckedChange={setAutoCheck} />
+        {t("updates.autoCheck")}
+      </label>
+      <Button variant="outline" size="sm" disabled={phase !== "idle"} onClick={() => void checkForUpdatesManually()}>
+        {phase === "checking" ? <Loader2 className="animate-spin" /> : null}
+        {phase === "checking" ? t("updates.checking") : t("updates.check")}
+      </Button>
+    </>
+  );
+}
+
 /** AI エージェント（MCP）の設定例と、読み取りの確認基準（docs/MCP.md） */
 function AgentSetting({ open }: { open: boolean }) {
   const t = useT();
@@ -437,6 +461,10 @@ export function AppSettingsDialog({
 
           <Row label={t("settings.agent")}>
             <AgentSetting open={open} />
+          </Row>
+
+          <Row label={t("updates.title")}>
+            <UpdateSetting open={open} />
           </Row>
 
           <Row label={t("settings.about")}>

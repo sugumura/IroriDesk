@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Auto-update**: Irori Desk checks for a new version on startup and can download, install and restart in the app. Check manually from Settings, the command palette or **Irori Desk → Check for Updates…** on macOS, and turn off the startup check in **Settings → Update**. Versions before this one need to be updated by hand once.
+
 ## [0.5.0] - 2026-10-14
 
 ### Added

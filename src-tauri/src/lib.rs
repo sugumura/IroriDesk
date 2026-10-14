@@ -280,6 +280,8 @@ pub fn run_mcp() {
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             migrate_legacy_settings(app.handle());
             // macOS ではショートカットをアプリメニューに登録する

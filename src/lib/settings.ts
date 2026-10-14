@@ -108,6 +108,17 @@ export async function saveAgentSettings(agent: AgentSettings): Promise<void> {
   await s.set("agent", agent);
 }
 
+/** 起動時にアップデートを確認するか（既定はオン） */
+export async function loadAutoCheckUpdates(): Promise<boolean> {
+  const s = await store();
+  return (await s.get<boolean>("autoCheckUpdates")) ?? true;
+}
+
+export async function saveAutoCheckUpdates(on: boolean): Promise<void> {
+  const s = await store();
+  await s.set("autoCheckUpdates", on);
+}
+
 /** 接続ごとに開いていたタブ（再起動・接続の切り替えで復元する） */
 export async function loadSessions(): Promise<Record<string, SavedSession>> {
   const s = await store();

@@ -16,6 +16,7 @@ import * as treeMessages from "./tree";
 import * as authMessages from "./auth";
 import * as indexesMessages from "./indexes";
 import * as shortcutsMessages from "./shortcuts";
+import * as updatesMessages from "./updates";
 
 export const messages = {
   ja: {
@@ -33,6 +34,7 @@ export const messages = {
     auth: authMessages.ja,
     indexes: indexesMessages.ja,
     shortcuts: shortcutsMessages.ja,
+    updates: updatesMessages.ja,
   },
   en: {
     common: commonMessages.en,
@@ -49,5 +51,6 @@ export const messages = {
     auth: authMessages.en,
     indexes: indexesMessages.en,
     shortcuts: shortcutsMessages.en,
+    updates: updatesMessages.en,
   },
 };

@@ -28,6 +28,7 @@ jobs:
     env:
       # Windows の署名の Secrets が登録されているか（`if` では secrets を直接参照できないため）
       HAS_WINDOWS_SIGNING: ${{ secrets.ES_USERNAME != '' }}
+      HAS_UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,6 +39,15 @@ jobs:
           version=$(node -p "require('./src-tauri/tauri.conf.json').version")
           if [ "v$version" != "${GITHUB_REF_NAME}" ]; then
             echo "タグ ${GITHUB_REF_NAME} と tauri.conf.json の version ($version) が一致しません" >&2
+            exit 1
+          fi
+          # 自動アップデートの署名に必要な鍵があるか（無いとビルドの最後で分かりにくく失敗するため、先に確認する）
+          if [ "$HAS_UPDATER_KEY" != "true" ]; then
+            echo "Secret TAURI_SIGNING_PRIVATE_KEY is not set (see README: Auto-update)" >&2
+            exit 1
+          fi
+          if [ -z "$(node -p "require('./src-tauri/tauri.conf.json').plugins.updater.pubkey")" ]; then
+            echo "plugins.updater.pubkey in tauri.conf.json is empty (see README: Auto-update)" >&2
             exit 1
           fi
           # CHANGELOG.md にこのバージョンの節があるか（無ければ失敗する）
@@ -139,6 +149,9 @@ jobs:
           # macOS の公証（App Store Connect API キー）
           APPLE_API_ISSUER: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_API_ISSUER || '' }}
           APPLE_API_KEY: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_API_KEY || '' }}
+          # 自動アップデート用のファイルの署名（tauri signer generate で作った鍵。公開鍵は tauri.conf.json）
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           # Windows の署名（scripts/sign-windows.ps1 が使う）
           ES_USERNAME: ${{ matrix.platform == 'windows-latest' && secrets.ES_USERNAME || '' }}
           ES_PASSWORD: ${{ matrix.platform == 'windows-latest' && secrets.ES_PASSWORD || '' }}
@@ -151,6 +164,9 @@ jobs:
           # アプリ名（Irori Desk）の空白が GitHub で "." に置き換わるため、ファイル名は空白なしにする
           # 例: IroriDesk_0.2.0_universal.dmg / IroriDesk_0.2.0_x64-setup.exe / IroriDesk_0.2.0_x64.msi
           assetNamePattern: "IroriDesk_[version]_[arch][setup][ext]"
+          # 自動アップデートの更新情報（latest.json）を Releases に載せる。Windows は NSIS のインストーラーを使う
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }} ${{ steps.winsign.outputs.args }}
