@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { DisplayValue } from "@/lib/api";
 import { asWrapper, displayKey, isPlainObject } from "@/lib/display";
+import { parseJsonString } from "@/lib/jsonString";
 import { CopyButton } from "./CopyButton";
 import { ValueView, typeLabel } from "./ValueView";
 import { useT } from "@/i18n";
@@ -28,11 +29,19 @@ function Node({
 }) {
   const t = useT();
   const container = isContainer(value);
-  const [open, setOpen] = useState(depth < defaultOpenDepth);
-  const entries: [string, DisplayValue][] = container
-    ? Array.isArray(value)
-      ? value.map((v, i) => [String(i), v])
-      : Object.entries(value).map(([k, v]) => [displayKey(k), v])
+  // JSON を文字列にして保存した値は、文字列のまま見せつつ中身をツリーで開けるようにする（最初は閉じる）
+  const nested = useMemo(() => {
+    if (typeof value !== "string") return null;
+    const parsed = parseJsonString(value);
+    return parsed !== null && isContainer(parsed) ? parsed : null;
+  }, [value]);
+  const expandable = container || nested !== null;
+  const [open, setOpen] = useState(container && depth < defaultOpenDepth);
+  const source = container ? value : nested;
+  const entries: [string, DisplayValue][] = source
+    ? Array.isArray(source)
+      ? source.map((v, i) => [String(i), v])
+      : Object.entries(source).map(([k, v]) => [displayKey(k), v])
     : [];
 
   return (
@@ -41,7 +50,7 @@ function Node({
         className="group flex min-h-6 items-center gap-1 rounded px-1 hover:bg-muted"
         style={{ paddingLeft: depth * 14 + 4 }}
       >
-        {container ? (
+        {expandable ? (
           <button
             type="button"
             className="flex size-4 shrink-0 items-center justify-center text-muted-foreground"
@@ -56,7 +65,7 @@ function Node({
         )}
         <span
           className="shrink-0 cursor-default font-medium"
-          onClick={() => container && setOpen((o) => !o)}
+          onClick={() => expandable && setOpen((o) => !o)}
         >
           {name}
         </span>
@@ -68,6 +77,14 @@ function Node({
             <ValueView value={value} />
           )}
         </span>
+        {nested !== null && (
+          <span
+            className="shrink-0 rounded border px-1 text-[10px] leading-4 text-muted-foreground"
+            title={t("detail.jsonStringHint")}
+          >
+            JSON
+          </span>
+        )}
         {container || <span className="shrink-0 text-[10px] text-muted-foreground">{typeLabel(value)}</span>}
         <CopyButton
           text={() => copyText(value)}
@@ -75,7 +92,7 @@ function Node({
           label={t("detail.copyValue")}
         />
       </div>
-      {container && open && (
+      {expandable && open && (
         <div>
           {entries.length === 0 && (
             <div className="text-xs text-muted-foreground" style={{ paddingLeft: (depth + 1) * 14 + 24 }}>

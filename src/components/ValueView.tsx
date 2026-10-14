@@ -2,6 +2,7 @@ import type { DisplayValue } from "@/lib/api";
 import { asWrapper, base64ByteLength, compactText, formatTimestamp, refToLocalPath } from "@/lib/display";
 import { activeConnection, useStore } from "@/store";
 import { useT } from "@/i18n";
+import { prettyJsonString } from "@/lib/jsonString";
 
 /** $ref のクリックで参照先ドキュメントを詳細ペインに開く */
 function RefLink({ refName, label }: { refName: string; label: string }) {
@@ -71,7 +72,8 @@ export function ValueView({ value }: { value: DisplayValue }) {
   if (value === null) return <span className="text-muted-foreground italic">null</span>;
   if (typeof value === "boolean") return <span className="text-orange-700 dark:text-orange-400">{String(value)}</span>;
   if (typeof value === "number") return <span className="text-emerald-700 dark:text-emerald-400">{value}</span>;
-  if (typeof value === "string") return <span>{compactText(value)}</span>;
+  // JSON を文字列にした値は、ホバーで整形した中身を見せる
+  if (typeof value === "string") return <span title={prettyJsonString(value)}>{compactText(value)}</span>;
   return <span className="text-muted-foreground">{compactText(value)}</span>;
 }
 

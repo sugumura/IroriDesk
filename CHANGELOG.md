@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Values that hold JSON stored as a string (for example `{"id":"…","rate":4}`) get a **JSON** badge in the document tree and can be expanded into a nested tree. The value itself stays a string, and the JSON view is unchanged. In tables, hovering over such a value shows the formatted JSON.
+
 ## [0.4.0] - 2026-10-14
 
 ### Added
