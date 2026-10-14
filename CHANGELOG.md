@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-14
+
 ### Added
 
 - **AI agents (MCP)**: run `irori-desk mcp` to let Claude Code, Claude Desktop, Cursor and other agents read Firestore and Firebase Authentication through Irori Desk. Read-only, only for connections where you turn on **AI agents** (off by default), with approval when an agent reads many documents, masked Authentication data by default, and a local log. Setup commands are under **Settings → AI agents**. See [docs/MCP.md](docs/MCP.md).
@@ -71,7 +73,8 @@ First public release.
 - Connections to production projects (ADC or a gcloud account per connection) and the Firebase Emulator. Read-only: no API that writes data is ever called.
 - Signed and notarized macOS build (Apple Silicon / Intel).
 
-[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/sugumura/IroriDesk/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/sugumura/IroriDesk/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/sugumura/IroriDesk/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/sugumura/IroriDesk/compare/v0.2.0...v0.2.1
