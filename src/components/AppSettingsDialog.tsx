@@ -14,7 +14,16 @@ import {
   DOCUMENT_PAGE_SIZES,
   USER_PAGE_SIZES,
 } from "@/lib/appearance";
-import { type GcloudStatus, gcloudStatus, openLicenses, pickGcloudPath, toAppError } from "@/lib/api";
+import {
+  agentInfo,
+  type GcloudStatus,
+  gcloudStatus,
+  openAgentLog,
+  openLicenses,
+  pickGcloudPath,
+  toAppError,
+} from "@/lib/api";
+import { CopyButton } from "./CopyButton";
 import { notifyError } from "@/lib/notify";
 import { REPOSITORY_URL } from "@/lib/support";
 import { useStore } from "@/store";
@@ -234,6 +243,63 @@ function GcloudPathSetting({ open }: { open: boolean }) {
   );
 }
 
+/** AI エージェント（MCP）の設定例と、読み取りの確認基準（docs/MCP.md） */
+function AgentSetting({ open }: { open: boolean }) {
+  const t = useT();
+  const agent = useStore((s) => s.agentSettings);
+  const setAgent = useStore((s) => s.setAgentSettings);
+  const [command, setCommand] = useState("");
+  useEffect(() => {
+    if (open) agentInfo().then((i) => setCommand(i.command), () => {});
+  }, [open]);
+
+  const quoted = command.includes(" ") ? `"${command}"` : command;
+  const claudeCode = `claude mcp add irori-desk -- ${quoted} mcp`;
+  const claudeDesktop = JSON.stringify({ mcpServers: { "irori-desk": { command, args: ["mcp"] } } }, null, 2);
+  const numberInput = (value: number, onChange: (n: number) => void) => (
+    <Input
+      type="number"
+      min={1}
+      className="w-28"
+      value={value}
+      onChange={(e) => {
+        const n = Math.floor(Number(e.target.value));
+        if (n >= 1) onChange(n);
+      }}
+    />
+  );
+
+  return (
+    <>
+      <p className="pt-2 text-xs text-muted-foreground">{t("settings.agentDescription")}</p>
+      {command && (
+        <>
+          <div className="text-xs font-medium">{t("settings.agentClaudeCode")}</div>
+          <div className="flex items-start gap-1.5 rounded-md border bg-muted/50 px-2 py-1.5">
+            <code className="min-w-0 flex-1 font-mono text-xs break-all">{claudeCode}</code>
+            <CopyButton text={claudeCode} />
+          </div>
+          <div className="text-xs font-medium">{t("settings.agentClaudeDesktop")}</div>
+          <div className="flex items-start gap-1.5 rounded-md border bg-muted/50 px-2 py-1.5">
+            <pre className="min-w-0 flex-1 font-mono text-xs break-all whitespace-pre-wrap">{claudeDesktop}</pre>
+            <CopyButton text={claudeDesktop} />
+          </div>
+        </>
+      )}
+      <div className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 pt-1 text-xs">
+        <span>{t("settings.agentConfirmPerCall")}</span>
+        {numberInput(agent.confirmDocsPerCall, (n) => setAgent({ confirmDocsPerCall: n }))}
+        <span>{t("settings.agentConfirmPerSession")}</span>
+        {numberInput(agent.confirmDocsPerSession, (n) => setAgent({ confirmDocsPerSession: n }))}
+      </div>
+      <p className="text-xs text-muted-foreground">{t("settings.agentConfirmHint")}</p>
+      <Button variant="outline" size="sm" onClick={() => openAgentLog().catch((e) => notifyError(toAppError(e)))}>
+        <FileText /> {t("settings.agentOpenLog")}
+      </Button>
+    </>
+  );
+}
+
 export function AppSettingsDialog({
   open,
   onOpenChange,
@@ -367,6 +433,10 @@ export function AppSettingsDialog({
 
           <Row label={t("settings.gcloud")}>
             <GcloudPathSetting open={open} />
+          </Row>
+
+          <Row label={t("settings.agent")}>
+            <AgentSetting open={open} />
           </Row>
 
           <Row label={t("settings.about")}>

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **AI agents (MCP)**: run `irori-desk mcp` to let Claude Code, Claude Desktop, Cursor and other agents read Firestore and Firebase Authentication through Irori Desk. Read-only, only for connections where you turn on **AI agents** (off by default), with approval when an agent reads many documents, masked Authentication data by default, and a local log. Setup commands are under **Settings → AI agents**. See [docs/MCP.md](docs/MCP.md).
+
 - Select cells in tables like a spreadsheet: click, Shift+click or drag to select a range, move with the arrow keys (Shift to extend, Cmd/Ctrl + arrows to jump to the edge, Page Up / Page Down, Home / End), and press Esc to go back to a single cell.
 - Cmd/Ctrl+A selects every loaded row (only the visible rows while filtering).
 - Cmd/Ctrl+C copies the selection as TSV, which pastes straight into Excel or Google Sheets (a header row is added when more than one cell is selected). Cmd/Ctrl+Shift+C copies it as JSON with type information.

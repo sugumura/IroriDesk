@@ -2,5 +2,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    irori_desk_lib::run()
+    // `irori-desk mcp` は AI エージェント向けの MCP サーバー（画面は出さない）
+    if std::env::args().nth(1).as_deref() == Some("mcp") {
+        irori_desk_lib::run_mcp();
+    } else {
+        irori_desk_lib::run()
+    }
 }

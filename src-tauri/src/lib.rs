@@ -7,6 +7,7 @@ mod export;
 mod firebase_auth;
 mod firestore;
 mod gcloud;
+mod mcp;
 mod menu;
 
 use std::sync::{Arc, RwLock};
@@ -19,7 +20,7 @@ use firestore::document::{DisplayDocument, DocumentPage, QueryResult};
 use firestore::query::QuerySpec;
 use firestore::{FirestoreApi, RestClient};
 
-struct AppState {
+pub(crate) struct AppState {
     http: reqwest::Client,
     /// 再読み込みで作り直せるよう差し替え可能にしておく
     adc: RwLock<Arc<AdcTokenSource>>,
@@ -27,6 +28,14 @@ struct AppState {
 }
 
 impl AppState {
+    pub(crate) fn new() -> Self {
+        Self {
+            http: firestore::build_http_client(),
+            adc: RwLock::new(Arc::default()),
+            gcloud_tokens: Arc::default(),
+        }
+    }
+
     /// 接続にアカウントが指定されていれば gcloud、なければ ADC
     fn production_tokens(&self, conn: &ConnectionConfig) -> Arc<dyn TokenSource> {
         match conn.account() {
@@ -38,11 +47,11 @@ impl AppState {
         }
     }
 
-    fn client(&self, conn: &ConnectionConfig) -> AppResult<RestClient> {
+    pub(crate) fn client(&self, conn: &ConnectionConfig) -> AppResult<RestClient> {
         RestClient::from_connection(conn, self.http.clone(), self.production_tokens(conn))
     }
 
-    fn auth_client(&self, conn: &ConnectionConfig) -> AppResult<AuthClient> {
+    pub(crate) fn auth_client(&self, conn: &ConnectionConfig) -> AppResult<AuthClient> {
         AuthClient::from_connection(conn, self.http.clone(), self.production_tokens(conn))
     }
 }
@@ -194,6 +203,40 @@ async fn pick_gcloud_path(app: tauri::AppHandle) -> Option<String> {
         .map(|p| p.display().to_string())
 }
 
+/// AI エージェント（MCP）の設定例に出す、このアプリの実行ファイルの場所と記録ファイルの場所
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentInfo {
+    command: String,
+    log_path: Option<String>,
+}
+
+#[tauri::command]
+fn agent_info() -> AgentInfo {
+    AgentInfo {
+        command: std::env::current_exe()
+            .map(|p| p.display().to_string())
+            .unwrap_or_default(),
+        log_path: mcp::log::path().map(|p| p.display().to_string()),
+    }
+}
+
+/// AI エージェントの記録（agent-log.jsonl）を OS の既定のアプリで開く
+#[tauri::command]
+fn open_agent_log(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let path = mcp::log::path().ok_or("no data directory")?;
+    if !path.exists() {
+        return Err(tr!(
+            "まだ記録がありません（AI エージェントがツールを使うと記録されます）",
+            "There is no log yet (it is written when an AI agent uses a tool)"
+        ));
+    }
+    app.opener()
+        .open_path(path.to_string_lossy(), None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn open_licenses(app: tauri::AppHandle) -> Result<(), String> {
     menu::open_licenses(&app)
@@ -223,6 +266,18 @@ fn migrate_legacy_settings(app: &tauri::AppHandle) {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// `irori-desk mcp`: 画面を出さずに、AI エージェント向けの MCP サーバーとして標準入出力で動く（docs/MCP.md）
+pub fn run_mcp() {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("tokio runtime");
+    if let Err(e) = runtime.block_on(mcp::serve()) {
+        eprintln!("irori-desk mcp: {e}");
+        std::process::exit(1);
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
@@ -235,11 +290,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
-        .manage(AppState {
-            http: firestore::build_http_client(),
-            adc: RwLock::new(Arc::default()),
-            gcloud_tokens: Arc::default(),
-        })
+        .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
             list_collection_ids,
             get_document,
@@ -257,6 +308,8 @@ pub fn run() {
             gcloud_status,
             pick_gcloud_path,
             open_licenses,
+            agent_info,
+            open_agent_log,
             i18n::set_locale
         ])
         .run(tauri::generate_context!())

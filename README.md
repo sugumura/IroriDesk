@@ -38,6 +38,7 @@ The Windows installers are not signed yet (a code signing certificate is being i
 - **Authentication**: user list, search by UID / email / phone number, details (providers, custom claims, …)
 - **Indexes**: composite indexes and single-field exemptions per collection
 - **Export**: JSON (keeps type information) / CSV / TSV
+- **AI agents (MCP)**: read-only access for Claude Code and other agents to the connections you allow, with approval for large reads
 - **Copy**: select cells like a spreadsheet (click, Shift+click, drag, arrow keys, Cmd/Ctrl+A), then Cmd/Ctrl+C to copy as TSV or Cmd/Ctrl+Shift+C as JSON
 - **View**: pinned Doc ID column, column visibility and order, split view (side by side / stacked), light / dark / system theme, fonts and zoom, English / Japanese
 - **Connections**: production (ADC, or a gcloud account per connection) and the Firebase Emulator
@@ -117,6 +118,25 @@ You can load the same Firestore test data into a production project as well (exi
 ```bash
 pnpm seed --project <projectId>
 ```
+
+## AI agents (MCP)
+
+AI agents such as Claude Code, Claude Desktop and Cursor can read your data through Irori Desk as an MCP server. It is read-only, like the app.
+
+1. In **Manage connections**, turn on **AI agents** for the connections an agent may use (off by default).
+2. Add the server to your agent. **Settings → AI agents** shows the commands with the right path, for example:
+
+```bash
+claude mcp add irori-desk -- "/Applications/Irori Desk.app/Contents/MacOS/irori-desk" mcp
+```
+
+Tools: `list_connections`, `list_collections`, `describe_collection` (field names, types and examples from a sample), `list_documents`, `get_document`, `run_query`, `count`, `list_indexes`, `list_auth_users` and `lookup_auth_user`.
+
+- **Large reads ask you first.** When a call reads more documents than the threshold in **Settings → AI agents** (300 per call, 2,000 per session by default), you are asked to approve it, in the agent if it supports MCP elicitation, or in an OS dialog. These are not limits.
+- **Authentication data is masked** by default (`a***@example.com`). You can change it per connection. Personal data inside Firestore documents is not masked, so think before allowing a production connection.
+- Every tool call is logged locally (`agent-log.jsonl` in the app data directory; open it from Settings). Argument values are not logged.
+
+The design is in [docs/MCP.md](docs/MCP.md) (in Japanese).
 
 ## Tests
 
@@ -227,7 +247,7 @@ Settings (connections, appearance, columns, query history) are stored in `settin
 
 ## Privacy
 
-Irori Desk has no telemetry, analytics or crash reporting. It connects only to the Google Cloud APIs (Cloud Firestore, Firebase Authentication) of the projects you configure, or to a local Firebase Emulator, using your own Google credentials. Access tokens are kept in memory only, and settings are stored locally on your computer.
+Irori Desk has no telemetry, analytics or crash reporting. AI agents (MCP) can only read the connections you allow. It connects only to the Google Cloud APIs (Cloud Firestore, Firebase Authentication) of the projects you configure, or to a local Firebase Emulator, using your own Google credentials. Access tokens are kept in memory only, and settings are stored locally on your computer.
 
 ## Contributing
 

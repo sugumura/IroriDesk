@@ -47,7 +47,7 @@ impl AppError {
         }
     }
 
-    fn detail(&self) -> Option<String> {
+    pub fn detail(&self) -> Option<String> {
         match self {
             AppError::Auth { detail, .. } => detail.clone(),
             AppError::Api {

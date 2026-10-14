@@ -470,6 +470,8 @@ mod tests {
             emulator_host: None,
             auth_emulator_host: None,
             account: None,
+            agent_access: false,
+            agent_auth_pii: Default::default(),
         };
         RestClient::from_connection(
             &conn,
@@ -537,6 +539,8 @@ mod emulator_tests {
             ),
             auth_emulator_host: None,
             account: None,
+            agent_access: false,
+            agent_auth_pii: Default::default(),
         };
         RestClient::from_connection(
             &conn,

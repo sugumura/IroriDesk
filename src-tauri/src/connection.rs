@@ -34,6 +34,21 @@ pub struct ConnectionConfig {
     /// 本番接続で使う gcloud のアカウント。未指定なら ADC
     #[serde(default)]
     pub account: Option<String>,
+    /// AI エージェント（MCP）からの利用を許可するか（docs/MCP.md）
+    #[serde(default)]
+    pub agent_access: bool,
+    /// AI エージェントに返す Authentication の個人情報の扱い
+    #[serde(default)]
+    pub agent_auth_pii: AgentPii,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AgentPii {
+    /// メールアドレス・電話番号・表示名の一部を伏せる
+    #[default]
+    Masked,
+    Full,
 }
 
 fn default_true() -> bool {

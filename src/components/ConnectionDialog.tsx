@@ -191,6 +191,35 @@ export function ConnectionDialog({
                 <Switch checked disabled aria-readonly />
               </div>
             </Field>
+            <Field label={t("connection.agentAccess")} hint={t("connection.agentAccessHint")}>
+              <div className="pt-1.5">
+                <Switch
+                  checked={draft.agentAccess ?? false}
+                  onCheckedChange={(on) => update("agentAccess", on)}
+                />
+              </div>
+              {draft.agentAccess && draft.kind === "production" && (
+                <p className="mt-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-800 dark:text-amber-300">
+                  {t("connection.agentProductionWarning")}
+                </p>
+              )}
+            </Field>
+            {draft.agentAccess && (
+              <Field label={t("connection.agentAuthPii")}>
+                <Select
+                  value={draft.agentAuthPii ?? "masked"}
+                  onValueChange={(v) => update("agentAuthPii", v as "masked" | "full")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masked">{t("connection.agentAuthPiiMasked")}</SelectItem>
+                    <SelectItem value="full">{t("connection.agentAuthPiiFull")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
           </div>
         </div>
 

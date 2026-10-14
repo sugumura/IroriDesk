@@ -355,6 +355,8 @@ mod tests {
                 std::env::var("FIREBASE_AUTH_EMULATOR_HOST").unwrap_or("127.0.0.1:9099".into()),
             ),
             account: None,
+            agent_access: false,
+            agent_auth_pii: Default::default(),
         }
     }
 

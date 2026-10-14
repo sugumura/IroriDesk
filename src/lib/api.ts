@@ -15,6 +15,10 @@ export interface ConnectionConfig {
   authEmulatorHost?: string;
   /** 本番接続で使う gcloud のアカウント。未指定なら ADC */
   account?: string;
+  /** AI エージェント（MCP）からの利用を許可するか（docs/MCP.md）。既定はオフ */
+  agentAccess?: boolean;
+  /** AI エージェントに返す Authentication の個人情報。既定は一部を伏せる */
+  agentAuthPii?: "masked" | "full";
 }
 
 /** Rust 側 AppError のシリアライズ形式 */
@@ -224,6 +228,21 @@ export function gcloudStatus(): Promise<GcloudStatus> {
 /** gcloud の実行ファイルを選ぶ。キャンセル時は null */
 export function pickGcloudPath(): Promise<string | null> {
   return invoke("pick_gcloud_path");
+}
+
+export interface AgentInfo {
+  /** MCP サーバーとして起動するときの実行ファイル（`<command> mcp`） */
+  command: string;
+  logPath: string | null;
+}
+
+export function agentInfo(): Promise<AgentInfo> {
+  return invoke("agent_info");
+}
+
+/** AI エージェントの記録（agent-log.jsonl）を開く */
+export function openAgentLog(): Promise<void> {
+  return invoke("open_agent_log");
 }
 
 /** ADC を読み直し、gcloud のトークンキャッシュを捨てる */

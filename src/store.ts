@@ -27,11 +27,15 @@ import {
   loadColumnConfigs,
   loadSessions,
   saveSessions,
+  type AgentSettings,
+  DEFAULT_AGENT_SETTINGS,
+  loadAgentSettings,
   loadGcloudPath,
   loadQueryHistory,
   loadSettings,
   saveAppearance,
   saveColumnConfigs,
+  saveAgentSettings,
   saveGcloudPath,
   saveQueryHistory,
   saveSettings,
@@ -188,10 +192,13 @@ interface State {
   queryHistory: Record<string, HistoryEntry[]>;
   /** 設定で指定した gcloud CLI の場所（null なら自動で探す） */
   gcloudPath: string | null;
+  /** AI エージェント（MCP）の読み取りの確認基準 */
+  agentSettings: AgentSettings;
 
   init(): Promise<void>;
   setAppearance(patch: Partial<Appearance>): void;
   setGcloudPath(path: string | null): Promise<void>;
+  setAgentSettings(patch: Partial<AgentSettings>): void;
   /** config が null なら設定を削除（既定に戻す） */
   setColumnConfig(key: string, config: ColumnConfig | null): void;
   setActiveConnection(id: string | null): void;
@@ -432,18 +439,20 @@ export const useStore = create<State>((set, get) => {
     columnConfigs: {},
     queryHistory: {},
     gcloudPath: null,
+    agentSettings: DEFAULT_AGENT_SETTINGS,
 
     async init() {
       // 開発時は React の StrictMode で2回呼ばれるため、1回だけ実行する
       if (initStarted) return;
       initStarted = true;
-      const [settings, appearance, columnConfigs, queryHistory, savedSessions, gcloudPath] = await Promise.all([
+      const [settings, appearance, columnConfigs, queryHistory, savedSessions, gcloudPath, agentSettings] = await Promise.all([
         loadSettings(),
         loadAppearance(),
         loadColumnConfigs(),
         loadQueryHistory(),
         loadSessions(),
         loadGcloudPath(),
+        loadAgentSettings(),
       ]);
       // タブの復元で gcloud のトークンを使う前に、指定された場所を Rust 側に反映する
       await applyGcloudPath(gcloudPath).catch(() => {});
@@ -451,7 +460,7 @@ export const useStore = create<State>((set, get) => {
       applyAppearance(appearance);
       syncLanguage(appearance);
       sessionSaveSuspended = true;
-      set({ ...settings, appearance, columnConfigs, queryHistory, gcloudPath, ready: true });
+      set({ ...settings, appearance, columnConfigs, queryHistory, gcloudPath, agentSettings, ready: true });
       if (settings.activeConnectionId) restoreSession(settings.activeConnectionId);
       sessionSaveSuspended = false;
       if (activeConnection(get())) void get().loadRootCollections();
@@ -462,6 +471,12 @@ export const useStore = create<State>((set, get) => {
       await applyGcloudPath(value);
       set({ gcloudPath: value });
       await saveGcloudPath(value);
+    },
+
+    setAgentSettings(patch) {
+      const agentSettings = { ...get().agentSettings, ...patch };
+      set({ agentSettings });
+      void saveAgentSettings(agentSettings);
     },
 
     setAppearance(patch) {

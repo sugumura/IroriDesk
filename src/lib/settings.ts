@@ -90,6 +90,24 @@ export async function saveGcloudPath(path: string | null): Promise<void> {
   await s.set("gcloudPath", path);
 }
 
+/** AI エージェント（MCP）の読み取りの確認基準（docs/MCP.md）。上限ではなく、超えたら利用者に確認する */
+export interface AgentSettings {
+  confirmDocsPerCall: number;
+  confirmDocsPerSession: number;
+}
+
+export const DEFAULT_AGENT_SETTINGS: AgentSettings = { confirmDocsPerCall: 300, confirmDocsPerSession: 2000 };
+
+export async function loadAgentSettings(): Promise<AgentSettings> {
+  const s = await store();
+  return { ...DEFAULT_AGENT_SETTINGS, ...((await s.get<Partial<AgentSettings>>("agent")) ?? {}) };
+}
+
+export async function saveAgentSettings(agent: AgentSettings): Promise<void> {
+  const s = await store();
+  await s.set("agent", agent);
+}
+
 /** 接続ごとに開いていたタブ（再起動・接続の切り替えで復元する） */
 export async function loadSessions(): Promise<Record<string, SavedSession>> {
   const s = await store();

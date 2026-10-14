@@ -37,6 +37,7 @@ Windows のインストーラーはまだ署名していません（コード署
 - **クエリ**: コレクション / collectionGroup を対象に where（AND）・orderBy・limit。フィールド名の候補表示、インデックス不足時の作成リンク、接続ごとの履歴（直近20件）
 - **Authentication**: ユーザー一覧、UID / メール / 電話番号での検索、詳細（プロバイダ、カスタムクレームなど）
 - **エクスポート**: JSON（型情報を保持）/ CSV / TSV
+- **AI エージェント（MCP）**: 許可した接続を、Claude Code などのエージェントから読み取り専用で利用（多くの読み取りは承認制）
 - **コピー**: 表のセルを表計算ソフトのように選択（クリック、Shift+クリック、ドラッグ、矢印キー、Cmd/Ctrl+A）し、Cmd/Ctrl+C で TSV、Cmd/Ctrl+Shift+C で JSON としてコピー
 - **インデックス**: コレクションごとの複合インデックスと単一フィールドの例外設定を表示
 - **表示**: Doc ID 列の固定、列の表示・並び替え、画面の分割（左右・上下）、ライト / ダーク / システム、フォント・表示サイズ、日本語 / 英語
@@ -117,6 +118,25 @@ pnpm seed          # テストデータ（ドキュメント128件、ユーザ�
 ```bash
 pnpm seed --project <projectId>
 ```
+
+## AI エージェント（MCP）
+
+Claude Code・Claude Desktop・Cursor などの AI エージェントから、MCP サーバーとして Irori Desk 経由でデータを読み取れます。アプリと同じく読み取り専用です。
+
+1. **接続の管理**で、エージェントに使わせる接続の **AI エージェント** をオンにします（既定はオフ）。
+2. エージェントにサーバーを追加します。**設定 → AI エージェント** に、実際のパスを入れたコマンドが表示されます。例:
+
+```bash
+claude mcp add irori-desk -- "/Applications/Irori Desk.app/Contents/MacOS/irori-desk" mcp
+```
+
+ツール: `list_connections`、`list_collections`、`describe_collection`（数件を読んでフィールド名・型・値の例をまとめる）、`list_documents`、`get_document`、`run_query`、`count`、`list_indexes`、`list_auth_users`、`lookup_auth_user`
+
+- **多くのドキュメントを読むときは確認が出ます。** **設定 → AI エージェント** の基準（既定は1回 300 件、累計 2,000 件）を超えると、エージェントの画面（MCP の elicitation に対応している場合）か OS のダイアログで許可を求めます。上限ではありません。
+- **Authentication の個人情報は、既定で一部を伏せます**（`a***@example.com`）。接続ごとに変更できます。Firestore のドキュメントの中の個人情報は伏せないため、本番接続を許可するときは注意してください。
+- ツールの呼び出しはすべて手元に記録します（アプリのデータ領域の `agent-log.jsonl`。設定から開けます）。引数の値は記録しません。
+
+設計は [MCP.md](MCP.md) を参照してください。
 
 ## テスト
 
@@ -227,7 +247,7 @@ docs/                   仕様と決定事項（SPEC.md）、日本語の README
 
 ## プライバシー
 
-Irori Desk はテレメトリ（利用状況の送信）、アクセス解析、クラッシュレポートの送信を行いません。接続するのは、設定したプロジェクトの Google Cloud API（Cloud Firestore、Firebase Authentication）か、ローカルの Firebase Emulator だけで、認証にはあなた自身の Google の認証情報を使います。アクセストークンはメモリ上にのみ保持し、設定はお使いのコンピューター内に保存します。
+Irori Desk はテレメトリ（利用状況の送信）、アクセス解析、クラッシュレポートの送信を行いません。AI エージェント（MCP）が読めるのは、許可した接続だけです。接続するのは、設定したプロジェクトの Google Cloud API（Cloud Firestore、Firebase Authentication）か、ローカルの Firebase Emulator だけで、認証にはあなた自身の Google の認証情報を使います。アクセストークンはメモリ上にのみ保持し、設定はお使いのコンピューター内に保存します。
 
 ## コントリビュート
 
