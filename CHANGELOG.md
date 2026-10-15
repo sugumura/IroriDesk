@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-15
+
 ### Added
 
 - The collections panel shows the path you are in: the document you came through and its subcollections, so you can switch between sibling subcollections in one click (like the Firebase console).
@@ -97,7 +99,8 @@ First public release.
 - Connections to production projects (ADC or a gcloud account per connection) and the Firebase Emulator. Read-only: no API that writes data is ever called.
 - Signed and notarized macOS build (Apple Silicon / Intel).
 
-[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/sugumura/IroriDesk/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/sugumura/IroriDesk/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/sugumura/IroriDesk/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/sugumura/IroriDesk/compare/v0.4.0...v0.5.0
