@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-15
+
 ### Fixed
 
 - Connections that use a gcloud account no longer fail with authentication errors after a while. An access token from gcloud could be close to expiring but was reused for up to 45 minutes; now it is reused for at most 5 minutes, and when Google rejects a token the app gets a fresh one and retries once.
@@ -89,7 +91,8 @@ First public release.
 - Connections to production projects (ADC or a gcloud account per connection) and the Firebase Emulator. Read-only: no API that writes data is ever called.
 - Signed and notarized macOS build (Apple Silicon / Intel).
 
-[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/sugumura/IroriDesk/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/sugumura/IroriDesk/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/sugumura/IroriDesk/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/sugumura/IroriDesk/compare/v0.3.0...v0.4.0
