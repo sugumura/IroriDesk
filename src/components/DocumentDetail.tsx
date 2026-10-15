@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { FolderOpen, Loader2, X } from "lucide-react";
+import { FolderOpen, Layers, Loader2, X } from "lucide-react";
 import {
   type AppError,
   type DisplayDocument,
   getDocument,
-  listCollectionIds,
   toAppError,
 } from "@/lib/api";
+import { fetchSubcollections } from "@/lib/subcollections";
+import { FilterInput } from "./FilterInput";
 import { formatTimestamp } from "@/lib/display";
-import { activeConnection, useStore } from "@/store";
+import { activeConnection, emptyQuerySpec, useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { CopyButton, CopyTextButton } from "./CopyButton";
 import { ErrorBox } from "./ErrorBox";
@@ -35,6 +36,64 @@ const initial: DetailState = {
   subError: null,
 };
 
+/** これより多いときは絞り込みの欄を出す */
+const FILTER_THRESHOLD = 8;
+
+/** サブコレクションの縦の一覧。名前のクリックで開き、右のボタンで同じ名前のコレクションを横断して検索する */
+function SubcollectionList({ path, ids }: { path: string; ids: string[] }) {
+  const t = useT();
+  const openCollection = useStore((s) => s.openCollection);
+  const openQuery = useStore((s) => s.openQuery);
+  const [filter, setFilter] = useState("");
+  useEffect(() => setFilter(""), [path]);
+  const q = filter.trim().toLowerCase();
+  const shown = q ? ids.filter((id) => id.toLowerCase().includes(q)) : ids;
+  return (
+    <div className="border-b p-3">
+      <div className="mb-1.5 flex items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">
+          {t("detail.subcollections")} ({ids.length})
+        </span>
+        <div className="flex-1" />
+        {ids.length > FILTER_THRESHOLD && (
+          <FilterInput
+            className="w-36"
+            value={filter}
+            onChange={setFilter}
+            placeholder={t("detail.filterSubcollections")}
+          />
+        )}
+      </div>
+      <div className="max-h-64 overflow-auto">
+        {shown.map((id) => (
+          <div key={id} className="group flex items-center gap-1 rounded hover:bg-muted">
+            <button
+              type="button"
+              className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 text-left"
+              title={t("tree.openHint")}
+              onClick={(e) => openCollection(`${path}/${id}`, { newTab: e.metaKey || e.ctrlKey })}
+            >
+              <FolderOpen className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate font-mono text-xs">{id}</span>
+            </button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="opacity-0 group-hover:opacity-100"
+              title={t("detail.collectionGroupQuery", { id })}
+              aria-label={t("detail.collectionGroupQuery", { id })}
+              onClick={() => openQuery({ ...emptyQuerySpec(id), targetKind: "collectionGroup" })}
+            >
+              <Layers />
+            </Button>
+          </div>
+        ))}
+        {shown.length === 0 && <div className="px-1.5 py-1 text-xs text-muted-foreground">{t("detail.noMatch")}</div>}
+      </div>
+    </div>
+  );
+}
+
 function isNotFound(e: AppError) {
   return e.code === "API" && (e.detail?.includes("404") ?? false);
 }
@@ -44,7 +103,6 @@ export function DocumentDetail() {
   const path = useStore((s) => s.selectedDocPath);
   const select = useStore((s) => s.selectDocument);
   const setDetailOpen = useStore((s) => s.setDetailOpen);
-  const openCollection = useStore((s) => s.openCollection);
   const view = useStore((s) => s.detailView);
   const setView = useStore((s) => s.setDetailView);
   const [state, setState] = useState<DetailState>(initial);
@@ -66,7 +124,7 @@ export function DocumentDetail() {
           : { doc: null, error: err, notFound: false };
       },
     );
-    const subP = listCollectionIds(conn, path).then(
+    const subP = fetchSubcollections(conn, path).then(
       (ids) => ({ subcollections: ids, subError: null }),
       (e) => ({ subcollections: null, subError: toAppError(e) }),
     );
@@ -129,24 +187,7 @@ export function DocumentDetail() {
           )}
 
           {state.subcollections && state.subcollections.length > 0 && (
-            <div className="border-b p-3">
-              <div className="mb-1 text-xs font-medium text-muted-foreground">{t("detail.subcollections")}</div>
-              <div className="flex flex-wrap gap-1">
-                {state.subcollections.map((id) => (
-                  <Button
-                    key={id}
-                    variant="outline"
-                    size="xs"
-                    title={t("tree.openHint")}
-                    onClick={(e) =>
-                      openCollection(`${path}/${id}`, { newTab: e.metaKey || e.ctrlKey })
-                    }
-                  >
-                    <FolderOpen /> {id}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <SubcollectionList path={path} ids={state.subcollections} />
           )}
           {state.subError && <ErrorBox error={state.subError} className="m-3" />}
 

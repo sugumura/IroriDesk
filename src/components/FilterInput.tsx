@@ -7,10 +7,13 @@ export function FilterInput({
   value,
   onChange,
   className,
+  placeholder,
 }: {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  /** 省略時は「読み込み済みを絞り込み」 */
+  placeholder?: string;
 }) {
   const t = useT();
   return (
@@ -27,7 +30,7 @@ export function FilterInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Escape" && onChange("")}
-        placeholder={t("browse.filterPlaceholder")}
+        placeholder={placeholder ?? t("browse.filterPlaceholder")}
         className="w-full min-w-0 bg-transparent outline-none placeholder:text-muted-foreground"
         spellCheck={false}
       />
