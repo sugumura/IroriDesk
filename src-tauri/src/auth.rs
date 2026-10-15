@@ -11,6 +11,9 @@ const SCOPES: &[&str] = &["https://www.googleapis.com/auth/datastore"];
 #[async_trait::async_trait]
 pub trait TokenSource: Send + Sync {
     async fn bearer_token(&self) -> AppResult<String>;
+
+    /// Google が 401 を返したときに呼ぶ。キャッシュしたトークンを捨てて、次は取り直す
+    async fn invalidate(&self) {}
 }
 
 /// `gcloud auth application-default login` で作られた ADC ファイルを使う。

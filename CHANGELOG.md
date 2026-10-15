@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Connections that use a gcloud account no longer fail with authentication errors after a while. An access token from gcloud could be close to expiring but was reused for up to 45 minutes; now it is reused for at most 5 minutes, and when Google rejects a token the app gets a fresh one and retries once.
+
 ## [0.6.0] - 2026-10-14
 
 ### Added

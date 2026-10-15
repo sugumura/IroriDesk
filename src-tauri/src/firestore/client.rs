@@ -154,7 +154,7 @@ impl RestClient {
     }
 
     async fn get_json<T: serde::de::DeserializeOwned>(&self, url: Url) -> AppResult<T> {
-        let res = self.request(Method::GET, url).await?.send().await?;
+        let res = self.send(Method::GET, url, None).await?;
         Ok(check_status(res).await?.json().await?)
     }
 
@@ -165,6 +165,30 @@ impl RestClient {
             req = req.header("x-goog-user-project", qp);
         }
         Ok(req)
+    }
+
+    /// リクエストを送る。401 が返ったら、トークンを取り直して1回だけ再試行する
+    /// （期限切れのトークンを使い続けてエラーになるのを防ぐ）
+    async fn send(
+        &self,
+        method: Method,
+        url: Url,
+        body: Option<&serde_json::Value>,
+    ) -> AppResult<Response> {
+        let mut retried = false;
+        loop {
+            let mut req = self.request(method.clone(), url.clone()).await?;
+            if let Some(b) = body {
+                req = req.json(b);
+            }
+            let res = req.send().await?;
+            if res.status() == reqwest::StatusCode::UNAUTHORIZED && !retried {
+                self.tokens.invalidate().await;
+                retried = true;
+                continue;
+            }
+            return Ok(res);
+        }
     }
 }
 
@@ -279,12 +303,7 @@ impl FirestoreApi for RestClient {
             if let Some(t) = &page_token {
                 body["pageToken"] = json!(t);
             }
-            let res = self
-                .request(Method::POST, url.clone())
-                .await?
-                .json(&body)
-                .send()
-                .await?;
+            let res = self.send(Method::POST, url.clone(), Some(&body)).await?;
             let page: ListCollectionIdsResponse = check_status(res).await?.json().await?;
             ids.extend(page.collection_ids);
             match page.next_page_token.filter(|t| !t.is_empty()) {
@@ -305,7 +324,7 @@ impl FirestoreApi for RestClient {
             )));
         }
         let url = self.documents_url(&segments, "");
-        let res = self.request(Method::GET, url).await?.send().await?;
+        let res = self.send(Method::GET, url, None).await?;
         let doc: RestDocument = check_status(res).await?.json().await?;
         DisplayDocument::from_rest(doc)
     }
@@ -329,7 +348,7 @@ impl FirestoreApi for RestClient {
                 q.append_pair("pageToken", t);
             }
         }
-        let res = self.request(Method::GET, url).await?.send().await?;
+        let res = self.send(Method::GET, url, None).await?;
         let page: ListDocumentsResponse = check_status(res).await?.json().await?;
         Ok(DocumentPage {
             documents: page
@@ -345,12 +364,7 @@ impl FirestoreApi for RestClient {
         let built = query::build(spec, &self.documents_root())?;
         let parent: Vec<&str> = built.parent_segments.iter().map(String::as_str).collect();
         let url = self.documents_url(&parent, ":runQuery");
-        let res = self
-            .request(Method::POST, url)
-            .await?
-            .json(&built.body)
-            .send()
-            .await?;
+        let res = self.send(Method::POST, url, Some(&built.body)).await?;
         let items: Vec<RunQueryItem> = check_status(res).await?.json().await?;
         let mut documents = Vec::new();
         let mut read_time = None;
@@ -374,10 +388,7 @@ impl FirestoreApi for RestClient {
         let parent: Vec<&str> = built.parent_segments.iter().map(String::as_str).collect();
         let url = self.documents_url(&parent, ":runAggregationQuery");
         let res = self
-            .request(Method::POST, url)
-            .await?
-            .json(&built.count_body())
-            .send()
+            .send(Method::POST, url, Some(&built.count_body()))
             .await?;
         let items: Vec<serde_json::Value> = check_status(res).await?.json().await?;
         items

@@ -14,8 +14,9 @@ use tokio::sync::Mutex;
 use crate::auth::TokenSource;
 use crate::error::{AppError, AppResult};
 
-/// gcloud のアクセストークンは約1時間有効。余裕を持って更新する
-const TOKEN_TTL: Duration = Duration::from_secs(45 * 60);
+/// gcloud が返すトークンは gcloud 側のキャッシュで、残り時間が短いことがある。
+/// 長く使い回すと期限切れのまま使い続けるため短めにし、401 のときは取り直す（invalidate）
+const TOKEN_TTL: Duration = Duration::from_secs(5 * 60);
 
 /// 設定で指定された gcloud の場所（指定なしなら自動で探す）
 static CUSTOM_PATH: StdRwLock<Option<PathBuf>> = StdRwLock::new(None);
@@ -291,6 +292,10 @@ impl GcloudTokenCache {
         self.tokens.lock().await.clear();
     }
 
+    async fn forget(&self, account: &str) {
+        self.tokens.lock().await.remove(account);
+    }
+
     async fn token(&self, account: &str) -> AppResult<String> {
         if let Some((t, at)) = self.tokens.lock().await.get(account) {
             if at.elapsed() < TOKEN_TTL {
@@ -336,6 +341,10 @@ pub struct GcloudTokenSource {
 impl TokenSource for GcloudTokenSource {
     async fn bearer_token(&self) -> AppResult<String> {
         self.cache.token(&self.account).await
+    }
+
+    async fn invalidate(&self) {
+        self.cache.forget(&self.account).await;
     }
 }
 

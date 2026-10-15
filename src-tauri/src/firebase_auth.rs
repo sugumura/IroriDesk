@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, SecondsFormat, Utc};
-use reqwest::{Method, RequestBuilder, Url};
+use reqwest::{Method, RequestBuilder, Response, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
@@ -204,6 +204,30 @@ impl AuthClient {
         Ok(req)
     }
 
+    /// リクエストを送る。401 が返ったら、トークンを取り直して1回だけ再試行する
+    /// （期限切れのトークンを使い続けてエラーになるのを防ぐ）
+    async fn send(
+        &self,
+        method: Method,
+        url: Url,
+        body: Option<&serde_json::Value>,
+    ) -> AppResult<Response> {
+        let mut retried = false;
+        loop {
+            let mut req = self.request(method.clone(), url.clone()).await?;
+            if let Some(b) = body {
+                req = req.json(b);
+            }
+            let res = req.send().await?;
+            if res.status() == reqwest::StatusCode::UNAUTHORIZED && !retried {
+                self.tokens.invalidate().await;
+                retried = true;
+                continue;
+            }
+            return Ok(res);
+        }
+    }
+
     pub async fn list_users(
         &self,
         page_size: u32,
@@ -217,7 +241,7 @@ impl AuthClient {
                 q.append_pair("nextPageToken", t);
             }
         }
-        let res = self.request(Method::GET, url).await?.send().await?;
+        let res = self.send(Method::GET, url, None).await?;
         let body: Value = check_auth_status(res).await?.json().await?;
         Ok(UserPage {
             users: users_from(&body)?,
@@ -244,12 +268,7 @@ impl AuthClient {
             LookupKind::Phone => json!({ "phoneNumber": [value] }),
         };
         let url = self.url("accounts:lookup")?;
-        let res = self
-            .request(Method::POST, url)
-            .await?
-            .json(&body)
-            .send()
-            .await?;
+        let res = self.send(Method::POST, url, Some(&body)).await?;
         let body: Value = check_auth_status(res).await?.json().await?;
         users_from(&body)
     }
