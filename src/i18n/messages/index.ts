@@ -17,6 +17,7 @@ import * as authMessages from "./auth";
 import * as indexesMessages from "./indexes";
 import * as shortcutsMessages from "./shortcuts";
 import * as updatesMessages from "./updates";
+import * as statusMessages from "./status";
 
 export const messages = {
   ja: {
@@ -35,6 +36,7 @@ export const messages = {
     indexes: indexesMessages.ja,
     shortcuts: shortcutsMessages.ja,
     updates: updatesMessages.ja,
+    status: statusMessages.ja,
   },
   en: {
     common: commonMessages.en,
@@ -52,5 +54,6 @@ export const messages = {
     indexes: indexesMessages.en,
     shortcuts: shortcutsMessages.en,
     updates: updatesMessages.en,
+    status: statusMessages.en,
   },
 };

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { recordLogin } from "@/lib/settings";
 import { Loader2, LogIn, RefreshCw, RotateCcw, UserPlus } from "lucide-react";
 import {
   type AppError,
@@ -63,6 +64,9 @@ export function AccountPicker({
       setAccounts(list);
       // 新しく追加されたアカウントがあれば、それを選ぶ
       const added = list.find((a) => !before.has(a.account));
+      // 「接続の状態」に前回のログインの時刻を出すため記録する
+      const signedIn = account ?? added?.account;
+      if (signedIn) void recordLogin(signedIn);
       if (added) onChange(added.account);
     } catch (e) {
       setError(toAppError(e));

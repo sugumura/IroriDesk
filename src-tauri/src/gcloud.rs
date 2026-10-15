@@ -281,6 +281,26 @@ pub async fn login(account: Option<&str>) -> AppResult<()> {
     })
 }
 
+/// ADC をブラウザでのログインで作り直す（`gcloud auth application-default login`）。
+/// Cloud SQL などの不要なスコープを求めないよう、必要なスコープだけを指定する
+pub async fn adc_login() -> AppResult<()> {
+    run_gcloud(&[
+        "auth",
+        "application-default",
+        "login",
+        "--scopes=openid,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/cloud-platform",
+    ])
+    .await
+    .map(|_| ())
+    .map_err(|detail| AppError::Auth {
+        message: tr!(
+            "ADC の作成に失敗しました（ブラウザでのログインが完了していない可能性があります）",
+            "Could not create ADC (the browser sign-in may not have completed)"
+        ),
+        detail: Some(detail),
+    })
+}
+
 /// アカウントごとのアクセストークンのキャッシュ（再読み込みで破棄する）
 #[derive(Default)]
 pub struct GcloudTokenCache {

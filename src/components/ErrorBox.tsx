@@ -1,7 +1,12 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { CircleAlert } from "lucide-react";
+import { useState } from "react";
+import { CircleAlert, Loader2, LogIn } from "lucide-react";
 import type { AppError } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { activeConnection, useStore } from "@/store";
+import { useT } from "@/i18n";
+import { reauthenticate } from "./ConnectionStatus";
+import { Button } from "@/components/ui/button";
 
 const URL_RE = /(https?:\/\/[^\s"'<>]+)/g;
 
@@ -31,6 +36,30 @@ export function Linkified({ text }: { text: string }) {
   );
 }
 
+/** 認証エラーのとき、その場でログインし直すボタン（本番接続のみ） */
+function ReloginButton() {
+  const t = useT();
+  const conn = useStore(activeConnection);
+  const [busy, setBusy] = useState(false);
+  if (!conn || conn.kind === "emulator") return null;
+  return (
+    <Button
+      size="xs"
+      variant="outline"
+      className="mt-1 border-destructive/40 text-destructive"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        await reauthenticate();
+        setBusy(false);
+      }}
+    >
+      {busy ? <Loader2 className="animate-spin" /> : <LogIn />}
+      {busy ? t("status.reloggingIn") : conn.account ? t("status.relogin") : t("status.reloginAdc")}
+    </Button>
+  );
+}
+
 export function ErrorBox({ error, className }: { error: AppError; className?: string }) {
   return (
     <div
@@ -51,6 +80,7 @@ export function ErrorBox({ error, className }: { error: AppError; className?: st
               <Linkified text={error.detail} />
             </div>
           )}
+          {error.code === "AUTH" && <ReloginButton />}
         </div>
       </div>
     </div>

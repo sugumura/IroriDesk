@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- The collections panel shows the path you are in: the document you came through and its subcollections, so you can switch between sibling subcollections in one click (like the Firebase console).
+- Subcollections in the document details are a vertical list with a count, a filter when there are many, and a button to query the same subcollection across all documents (collection group).
+- **Connection status** in the top bar for production connections: whether authentication works, the account, when the access token renews, your last sign-in from this app and the last successful request, with **Sign in again** right there. Authentication errors also show a **Sign in again** button.
+
 ## [0.6.1] - 2026-10-15
 
 ### Fixed

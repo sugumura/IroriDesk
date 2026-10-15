@@ -170,6 +170,73 @@ async fn reload_credentials(state: tauri::State<'_, AppState>) -> AppResult<()> 
 }
 
 /// 旧名（Firestore Viewer）の識別子で保存された設定を、初回起動時に引き継ぐ
+/// ADC をブラウザでログインし直して作り直す。終わったら読み直す
+#[tauri::command]
+async fn adc_login(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    gcloud::adc_login().await?;
+    *state.adc.write().expect("adc lock") = Arc::default();
+    state.gcloud_tokens.clear().await;
+    Ok(())
+}
+
+/// 接続の認証の状態（画面の「接続の状態」用）。トークンそのものは返さない
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TokenStatus {
+    /// "adc" / "gcloud" / "emulator"
+    source: &'static str,
+    account: Option<String>,
+    /// アクセストークンの残り秒数（自動で更新されるため、切れても接続は続く）
+    expires_in_secs: Option<i64>,
+}
+
+#[tauri::command]
+async fn token_status(
+    state: tauri::State<'_, AppState>,
+    connection: ConnectionConfig,
+) -> AppResult<TokenStatus> {
+    if connection.kind == connection::ConnectionKind::Emulator {
+        return Ok(TokenStatus {
+            source: "emulator",
+            account: None,
+            expires_in_secs: None,
+        });
+    }
+    let token = state.production_tokens(&connection).bearer_token().await?;
+    // Google のトークン情報のエンドポイントで残り時間を確かめる（トークンは Google にだけ送る）
+    let info: serde_json::Value = state
+        .http
+        .post("https://oauth2.googleapis.com/tokeninfo")
+        // アクセストークンは URL で安全な文字だけでできている
+        .header(
+            reqwest::header::CONTENT_TYPE,
+            "application/x-www-form-urlencoded",
+        )
+        .body(format!("access_token={token}"))
+        .send()
+        .await?
+        .json()
+        .await?;
+    let expires_in_secs = info.get("expires_in").and_then(|v| match v {
+        serde_json::Value::String(s) => s.parse().ok(),
+        serde_json::Value::Number(n) => n.as_i64(),
+        _ => None,
+    });
+    Ok(TokenStatus {
+        source: if connection.account().is_some() {
+            "gcloud"
+        } else {
+            "adc"
+        },
+        account: connection.account().map(str::to_owned).or_else(|| {
+            info.get("email")
+                .and_then(|v| v.as_str())
+                .map(str::to_owned)
+        }),
+        expires_in_secs,
+    })
+}
+
 /// 設定で指定した gcloud の場所を反映する（空なら自動で探す）。トークンのキャッシュは捨てる
 #[tauri::command]
 async fn set_gcloud_path(path: Option<String>, state: tauri::State<'_, AppState>) -> AppResult<()> {
@@ -307,6 +374,8 @@ pub fn run() {
             gcloud_login,
             reload_credentials,
             set_gcloud_path,
+            adc_login,
+            token_status,
             gcloud_status,
             pick_gcloud_path,
             open_licenses,

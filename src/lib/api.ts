@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { track } from "./connectionStatus";
 
 export type ConnectionKind = "production" | "emulator";
 
@@ -66,11 +67,11 @@ export function listCollectionIds(
   connection: ConnectionConfig,
   parentPath?: string,
 ): Promise<string[]> {
-  return invoke("list_collection_ids", { connection, parentPath });
+  return track(invoke("list_collection_ids", { connection, parentPath }));
 }
 
 export function getDocument(connection: ConnectionConfig, path: string): Promise<DisplayDocument> {
-  return invoke("get_document", { connection, path });
+  return track(invoke("get_document", { connection, path }));
 }
 
 export function listDocuments(
@@ -79,7 +80,7 @@ export function listDocuments(
   pageSize: number,
   pageToken?: string | null,
 ): Promise<DocumentPage> {
-  return invoke("list_documents", { connection, collectionPath, pageSize, pageToken });
+  return track(invoke("list_documents", { connection, collectionPath, pageSize, pageToken }));
 }
 
 export type WhereOp =
@@ -132,7 +133,7 @@ export interface QueryResult {
 }
 
 export function runQuery(connection: ConnectionConfig, spec: QuerySpec): Promise<QueryResult> {
-  return invoke("run_query", { connection, spec });
+  return track(invoke("run_query", { connection, spec }));
 }
 
 /** 保存ダイアログで選んだファイルに書き込む。キャンセル時は null */
@@ -175,7 +176,7 @@ export function listAuthUsers(
   pageSize: number,
   pageToken?: string | null,
 ): Promise<UserPage> {
-  return invoke("list_auth_users", { connection, pageSize, pageToken });
+  return track(invoke("list_auth_users", { connection, pageSize, pageToken }));
 }
 
 export function lookupAuthUsers(
@@ -183,7 +184,7 @@ export function lookupAuthUsers(
   kind: UserLookupKind,
   value: string,
 ): Promise<DisplayUser[]> {
-  return invoke("lookup_auth_users", { connection, kind, value });
+  return track(invoke("lookup_auth_users", { connection, kind, value }));
 }
 
 export interface GcloudAccount {
@@ -245,6 +246,22 @@ export function openAgentLog(): Promise<void> {
   return invoke("open_agent_log");
 }
 
+export interface TokenStatus {
+  source: "adc" | "gcloud" | "emulator";
+  account: string | null;
+  /** アクセストークンの残り秒数（自動で更新されるため、切れても接続は続く） */
+  expiresInSecs: number | null;
+}
+
+export function tokenStatus(connection: ConnectionConfig): Promise<TokenStatus> {
+  return invoke("token_status", { connection });
+}
+
+/** ブラウザで Google にログインして ADC を作り直す */
+export function adcLogin(): Promise<void> {
+  return invoke("adc_login");
+}
+
 /** ADC を読み直し、gcloud のトークンキャッシュを捨てる */
 export function reloadCredentials(): Promise<void> {
   return invoke("reload_credentials");
@@ -278,10 +295,10 @@ export interface CollectionIndexes {
 
 /** コレクションID（コレクショングループ）単位のインデックス情報 */
 export function listIndexes(connection: ConnectionConfig, collectionId: string): Promise<CollectionIndexes> {
-  return invoke("list_indexes", { connection, collectionId });
+  return track(invoke("list_indexes", { connection, collectionId }));
 }
 
 /** 条件に一致するドキュメント数（集計クエリ。limit は無視） */
 export function countDocuments(connection: ConnectionConfig, spec: QuerySpec): Promise<number> {
-  return invoke("count_documents", { connection, spec });
+  return track(invoke("count_documents", { connection, spec }));
 }

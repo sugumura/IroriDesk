@@ -119,6 +119,18 @@ export async function saveAutoCheckUpdates(on: boolean): Promise<void> {
   await s.set("autoCheckUpdates", on);
 }
 
+/** このアプリからログインした時刻（キーは gcloud のアカウント、または "adc"） */
+export async function loadLastLogins(): Promise<Record<string, string>> {
+  const s = await store();
+  return (await s.get<Record<string, string>>("lastLogins")) ?? {};
+}
+
+export async function recordLogin(key: string): Promise<void> {
+  const s = await store();
+  const all = (await s.get<Record<string, string>>("lastLogins")) ?? {};
+  await s.set("lastLogins", { ...all, [key]: new Date().toISOString() });
+}
+
 /** 接続ごとに開いていたタブ（再起動・接続の切り替えで復元する） */
 export async function loadSessions(): Promise<Record<string, SavedSession>> {
   const s = await store();

@@ -16,6 +16,7 @@ import {
 import { AppSettingsDialog } from "./AppSettingsDialog";
 import { ConnectionDialog } from "./ConnectionDialog";
 import { ENV_COLOR, EnvBadge, EnvDot } from "./EnvIndicator";
+import { ConnectionStatus } from "./ConnectionStatus";
 
 export function TopBar() {
   const t = useT();
@@ -78,6 +79,7 @@ export function TopBar() {
         {testing ? <Loader2 className="animate-spin" /> : <PlugZap />}
         {t("topbar.testConnection")}
       </Button>
+      <ConnectionStatus />
       <div className="flex-1" />
       {conn && (
         <>
