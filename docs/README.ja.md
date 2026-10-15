@@ -29,6 +29,14 @@ Cloud Firestore と Firebase Authentication を閲覧・クエリするための
 | macOS 11 以降（Apple Silicon / Intel） | `IroriDesk_<version>_universal.dmg` | 署名・公証済み |
 | Windows 10 / 11（x64） | `IroriDesk_<version>_x64-setup.exe` または `_x64.msi` | まだコード署名していません（下記） |
 
+macOS では [Homebrew](https://brew.sh) でもインストールできます。
+
+```bash
+brew install --cask sugumura/tap/irori-desk
+```
+
+アプリが自分で更新するため（[自動アップデート](#自動アップデート)）、`brew upgrade` の対象にはなりません。
+
 Windows のインストーラーはまだ署名していません（コード署名証明書を発行中です。[CODE_SIGNING.md](../CODE_SIGNING.md)）。「Windows によって PC が保護されました」と表示された場合は、「詳細情報 → 実行」で起動できます。
 
 ## 主な機能

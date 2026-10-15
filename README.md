@@ -29,6 +29,14 @@ Get the latest version from [GitHub Releases](https://github.com/sugumura/IroriD
 | macOS 11+ (Apple Silicon / Intel) | `IroriDesk_<version>_universal.dmg` | Signed and notarized |
 | Windows 10 / 11 (x64) | `IroriDesk_<version>_x64-setup.exe` or `_x64.msi` | Not code-signed yet — see below |
 
+On macOS you can also install it with [Homebrew](https://brew.sh):
+
+```bash
+brew install --cask sugumura/tap/irori-desk
+```
+
+The app updates itself (see [Auto-update](#auto-update)), so `brew upgrade` leaves it alone.
+
 The Windows installers are not signed yet (a code signing certificate is being issued, see [CODE_SIGNING.md](CODE_SIGNING.md)). Windows SmartScreen may show "Windows protected your PC"; click **More info → Run anyway**.
 
 ## Features
