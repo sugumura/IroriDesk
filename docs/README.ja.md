@@ -203,7 +203,7 @@ Windows は署名しないと SmartScreen の警告が出ます（「詳細情�
 
 ### GitHub Releases で配布する
 
-`v0.2.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が macOS（Universal、署名・公証付き）と Windows（x64、現在は署名なし）向けにビルドし、Releases に**下書き**として登録します。内容を確認して「Publish release」を押すと公開されます。
+`v0.2.0` のようなタグを push すると、GitHub Actions（`.github/workflows/release.yml`）が macOS（Universal、署名・公証付き）と Windows（x64、現在は署名なし）向けにビルドし、Releases に**下書き**として登録します。すべてのビルドが成功すると、`publish` ジョブが `latest.json` の変更内容を整え、全プラットフォームがそろっていることを確かめてから**自動で公開**します（ファイルがそろう前にアプリが更新を見つけないようにするため）。`v0.8.0-rc.1` のように `-` を含むタグは、下書きのまま残るので手動で確認・公開します。
 
 Linux 版はまだ配布していません（ワークフローのビルド対象ではコメントにしています）。手元では `pnpm tauri build` でビルドできます。
 

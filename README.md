@@ -203,7 +203,7 @@ On Windows, unsigned builds show a SmartScreen warning ("More info → Run anywa
 
 ### Publishing with GitHub Releases
 
-Pushing a tag like `v0.2.0` runs GitHub Actions (`.github/workflows/release.yml`), which builds for macOS (universal, signed and notarized) and Windows (x64, not signed yet), and creates a **draft** release. Review it and click **Publish release**.
+Pushing a tag like `v0.2.0` runs GitHub Actions (`.github/workflows/release.yml`), which builds for macOS (universal, signed and notarized) and Windows (x64, not signed yet), and uploads them to a draft release. When every build has succeeded, the `publish` job trims the update notes in `latest.json`, checks that every platform is present, and publishes the release, so apps only see an update once all files are in place. Tags with a hyphen (for example `v0.8.0-rc.1`) stay as drafts for manual review.
 
 Linux builds are not distributed yet (commented out in the workflow's build matrix). You can still build them locally with `pnpm tauri build`.
 

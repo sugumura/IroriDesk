@@ -1,5 +1,5 @@
-# タグ（v0.2.0 など）を push すると macOS / Windows 向けにビルドし、
-# GitHub Releases に下書きとして登録する。内容を確認してから公開する
+# タグ（v0.2.0 など）を push すると macOS / Windows 向けにビルドして GitHub Releases に下書きとして登録し、
+# すべて成功したら公開する（publish ジョブ）。タグに "-" を含む場合は下書きのまま残す
 name: Release
 
 on:
@@ -171,9 +171,13 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }} ${{ steps.winsign.outputs.args }}
 
-  # 自動アップデートの更新情報（latest.json）の変更内容を、CHANGELOG のそのバージョンの節だけにする。
-  # 配布済みのアプリは文字のまま表示するため、ダウンロードの案内などを除く
-  updater-notes:
+  # 仕上げと公開。すべてのビルドが終わってから、
+  # 1) 自動アップデートの更新情報（latest.json）の変更内容を CHANGELOG のそのバージョンの節だけにし
+  #    （配布済みのアプリは文字のまま表示するため、ダウンロードの案内などを除く）、
+  # 2) 全プラットフォームがそろっていることを確かめてから、リリースを公開する。
+  # ビルドの途中で公開すると、latest.json に一部のプラットフォームしか無く、アップデートに失敗するため。
+  # タグに "-" を含む場合（v0.8.0-rc.1 など）は下書きのまま残す
+  publish:
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
@@ -186,3 +190,17 @@ jobs:
           gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$RUNNER_TEMP" --clobber
           node scripts/updater-notes.mjs "$RUNNER_TEMP/latest.json"
           gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/latest.json" --clobber
+      - name: 全プラットフォームの更新情報があるか確認
+        run: |
+          node -e '
+            const d = require(process.argv[1]);
+            const need = ["darwin-aarch64", "darwin-x86_64", "windows-x86_64"];
+            const missing = need.filter((p) => !d.platforms?.[p]?.signature || !d.platforms?.[p]?.url);
+            if (missing.length) { console.error("latest.json is missing: " + missing.join(", ")); process.exit(1); }
+            console.log("latest.json " + d.version + ": " + Object.keys(d.platforms).join(", "));
+          ' "$RUNNER_TEMP/latest.json"
+      - name: リリースを公開
+        if: ${{ !contains(github.ref_name, '-') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest
