@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Settings → AI agents → Open the read log** failed on macOS because no app was set to open `.jsonl` files. The log now opens in TextEdit (Notepad on Windows).
 - The update dialog shows the release notes formatted (headings, lists, bold text and links) and only the list of changes, not the raw Markdown with download instructions.
 
 ## [0.7.0] - 2026-10-15

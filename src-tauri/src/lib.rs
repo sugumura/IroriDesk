@@ -288,10 +288,9 @@ fn agent_info() -> AgentInfo {
     }
 }
 
-/// AI エージェントの記録（agent-log.jsonl）を OS の既定のアプリで開く
+/// AI エージェントの記録（agent-log.jsonl）をテキストエディタで開く
 #[tauri::command]
 fn open_agent_log(app: tauri::AppHandle) -> Result<(), String> {
-    use tauri_plugin_opener::OpenerExt;
     let path = mcp::log::path().ok_or("no data directory")?;
     if !path.exists() {
         return Err(tr!(
@@ -299,8 +298,22 @@ fn open_agent_log(app: tauri::AppHandle) -> Result<(), String> {
             "There is no log yet (it is written when an AI agent uses a tool)"
         ));
     }
+    // .jsonl は開くアプリが決まっていないことが多いため、テキストエディタを指定して開く
+    open_as_text(&app, &path)
+}
+
+/// テキストファイルとして開く（macOS はテキストエディット、Windows はメモ帳。それ以外は既定のアプリ）
+fn open_as_text(app: &tauri::AppHandle, path: &std::path::Path) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let editor = if cfg!(target_os = "macos") {
+        Some("TextEdit")
+    } else if cfg!(windows) {
+        Some("notepad")
+    } else {
+        None
+    };
     app.opener()
-        .open_path(path.to_string_lossy(), None::<&str>)
+        .open_path(path.to_string_lossy(), editor)
         .map_err(|e| e.to_string())
 }
 
