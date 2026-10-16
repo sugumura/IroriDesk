@@ -36,7 +36,7 @@ export function toAppError(e: unknown): AppError {
   return { code: "INTERNAL", message: String(e), detail: null };
 }
 
-/** 表示用JSON（docs/SPEC.md「型変換」） */
+/** 表示用JSON（規則は src-tauri/src/firestore/value.rs） */
 export type DisplayValue =
   | null
   | boolean

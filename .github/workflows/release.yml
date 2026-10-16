@@ -43,11 +43,11 @@ jobs:
           fi
           # 自動アップデートの署名に必要な鍵があるか（無いとビルドの最後で分かりにくく失敗するため、先に確認する）
           if [ "$HAS_UPDATER_KEY" != "true" ]; then
-            echo "Secret TAURI_SIGNING_PRIVATE_KEY is not set (see README: Auto-update)" >&2
+            echo "Secret TAURI_SIGNING_PRIVATE_KEY is not set (see docs/DEVELOPMENT.md: Auto-update)" >&2
             exit 1
           fi
           if [ -z "$(node -p "require('./src-tauri/tauri.conf.json').plugins.updater.pubkey")" ]; then
-            echo "plugins.updater.pubkey in tauri.conf.json is empty (see README: Auto-update)" >&2
+            echo "plugins.updater.pubkey in tauri.conf.json is empty (see docs/DEVELOPMENT.md: Auto-update)" >&2
             exit 1
           fi
           # CHANGELOG.md にこのバージョンの節があるか（無ければ失敗する）

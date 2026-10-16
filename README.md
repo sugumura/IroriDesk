@@ -2,8 +2,8 @@
 
 English | [日本語](docs/README.ja.md)
 
-A desktop app for browsing and querying Cloud Firestore and Firebase Authentication (Tauri 2 + React).
-The current version is **read-only**: it never calls any API that writes to Firestore or Authentication.
+A desktop app for browsing and querying Cloud Firestore and Firebase Authentication.
+It is **read-only**: it never calls any API that writes to Firestore or Authentication, so it is safe to point at production.
 
 ![Browsing a collection with the document details panel](docs/images/browse.png)
 
@@ -35,113 +35,66 @@ On macOS you can also install it with [Homebrew](https://brew.sh):
 brew install --cask sugumura/tap/irori-desk
 ```
 
-The app updates itself (see [Auto-update](#auto-update)), so `brew upgrade` leaves it alone.
+The Windows installers are not signed yet (a code signing certificate is being issued, see [CODE_SIGNING.md](CODE_SIGNING.md)). If Windows SmartScreen shows "Windows protected your PC", click **More info → Run anyway**.
 
-The Windows installers are not signed yet (a code signing certificate is being issued, see [CODE_SIGNING.md](CODE_SIGNING.md)). Windows SmartScreen may show "Windows protected your PC"; click **More info → Run anyway**.
+To connect to production projects you also need the [Google Cloud SDK (gcloud)](https://cloud.google.com/sdk/docs/install).
 
 ## Features
 
-- **Browse**: collection tree, document list (paging, virtual scrolling), document details (tree / JSON), jump to subcollections and referenced documents
-- **Query**: `where` (AND), `orderBy` and `limit` on a collection or collection group. Field name suggestions, a link to create a missing composite index, and per-connection history (last 20)
-- **Authentication**: user list, search by UID / email / phone number, details (providers, custom claims, …)
+- **Browse**: collection tree that follows the path you are in (with sibling subcollections), document list with paging and virtual scrolling, document details as a tree or JSON, jumps to subcollections and referenced documents
+- **Query**: `where` (AND), `orderBy` and `limit` on a collection or collection group, field name suggestions, a link to create a missing composite index, and per-connection history
+- **Authentication**: user list, search by UID / email / phone number, and user details (providers, custom claims, …)
 - **Indexes**: composite indexes and single-field exemptions per collection
-- **Export**: JSON (keeps type information) / CSV / TSV
+- **Typed values**: timestamps, references, GeoPoints, bytes and large integers are shown with their types, and JSON stored as a string can be expanded as a tree
+- **Copy and export**: select cells like a spreadsheet and copy as TSV or JSON, or export to JSON (keeps type information), CSV or TSV
 - **AI agents (MCP)**: read-only access for Claude Code and other agents to the connections you allow, with approval for large reads
-- **Copy**: select cells like a spreadsheet (click, Shift+click, drag, arrow keys, Cmd/Ctrl+A), then Cmd/Ctrl+C to copy as TSV or Cmd/Ctrl+Shift+C as JSON
-- **View**: pinned Doc ID column, column visibility and order, split view (side by side / stacked), light / dark / system theme, fonts and zoom, English / Japanese
-- **Connections**: production (ADC, or a gcloud account per connection) and the Firebase Emulator
-
-The specification and design decisions (in Japanese) are in [docs/SPEC.md](docs/SPEC.md).
-
-## Support
-
-Irori Desk is free. If it saves you time, you can support its development:
-
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/sugumura)
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/sugumura)
-
-## Requirements
-
-| Tool | Used for | Notes |
-|---|---|---|
-| Node.js 24 / pnpm 10 | Frontend | |
-| Rust (stable) | Backend | Install with `rustup` |
-| Xcode Command Line Tools (macOS) | Build | You may need `sudo xcodebuild -license accept` once |
-| Google Cloud SDK (gcloud) | Authentication for production connections | |
-| Java 21+ | Firebase Emulator | Only for development. See `.sdkmanrc` |
-
-For Windows / Linux, see the [Tauri prerequisites](https://tauri.app/start/prerequisites/).
-
-## Getting started
-
-```bash
-pnpm install
-pnpm tauri dev
-```
+- **Connections**: production projects (your ADC, or a gcloud account per connection, with a connection status indicator) and the Firebase Emulator, including named databases
+- **View**: pinned Doc ID column, column visibility and order, split view, light / dark theme, fonts and zoom, English / Japanese, command palette (⌘K / Ctrl+K)
+- **Auto-update**: new versions are installed from inside the app
 
 ## Connecting to a production project
 
-Open **Manage connections** (the server icon in the top bar), add a **Production (Google Cloud)** connection, and choose an account.
+Open **Manage connections** (the server icon in the top bar), add a **Production (Google Cloud)** connection, enter the project ID, and choose how to sign in.
 
 ### Using ADC
 
-One account for the whole machine.
+One Google account for the whole machine:
 
 ```bash
 gcloud auth application-default login --scopes=openid,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/cloud-platform
 ```
 
-- Without `--scopes`, gcloud also requests a Cloud SQL scope, which this app doesn't need.
+- Without `--scopes`, gcloud also asks for a Cloud SQL scope, which Irori Desk doesn't need.
 - After recreating ADC with a different account, press **Reload ADC** in Manage connections (no restart needed).
 
 ### Using a gcloud account
 
-Each connection can use a different account. **Add account** in Manage connections opens a browser to sign in with Google (it runs `gcloud auth login --no-activate`, so the active account of your gcloud CLI doesn't change). If a token expires or your organization requires reauthentication, press **Sign in again**.
+Each connection can use a different Google account. **Add account** in Manage connections opens your browser to sign in (it runs `gcloud auth login --no-activate`, so the active account of your gcloud CLI doesn't change).
 
-If gcloud is installed somewhere Irori Desk doesn't find (for example with asdf, mise or Nix), it also asks your login shell for it. You can set the location yourself under **Settings → gcloud CLI** (use the output of `which gcloud`, or `where gcloud` on Windows).
+If gcloud is installed somewhere Irori Desk doesn't find (for example with asdf, mise or Nix), set its location under **Settings → gcloud CLI** (the output of `which gcloud`, or `where gcloud` on Windows).
 
-On Windows, Irori Desk needs the Windows version of the Google Cloud SDK; gcloud installed inside WSL can't be run from a Windows app. If you only use ADC, you can instead copy `~/.config/gcloud/application_default_credentials.json` from WSL to `%APPDATA%\gcloud\` and press **Reload ADC**.
+On Windows, Irori Desk needs the Windows version of the Google Cloud SDK; gcloud inside WSL can't be run from a Windows app. If you only use ADC, you can copy `~/.config/gcloud/application_default_credentials.json` from WSL to `%APPDATA%\gcloud\` and press **Reload ADC**.
+
+### Connection status and signing in again
+
+For production connections, the top bar shows whether authentication works. Click it to see the account, when the access token renews, and your last sign-in from the app. If your organization requires signing in again from time to time, or a sign-in expires, click **Sign in again** there (or in the error message).
 
 ### Notes
 
-- Access tokens are kept only in memory on the Rust side; they are never passed to the UI or written to the settings file.
-- The Firebase Authentication API requires a quota project when called with user credentials, so the connection's project is used unless you set one (`x-goog-user-project`).
+- Firebase Authentication needs a quota project when called with your own credentials, so the connection's project is used unless you set one.
 - If Authentication isn't enabled for the project, you'll get `CONFIGURATION_NOT_FOUND`. Click **Get started** under Authentication in the Firebase console.
 - For queries that need a composite index, the error includes a link to create it.
-- Viewing indexes requires permission to list indexes (e.g. Owner or Datastore Index Admin). The Emulator doesn't support the index API.
+- Viewing indexes requires permission to list them (for example Owner or Datastore Index Admin). The Emulator doesn't support the index API.
 
-## Trying it with the Emulator
+## Using the Firebase Emulator
 
-```bash
-sdk env            # switch to Java 21 (if you use sdkman)
-pnpm emulator      # Firestore (8080) and Authentication (9099)
-pnpm seed          # load test data (128 documents, 33 users)
-```
-
-On first launch the app creates an "Emulator (demo)" connection (project ID `demo-firestore-viewer`).
-The test data includes nested maps, arrays, Timestamps, References, GeoPoints, bytes, integers outside the safe range, NaN, keys starting with `$`, missing parent documents, subcollections, and 120 documents for paging.
-
-You can load the same Firestore test data into a production project as well (existing documents are never overwritten; Authentication users are not created):
-
-```bash
-pnpm seed --project <projectId>
-```
+Add an **Emulator** connection in Manage connections with the project ID your emulator uses and its hosts (Firestore `127.0.0.1:8080` and Authentication `127.0.0.1:9099` by default). On first launch Irori Desk creates an "Emulator (demo)" connection for the project ID `demo-firestore-viewer`.
 
 ## Auto-update
 
-Irori Desk checks GitHub Releases for a new version a few seconds after it starts (you can turn this off in **Settings → Update**), and you can check any time from **Settings**, the command palette (⌘K) or **Irori Desk → Check for Updates…** on macOS. Updates are downloaded, verified and installed in the app, and then the app restarts. Only published releases are offered; drafts are not.
+A few seconds after it starts, Irori Desk checks GitHub Releases for a new version and offers to install it; the app restarts when the update is installed. You can check any time from **Settings → Update**, the command palette or **Irori Desk → Check for Updates…** on macOS, and turn off the startup check in Settings.
 
-Update files are signed with a separate updater key (not the Apple or Windows code signing certificate), and the app only installs files signed with that key. To set it up for releases:
-
-```bash
-pnpm tauri signer generate -w ~/.tauri/irori-desk.key
-```
-
-1. Put the printed public key in `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
-2. Add the repository secrets `TAURI_SIGNING_PRIVATE_KEY` (the contents of `~/.tauri/irori-desk.key`) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
-3. **Back up the private key.** Without it, installed apps can no longer receive updates.
-
-Release builds fail early if the key or the public key is missing. For local release builds, set `TAURI_SIGNING_PRIVATE_KEY_PATH` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (see `.env.signing.example`).
+Updates are verified with a signature before they are installed. If you installed with Homebrew, `brew upgrade` leaves Irori Desk alone because it updates itself.
 
 ## AI agents (MCP)
 
@@ -156,135 +109,33 @@ claude mcp add irori-desk -- "/Applications/Irori Desk.app/Contents/MacOS/irori-
 
 Tools: `list_connections`, `list_collections`, `describe_collection` (field names, types and examples from a sample), `list_documents`, `get_document`, `run_query`, `count`, `list_indexes`, `list_auth_users` and `lookup_auth_user`.
 
-- **Large reads ask you first.** When a call reads more documents than the threshold in **Settings → AI agents** (300 per call, 2,000 per session by default), you are asked to approve it, in the agent if it supports MCP elicitation, or in an OS dialog. These are not limits.
-- **Authentication data is masked** by default (`a***@example.com`). You can change it per connection. Personal data inside Firestore documents is not masked, so think before allowing a production connection.
-- Every tool call is logged locally (`agent-log.jsonl` in the app data directory; open it from Settings). Argument values are not logged.
+- **Large reads ask you first.** When a call reads more documents than the thresholds in **Settings → AI agents** (300 per call, 2,000 per session by default), you are asked to approve it, in the agent if it supports MCP elicitation, or in an OS dialog. These are not limits.
+- **Authentication data is masked** by default (`a***@example.com`). You can change this per connection. Personal data inside Firestore documents is not masked, so think before allowing a production connection.
+- Every tool call is logged locally (`agent-log.jsonl`; open it from **Settings → AI agents**). Argument values are not logged.
 
-The design is in [docs/MCP.md](docs/MCP.md) (in Japanese).
-
-## Tests
-
-```bash
-pnpm test                                         # frontend (vitest)
-pnpm typecheck
-cd src-tauri && cargo test                        # Rust
-cd src-tauri && cargo test -- --include-ignored   # also run Emulator integration tests (needs pnpm emulator and pnpm seed)
-cd src-tauri && cargo clippy --all-targets
-```
-
-## Release builds
-
-### Unsigned (for your own Mac)
-
-```bash
-pnpm tauri build
-```
-
-The `.app` and `.dmg` are created under `src-tauri/target/release/bundle/`.
-Building the `.dmg` controls Finder, so allow the **Automation** permission if macOS asks.
-
-### Signed and notarized (for distribution)
-
-So that distributed builds open without Gatekeeper warnings, the app is signed with an Apple Developer ID and notarized.
-
-1. Join the [Apple Developer Program](https://developer.apple.com/programs/) (US$99/year).
-2. Create a **Developer ID Application** certificate and add it to your keychain. Check its name with `security find-identity -v -p codesigning`.
-3. Prepare notarization credentials (an App Store Connect API key, or an Apple ID with an app-specific password).
-4. Copy `.env.signing.example` to `.env.signing` and fill it in (`.env.signing` and `*.p8` are git-ignored).
-5. Run:
-
-```bash
-./scripts/release-mac.sh
-```
-
-It builds a universal binary (Apple Silicon + Intel), signs, notarizes and staples it, then verifies with `codesign` / `spctl` / `stapler`. Output goes to `src-tauri/target/universal-apple-darwin/release/bundle/dmg/`.
-
-On Windows, unsigned builds show a SmartScreen warning ("More info → Run anyway"). See [CODE_SIGNING.md](CODE_SIGNING.md) for the signing policy.
-
-### Publishing with GitHub Releases
-
-Pushing a tag like `v0.2.0` runs GitHub Actions (`.github/workflows/release.yml`), which builds for macOS (universal, signed and notarized) and Windows (x64, not signed yet), and uploads them to a draft release. When every build has succeeded, the `publish` job trims the update notes in `latest.json`, checks that every platform is present, and publishes the release, so apps only see an update once all files are in place. Tags with a hyphen (for example `v0.8.0-rc.1`) stay as drafts for manual review.
-
-Linux builds are not distributed yet (commented out in the workflow's build matrix). You can still build them locally with `pnpm tauri build`.
-
-Before tagging, bump `version` in `src-tauri/tauri.conf.json`, `package.json` and `src-tauri/Cargo.toml`, and move the entries under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) to a new `## [x.y.z] - YYYY-MM-DD` section. The release notes are generated from that section, and the build fails if it is missing.
-
-```bash
-# commit the version bump and CHANGELOG first
-git tag v0.2.0
-git push origin v0.2.0
-```
-
-The build fails if the tag doesn't match `version` in `tauri.conf.json`.
-
-Signing and notarizing on macOS needs these repository secrets (Settings → Secrets and variables → Actions):
-
-| Secret | Value |
-|---|---|
-| `APPLE_CERTIFICATE` | The Developer ID Application certificate and private key exported as `.p12`, base64-encoded |
-| `APPLE_CERTIFICATE_PASSWORD` | The password used when exporting the `.p12` |
-| `APPLE_SIGNING_IDENTITY` | `Developer ID Application: Name (TEAMID)` |
-| `APPLE_API_ISSUER` | App Store Connect API Issuer ID |
-| `APPLE_API_KEY` | App Store Connect API key ID |
-| `APPLE_API_PRIVATE_KEY` | Contents of `AuthKey_<KEYID>.p8` |
-| `KEYCHAIN_PASSWORD` | Password for the temporary keychain created in CI (any string) |
-
-Export the `.p12` from Keychain Access (right-click the certificate under **My Certificates** → **Export**), then copy it with `base64 -i certificate.p12 | pbcopy`.
-
-Signing on Windows uses an SSL.com code signing certificate with eSigner cloud signing ([`scripts/sign-windows.ps1`](scripts/sign-windows.ps1), called by Tauri for every file it signs). Add these secrets to enable it; without them, the Windows build is not signed:
-
-| Secret | Value |
-|---|---|
-| `ES_USERNAME` | SSL.com account username |
-| `ES_PASSWORD` | SSL.com account password |
-| `ES_CREDENTIAL_ID` | eSigner credential ID of the code signing certificate |
-| `ES_TOTP_SECRET` | eSigner TOTP secret (the text shown next to the QR code when you set up eSigner two-factor authentication) |
-
-Each signed file uses one eSigner signing (about 4–5 per release).
-
-## Icon
-
-The source is `assets/icon.svg`. After editing it, regenerate every size (mobile icons are removed automatically):
-
-```bash
-pnpm icons
-```
-
-## Project layout
-
-```
-src/                    React (UI)
-  components/           UI components
-  lib/                  API calls, display conversion, export, column settings, history, …
-  i18n/                 English / Japanese messages (per feature under messages/)
-  store.ts              App state (zustand)
-src-tauri/src/          Rust
-  firestore/            Firestore REST client, value conversion (value.rs), query building, indexes
-  firebase_auth.rs      Firebase Authentication (Identity Toolkit)
-  auth.rs / gcloud.rs   Tokens from ADC / gcloud accounts
-  export.rs             Save dialog and file writing
-scripts/                Test data loading, macOS release build
-docs/                   Specification (SPEC.md) and the Japanese README
-```
-
-Settings (connections, appearance, columns, query history) are stored in `settings.json` in the OS app data directory (macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`, Windows: `%APPDATA%\dev.sugumura.iroridesk\`).
+More details are in [docs/MCP.md](docs/MCP.md) (in Japanese).
 
 ## Privacy
 
-Irori Desk has no telemetry, analytics or crash reporting. AI agents (MCP) can only read the connections you allow. It connects only to the Google Cloud APIs (Cloud Firestore, Firebase Authentication) of the projects you configure, or to a local Firebase Emulator, using your own Google credentials. Access tokens are kept in memory only, and settings are stored locally on your computer.
+Irori Desk has no telemetry, analytics or crash reporting. It connects only to the Google Cloud APIs (Cloud Firestore, Firebase Authentication) of the projects you configure, or to a local Firebase Emulator, using your own Google credentials, plus GitHub to check for updates. Access tokens are kept in memory only. AI agents can only read the connections you allow.
+
+Settings (connections, appearance, columns, query history) are stored on your computer in `settings.json` (macOS: `~/Library/Application Support/dev.sugumura.iroridesk/`, Windows: `%APPDATA%\dev.sugumura.iroridesk\`).
+
+## Support
+
+Irori Desk is free. If it saves you time, you can support its development:
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/sugumura)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/sugumura)
 
 ## Contributing
 
-Issues and pull requests are welcome. Please follow the [code of conduct](CODE_OF_CONDUCT.md).
+Issues and pull requests are welcome. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) to build and test the app, and follow the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
 [MIT](LICENSE) © 2026 sugumura
 
-The licenses of the bundled third-party software are listed in `src-tauri/THIRD_PARTY_LICENSES.txt`. The file is included in the app (Settings → About, or Help → Third-Party Licenses on macOS) and is regenerated before every release build. To update it by hand:
-
-```bash
-pnpm notices
-```
+The licenses of the bundled third-party software are included in the app (**Settings → About**, or **Help → Third-Party Licenses** on macOS).
 
 Irori Desk is an independent project and is not affiliated with, endorsed by, or sponsored by Google. Firebase, Cloud Firestore and Google Cloud are trademarks of Google LLC.

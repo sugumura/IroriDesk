@@ -130,7 +130,7 @@ claude mcp add irori-desk -- "/Applications/Irori Desk.app/Contents/MacOS/irori-
 }
 ```
 
-- 値はエクスポートと同じ表示用 JSON（`$timestamp`、`$ref`、`$int` などの型情報付き。docs/SPEC.md「型変換」）
+- 値はエクスポートと同じ表示用 JSON（`$timestamp`、`$ref`、`$int` などの型情報付き。規則は src-tauri/src/firestore/value.rs）
 - 大きな値は切り詰める: `bytes` は長さだけ、2,000 文字を超える文字列は先頭だけにして、切り詰めたことを示す
 - 結果全体が大きすぎるとき（目安 50,000 文字）は、`fields` で項目を絞るか、ページ単位で読むよう促すメッセージを付けて途中まで返す（読み取り自体は承認済みのため、エージェントの文脈を溢れさせないための切り詰め）
 - エラーは MCP のツールエラー（`isError: true`）として、アプリと同じメッセージ（英語）を返す

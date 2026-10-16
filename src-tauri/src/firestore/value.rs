@@ -1,6 +1,6 @@
 //! Firestore REST の型付き Value と「表示用JSON」の相互変換。
 //!
-//! 表示用JSONの規則（docs/SPEC.md「型変換」「決定事項」参照）:
+//! 表示用JSONの規則（docs/DEVELOPMENT.md「Display JSON」）:
 //! - JSON で表せない型は、キーが1つだけの `$` ラッパー object で表す
 //!   (`$int` `$double` `$timestamp` `$bytes` `$ref` `$geo`)
 //! - map のキーが `$` で始まる場合は `$` を1つ追加してエスケープする
