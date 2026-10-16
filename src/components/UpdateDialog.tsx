@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { translate, useT } from "@/i18n";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { useUpdates } from "@/lib/updates";
+import { changesSection, parseInline, parseNotes } from "@/lib/releaseNotes";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,6 +53,63 @@ export function useAutoUpdateCheck(ready: boolean) {
   }, [ready]);
 }
 
+function InlineText({ text }: { text: string }) {
+  return (
+    <>
+      {parseInline(text).map((part, i) =>
+        part.kind === "bold" ? (
+          <strong key={i}>{part.text}</strong>
+        ) : part.kind === "code" ? (
+          <code key={i} className="rounded bg-muted px-1 font-mono text-[11px]">
+            {part.text}
+          </code>
+        ) : part.kind === "link" ? (
+          <a
+            key={i}
+            href={part.url}
+            className="underline underline-offset-2"
+            onClick={(e) => {
+              e.preventDefault();
+              void openUrl(part.url);
+            }}
+          >
+            {part.text}
+          </a>
+        ) : (
+          <span key={i}>{part.text}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+/** リリースノートの「Changes」の部分を、見出しと箇条書きにして表示する */
+function ReleaseNotes({ body }: { body: string }) {
+  const blocks = parseNotes(changesSection(body));
+  return (
+    <div className="max-h-72 space-y-1.5 overflow-auto rounded-md border bg-muted/40 p-3 text-xs leading-relaxed">
+      {blocks.map((b, i) =>
+        b.kind === "heading" ? (
+          <div key={i} className="pt-1 font-semibold first:pt-0">
+            <InlineText text={b.text} />
+          </div>
+        ) : b.kind === "item" ? (
+          <div key={i} className="flex gap-1.5">
+            <span className="text-muted-foreground">•</span>
+            <span className="min-w-0">
+              <InlineText text={b.text} />
+            </span>
+          </div>
+        ) : (
+          <p key={i}>
+            <InlineText text={b.text} />
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
 export function UpdateDialog() {
   const t = useT();
   const { update, dialogOpen, phase, progress, error, setDialogOpen, install } = useUpdates();
@@ -88,9 +147,7 @@ export function UpdateDialog() {
         {update?.body && (
           <div className="space-y-1">
             <div className="text-xs font-medium text-muted-foreground">{t("updates.releaseNotes")}</div>
-            <pre className="max-h-72 overflow-auto rounded-md border bg-muted/40 p-3 font-sans text-xs whitespace-pre-wrap">
-              {update.body}
-            </pre>
+            <ReleaseNotes body={update.body} />
           </div>
         )}
         {status ? (

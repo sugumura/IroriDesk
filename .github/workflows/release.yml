@@ -170,3 +170,19 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }} ${{ steps.winsign.outputs.args }}
+
+  # 自動アップデートの更新情報（latest.json）の変更内容を、CHANGELOG のそのバージョンの節だけにする。
+  # 配布済みのアプリは文字のまま表示するため、ダウンロードの案内などを除く
+  updater-notes:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: latest.json の notes を更新
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --pattern latest.json --dir "$RUNNER_TEMP" --clobber
+          node scripts/updater-notes.mjs "$RUNNER_TEMP/latest.json"
+          gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/latest.json" --clobber
