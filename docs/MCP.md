@@ -92,7 +92,10 @@ claude mcp add irori-desk -- "/Applications/Irori Desk.app/Contents/MacOS/irori-
 - 確認の方法（上から順に使えるものを使う）
   1. **MCP の elicitation**: エージェント（クライアント）が対応していれば、エージェントの画面で利用者に尋ねる
   2. **ネイティブのダイアログ**: 対応していなければ、MCP サーバー自身が OS のダイアログを出す
-- 2分以内に応答が無ければ拒否として扱う
+- elicitation の送り方は、エージェントが使うプロトコルの版で変わる
+  - 2025-11-25 以前（`initialize` で始める版）: ツールの処理の途中で、サーバーから `elicitation/create` のリクエストを送って答えを待つ
+  - 2026-07-28 以降（リクエストごとの `_meta` で話す版）: 結果の代わりに `input_required`（キー `read_approval` の `elicitation/create`）を返し、エージェントが答え（`inputResponses`）を付けて同じツールを呼び直す（Multi Round-Trip Requests）。`requestState` には接続・ツール・対象・件数を入れ、呼び直しで一致しない答えは使わずに確認し直す。書き換えられても確認がやり直しになるだけなので、署名はしない
+- 2分以内に応答が無ければ拒否として扱う（ダイアログと、`initialize` で始める版の elicitation）
 - 拒否されたら、読まずに「利用者が拒否した」というツールエラーを返す
 
 エージェントが引数で確認を省略することはできない（承認は必ず利用者から得る）。

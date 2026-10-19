@@ -8,8 +8,9 @@ pub mod settings;
 
 use std::sync::Arc;
 
+use rmcp::handler::server::tool::{InputResponses, RequestState};
 use rmcp::handler::server::wrapper::Parameters;
-use rmcp::model::{CallToolResult, ContentBlock};
+use rmcp::model::{CallToolResponse, CallToolResult, ContentBlock, InputRequiredResult};
 use rmcp::service::RequestContext;
 use rmcp::{tool, tool_handler, tool_router, ErrorData, RoleServer, ServerHandler, ServiceExt};
 use serde::Deserialize;
@@ -22,7 +23,7 @@ use crate::firestore::query::{Direction, OrderClause, QuerySpec, TargetKind};
 use crate::firestore::FirestoreApi;
 use crate::AppState;
 
-use approval::{ReadBudget, ReadRequest};
+use approval::{Blocked, Caller, ReadBudget, ReadRequest, Retry};
 use data::{document_json, to_where_clause, user_json, AgentWhere};
 use settings::Settings;
 
@@ -233,6 +234,28 @@ fn app_error(e: AppError) -> String {
     }
 }
 
+/// 読み取りを行うツールが途中で止まる理由
+enum Stop {
+    Error(String),
+    /// 利用者の確認が要る（2026-07-28 版の input_required）
+    Input(InputRequiredResult),
+}
+
+impl From<String> for Stop {
+    fn from(e: String) -> Self {
+        Stop::Error(e)
+    }
+}
+
+impl From<Blocked> for Stop {
+    fn from(b: Blocked) -> Self {
+        match b {
+            Blocked::Denied(e) => Stop::Error(e),
+            Blocked::NeedsInput(r) => Stop::Input(r),
+        }
+    }
+}
+
 fn not_allowed(key: &str) -> String {
     format!(
         "Connection \"{key}\" is not available. Use list_connections to see the connections the user allowed. \
@@ -309,13 +332,13 @@ impl IroriMcp {
 
     async fn approve(
         &self,
-        ctx: &RequestContext<RoleServer>,
+        caller: &Caller<'_>,
         settings: &Settings,
         conn: &ConnectionConfig,
         tool: &str,
         target: &str,
         estimate: u64,
-    ) -> Result<(), String> {
+    ) -> Result<(), Blocked> {
         let req = ReadRequest {
             connection: &conn.name,
             tool,
@@ -324,7 +347,7 @@ impl IroriMcp {
         };
         self.inner
             .budget
-            .ensure_allowed(&ctx.peer, settings, &req)
+            .ensure_allowed(caller, settings, &req)
             .await
     }
 
@@ -401,14 +424,20 @@ impl IroriMcp {
         &self,
         Parameters(a): Parameters<DescribeArgs>,
         ctx: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, ErrorData> {
+        InputResponses(responses): InputResponses,
+        RequestState(state): RequestState,
+    ) -> Result<CallToolResponse, ErrorData> {
+        let caller = Caller {
+            ctx: &ctx,
+            retry: Retry { responses, state },
+        };
         let sample = a.sample.unwrap_or(DEFAULT_SAMPLE).clamp(1, MAX_SAMPLE);
         let target = a.collection.trim_matches('/').to_owned();
         let mut conn_used = None;
         let result = async {
             let (settings, conn) = self.connection(&a.connection)?;
             conn_used = Some(conn.clone());
-            self.approve(&ctx, &settings, &conn, "describe_collection", &target, sample as u64)
+            self.approve(&caller, &settings, &conn, "describe_collection", &target, sample as u64)
                 .await?;
             let page = self
                 .inner
@@ -445,7 +474,7 @@ impl IroriMcp {
                     json!({ "field": name, "present_in": present, "types": types, "example": example })
                 })
                 .collect();
-            Ok::<_, String>((
+            Ok::<_, Stop>((
                 reads,
                 json!({
                     "collection": target,
@@ -467,14 +496,17 @@ impl IroriMcp {
                     reads,
                     Ok(v),
                 )
+                .map(Into::into)
             }
-            Err(e) => finish(
+            Err(Stop::Input(r)) => Ok(r.into()),
+            Err(Stop::Error(e)) => finish(
                 "describe_collection",
                 conn_used.as_ref(),
                 &target,
                 0,
                 Err(e),
-            ),
+            )
+            .map(Into::into),
         }
     }
 
@@ -486,7 +518,13 @@ impl IroriMcp {
         &self,
         Parameters(a): Parameters<ListDocumentsArgs>,
         ctx: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, ErrorData> {
+        InputResponses(responses): InputResponses,
+        RequestState(state): RequestState,
+    ) -> Result<CallToolResponse, ErrorData> {
+        let caller = Caller {
+            ctx: &ctx,
+            retry: Retry { responses, state },
+        };
         let limit = a.limit.unwrap_or(DEFAULT_LIMIT).max(1);
         let target = a.collection.trim_matches('/').to_owned();
         let mut conn_used = None;
@@ -494,7 +532,7 @@ impl IroriMcp {
             let (settings, conn) = self.connection(&a.connection)?;
             conn_used = Some(conn.clone());
             self.approve(
-                &ctx,
+                &caller,
                 &settings,
                 &conn,
                 "list_documents",
@@ -515,7 +553,7 @@ impl IroriMcp {
                 .iter()
                 .map(|d| document_json(d, a.fields.as_deref()))
                 .collect();
-            Ok::<_, String>((
+            Ok::<_, Stop>((
                 page.documents.len() as u64,
                 json!({
                     "connection": conn.name,
@@ -529,9 +567,12 @@ impl IroriMcp {
         match result {
             Ok((reads, mut v)) => {
                 v["reads"] = self.reads_json(reads);
-                finish("list_documents", conn_used.as_ref(), &target, reads, Ok(v))
+                finish("list_documents", conn_used.as_ref(), &target, reads, Ok(v)).map(Into::into)
             }
-            Err(e) => finish("list_documents", conn_used.as_ref(), &target, 0, Err(e)),
+            Err(Stop::Input(r)) => Ok(r.into()),
+            Err(Stop::Error(e)) => {
+                finish("list_documents", conn_used.as_ref(), &target, 0, Err(e)).map(Into::into)
+            }
         }
     }
 
@@ -580,7 +621,13 @@ impl IroriMcp {
         &self,
         Parameters(a): Parameters<QueryArgs>,
         ctx: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, ErrorData> {
+        InputResponses(responses): InputResponses,
+        RequestState(state): RequestState,
+    ) -> Result<CallToolResponse, ErrorData> {
+        let caller = Caller {
+            ctx: &ctx,
+            retry: Retry { responses, state },
+        };
         let limit = a.limit.unwrap_or(DEFAULT_LIMIT).max(1);
         let target = a.collection.trim_matches('/').to_owned();
         let mut conn_used = None;
@@ -594,8 +641,15 @@ impl IroriMcp {
                 &a.order_by,
                 Some(limit),
             )?;
-            self.approve(&ctx, &settings, &conn, "run_query", &target, limit as u64)
-                .await?;
+            self.approve(
+                &caller,
+                &settings,
+                &conn,
+                "run_query",
+                &target,
+                limit as u64,
+            )
+            .await?;
             let res = self
                 .inner
                 .state
@@ -609,7 +663,7 @@ impl IroriMcp {
                 .iter()
                 .map(|d| document_json(d, a.fields.as_deref()))
                 .collect();
-            Ok::<_, String>((
+            Ok::<_, Stop>((
                 res.documents.len() as u64,
                 json!({
                     "connection": conn.name,
@@ -623,9 +677,12 @@ impl IroriMcp {
         match result {
             Ok((reads, mut v)) => {
                 v["reads"] = self.reads_json(reads);
-                finish("run_query", conn_used.as_ref(), &target, reads, Ok(v))
+                finish("run_query", conn_used.as_ref(), &target, reads, Ok(v)).map(Into::into)
             }
-            Err(e) => finish("run_query", conn_used.as_ref(), &target, 0, Err(e)),
+            Err(Stop::Input(r)) => Ok(r.into()),
+            Err(Stop::Error(e)) => {
+                finish("run_query", conn_used.as_ref(), &target, 0, Err(e)).map(Into::into)
+            }
         }
     }
 
@@ -698,14 +755,20 @@ impl IroriMcp {
         &self,
         Parameters(a): Parameters<ListUsersArgs>,
         ctx: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, ErrorData> {
+        InputResponses(responses): InputResponses,
+        RequestState(state): RequestState,
+    ) -> Result<CallToolResponse, ErrorData> {
+        let caller = Caller {
+            ctx: &ctx,
+            retry: Retry { responses, state },
+        };
         let limit = a.limit.unwrap_or(DEFAULT_LIMIT).max(1);
         let mut conn_used = None;
         let result = async {
             let (settings, conn) = self.connection(&a.connection)?;
             conn_used = Some(conn.clone());
             self.approve(
-                &ctx,
+                &caller,
                 &settings,
                 &conn,
                 "list_auth_users",
@@ -726,7 +789,7 @@ impl IroriMcp {
                 .iter()
                 .map(|u| user_json(u, conn.agent_auth_pii))
                 .collect();
-            Ok::<_, String>((
+            Ok::<_, Stop>((
                 users.len() as u64,
                 json!({
                     "connection": conn.name,
@@ -740,9 +803,12 @@ impl IroriMcp {
         match result {
             Ok((reads, mut v)) => {
                 v["reads"] = self.reads_json(reads);
-                finish("list_auth_users", conn_used.as_ref(), "users", reads, Ok(v))
+                finish("list_auth_users", conn_used.as_ref(), "users", reads, Ok(v)).map(Into::into)
             }
-            Err(e) => finish("list_auth_users", conn_used.as_ref(), "users", 0, Err(e)),
+            Err(Stop::Input(r)) => Ok(r.into()),
+            Err(Stop::Error(e)) => {
+                finish("list_auth_users", conn_used.as_ref(), "users", 0, Err(e)).map(Into::into)
+            }
         }
     }
 
