@@ -1,9 +1,20 @@
 # Windows のファイルに SSL.com eSigner（CodeSignTool）で署名する。
 # Tauri の bundle.windows.signCommand から、署名するファイルごとに呼ばれる（アプリ本体・インストーラー・アンインストーラー）。
 # 使う環境変数: CODESIGNTOOL_DIR, ES_USERNAME, ES_PASSWORD, ES_CREDENTIAL_ID, ES_TOTP_SECRET
+# ESIGN_LOG があれば、出力をそのファイルにも書く（Tauri は署名コマンドの出力を表示しないため、失敗の理由を後で確認する）
 param([Parameter(Mandatory = $true)][string]$File)
 
 $ErrorActionPreference = 'Stop'
+
+function Log([string]$Message) {
+  Write-Host $Message
+  if ($env:ESIGN_LOG) { Add-Content -Path $env:ESIGN_LOG -Value $Message }
+}
+
+trap {
+  Log "ERROR: $_"
+  exit 1
+}
 
 foreach ($name in 'CODESIGNTOOL_DIR', 'ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET') {
   if (-not (Get-Item "env:$name" -ErrorAction SilentlyContinue).Value) { throw "$name is not set" }
@@ -14,7 +25,7 @@ $marker = Join-Path ([IO.Path]::GetTempPath()) 'esigner-last-totp-window'
 $window = [math]::Floor([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() / 30)
 if ((Test-Path $marker) -and ([long](Get-Content $marker) -ge $window)) {
   $wait = 30 - ([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() % 30) + 1
-  Write-Host "Waiting ${wait}s for the next one-time password"
+  Log "Waiting ${wait}s for the next one-time password"
   Start-Sleep -Seconds $wait
   $window = [math]::Floor([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() / 30)
 }
@@ -22,7 +33,7 @@ Set-Content -Path $marker -Value $window
 
 $jar = Get-ChildItem (Join-Path $env:CODESIGNTOOL_DIR 'jar') -Filter 'code_sign_tool-*.jar' | Select-Object -First 1
 $path = (Resolve-Path $File).Path
-Write-Host "Signing $path"
+Log "Signing $path"
 
 # CodeSignTool は conf/code_sign_tool.properties を作業ディレクトリから読む
 Push-Location $env:CODESIGNTOOL_DIR
@@ -38,11 +49,11 @@ try {
 } finally {
   Pop-Location
 }
-$output | ForEach-Object { Write-Host $_ }
+$output | ForEach-Object { Log "$_" }
 
 # CodeSignTool は失敗しても終了コードが 0 のことがあるため、署名そのものを確認する
 $signature = Get-AuthenticodeSignature -FilePath $path
 if ($code -ne 0 -or $signature.Status -ne 'Valid') {
   throw "Signing failed for $path (exit code $code, signature status $($signature.Status))"
 }
-Write-Host "Signed by $($signature.SignerCertificate.Subject)"
+Log "Signed by $($signature.SignerCertificate.Subject)"

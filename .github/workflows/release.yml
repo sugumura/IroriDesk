@@ -107,6 +107,7 @@ jobs:
           # zip の中にフォルダが1段あれば、その中を使う
           [ -d "$dir/jar" ] || dir="$(dirname "$(find "$dir" -type d -name jar -not -path '*__MACOSX*' | head -1)")"
           echo "CODESIGNTOOL_DIR=$(cygpath -w "$dir")" >> "$GITHUB_ENV"
+          echo "ESIGN_LOG=$(cygpath -w "$tmp/esigner.log")" >> "$GITHUB_ENV"
           script="$(cygpath -w "$GITHUB_WORKSPACE/scripts/sign-windows.ps1")"
           conf="$(cygpath -w "$tmp/tauri.sign.json")"
           node -e '
@@ -170,6 +171,12 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }} ${{ steps.winsign.outputs.args }}
+
+      # Tauri は署名コマンドの出力を表示しない（失敗しても "failed to run pwsh" だけ）ため、署名の記録を表示する
+      - name: Windows の署名の記録
+        if: always() && matrix.platform == 'windows-latest' && env.HAS_WINDOWS_SIGNING == 'true'
+        shell: bash
+        run: cat "$(cygpath -u "$ESIGN_LOG")" 2>/dev/null || echo "署名の記録はありません（署名の前に失敗しました）"
 
   # 仕上げと公開。すべてのビルドが終わってから、
   # 1) 自動アップデートの更新情報（latest.json）の変更内容を CHANGELOG のそのバージョンの節だけにし
