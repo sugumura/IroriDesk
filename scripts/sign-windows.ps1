@@ -42,7 +42,7 @@ try {
     "-username=$env:ES_USERNAME" `
     "-password=$env:ES_PASSWORD" `
     "-credential_id=$env:ES_CREDENTIAL_ID" `
-    "-totp_secret=$env:ES_TOTP_SECRET" `
+    "-totp_secret=$($env:ES_TOTP_SECRET -replace '\s', '')" `
     "-input_file_path=$path" `
     '-override=true' 2>&1
   $code = $LASTEXITCODE
