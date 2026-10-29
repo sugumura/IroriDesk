@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The Windows installer is now code-signed with an SSL.com certificate ([CODE_SIGNING.md](CODE_SIGNING.md)).
+- Windows builds ship only the `-setup.exe` (NSIS) installer; the `.msi` is no longer published. If you installed Irori Desk with the `.msi`, the next update replaces it with the `-setup.exe` version and removes the `.msi` installation (Windows may ask for administrator permission once).
+
 ## [0.7.2] - 2026-10-19
 
 ### Changed

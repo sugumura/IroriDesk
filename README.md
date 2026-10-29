@@ -27,7 +27,7 @@ Get the latest version from [GitHub Releases](https://github.com/sugumura/IroriD
 | OS | File | Notes |
 |---|---|---|
 | macOS 11+ (Apple Silicon / Intel) | `IroriDesk_<version>_universal.dmg` | Signed and notarized |
-| Windows 10 / 11 (x64) | `IroriDesk_<version>_x64-setup.exe` or `_x64.msi` | Not code-signed yet — see below |
+| Windows 10 / 11 (x64) | `IroriDesk_<version>_x64-setup.exe` | Code-signed |
 
 On macOS you can also install it with [Homebrew](https://brew.sh):
 
@@ -35,7 +35,7 @@ On macOS you can also install it with [Homebrew](https://brew.sh):
 brew install --cask sugumura/tap/irori-desk
 ```
 
-The Windows installers are not signed yet (a code signing certificate is being issued, see [CODE_SIGNING.md](CODE_SIGNING.md)). If Windows SmartScreen shows "Windows protected your PC", click **More info → Run anyway**.
+The Windows installer is signed with an SSL.com code signing certificate (see [CODE_SIGNING.md](CODE_SIGNING.md)). Until the certificate builds up reputation, Windows SmartScreen may still show "Windows protected your PC"; click **More info → Run anyway**.
 
 To connect to production projects you also need the [Google Cloud SDK (gcloud)](https://cloud.google.com/sdk/docs/install).
 

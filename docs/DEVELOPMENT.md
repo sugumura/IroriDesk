@@ -94,14 +94,14 @@ Export the `.p12` from Keychain Access (right-click the certificate under **My C
 
 **Windows signing** (optional; without these, the Windows build is not signed)
 
-Signing uses an SSL.com code signing certificate with eSigner cloud signing. Tauri calls [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) for every file it signs (about 4–5 eSigner signings per release). See [CODE_SIGNING.md](../CODE_SIGNING.md) for the policy.
+Signing uses an SSL.com code signing certificate with eSigner cloud signing. Tauri calls [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) for every file it signs (7 eSigner signings per release, for the app, the installer and the NSIS plugin DLLs; to keep this low, the Windows build makes only the NSIS installer). See [CODE_SIGNING.md](../CODE_SIGNING.md) for the policy.
 
 | Secret | Value |
 |---|---|
 | `ES_USERNAME` | SSL.com account username |
 | `ES_PASSWORD` | SSL.com account password |
 | `ES_CREDENTIAL_ID` | eSigner credential ID of the code signing certificate |
-| `ES_TOTP_SECRET` | eSigner TOTP secret (the text shown next to the QR code when you set up eSigner two-factor authentication) |
+| `ES_TOTP_SECRET` | eSigner TOTP secret (the "secret code" shown below the QR code on the certificate order page. Not the `secret=` value inside the QR code, which CodeSignTool rejects with "The OTP is invalid") |
 
 **Auto-update**
 

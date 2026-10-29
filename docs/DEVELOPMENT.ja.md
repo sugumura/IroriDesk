@@ -94,14 +94,14 @@ Settings → Secrets and variables → Actions に登録します。
 
 **Windows の署名**（任意。登録しなければ Windows 版は署名なしでビルドされます）
 
-SSL.com のコード署名証明書とクラウド署名（eSigner）を使います。Tauri が署名するファイルごとに [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) を呼び出します（1回のリリースで eSigner の署名を4〜5回使います）。方針は [CODE_SIGNING.md](../CODE_SIGNING.md) を参照してください。
+SSL.com のコード署名証明書とクラウド署名（eSigner）を使います。Tauri が署名するファイルごとに [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) を呼び出します（1回のリリースで eSigner の署名を7回使います。アプリ本体、インストーラー、NSIS のプラグインの DLL に署名するためです。署名の回数を抑えるため、Windows は NSIS のインストーラーだけを作ります）。方針は [CODE_SIGNING.md](../CODE_SIGNING.md) を参照してください。
 
 | Secret | 値 |
 |---|---|
 | `ES_USERNAME` | SSL.com のユーザー名 |
 | `ES_PASSWORD` | SSL.com のパスワード |
 | `ES_CREDENTIAL_ID` | コード署名証明書の eSigner の Credential ID |
-| `ES_TOTP_SECRET` | eSigner の TOTP シークレット（eSigner の二段階認証を設定するとき、QR コードの横に表示される文字列） |
+| `ES_TOTP_SECRET` | eSigner の TOTP シークレット（証明書の注文ページで QR コードの下に表示される「secret code」。QR コードの中の `secret=` の値ではない。そちらを使うと CodeSignTool は "The OTP is invalid" で失敗する） |
 
 **自動アップデート**
 
