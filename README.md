@@ -128,6 +128,10 @@ Irori Desk is free. If it saves you time, you can support its development:
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/sugumura)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/sugumura)
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for what is planned next.
+
 ## Contributing
 
 Issues and pull requests are welcome. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) to build and test the app, and follow the [code of conduct](CODE_OF_CONDUCT.md).

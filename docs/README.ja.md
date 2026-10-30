@@ -128,6 +128,10 @@ Irori Desk は無料です。役に立ったら、寄付で開発を応援して
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/sugumura)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/sugumura)
 
+## ロードマップ
+
+今後の予定は [ROADMAP.ja.md](ROADMAP.ja.md) を参照してください。
+
 ## コントリビュート
 
 Issue や Pull Request を歓迎します。ビルドやテストの方法は [DEVELOPMENT.ja.md](DEVELOPMENT.ja.md) を参照し、[行動規範](../CODE_OF_CONDUCT.md)に従ってください。
