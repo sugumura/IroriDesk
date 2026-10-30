@@ -189,6 +189,9 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    env:
+      # sugumura/homebrew-tap に書き込めるデプロイキーがあれば、公開のあと cask を新しいバージョンに上げる
+      HAS_TAP_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
       - name: latest.json の notes を更新
@@ -212,3 +215,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+      - name: Homebrew の cask を更新
+        if: ${{ !contains(github.ref_name, '-') && env.HAS_TAP_KEY == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          dmg="IroriDesk_${version}_universal.dmg"
+          gh release download "$GITHUB_REF_NAME" --pattern "$dmg" --dir "$RUNNER_TEMP" --clobber
+          sha="$(sha256sum "$RUNNER_TEMP/$dmg" | cut -d' ' -f1)"
+          key="$RUNNER_TEMP/tap_key"
+          printf '%s\n' "$TAP_KEY" > "$key"
+          chmod 600 "$key"
+          mkdir -p ~/.ssh
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes"
+          git clone --depth 1 git@github.com:sugumura/homebrew-tap.git "$RUNNER_TEMP/tap"
+          cd "$RUNNER_TEMP/tap"
+          sed -i -e "s/^  version \".*\"/  version \"$version\"/" -e "s/^  sha256 \".*\"/  sha256 \"$sha\"/" Casks/irori-desk.rb
+          if git diff --quiet; then echo "cask は $version のままです"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -qam "irori-desk $version"
+          git push -q
+          rm -f "$key"
