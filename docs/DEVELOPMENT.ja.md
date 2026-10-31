@@ -94,7 +94,7 @@ Settings → Secrets and variables → Actions に登録します。
 
 **Windows の署名**（任意。登録しなければ Windows 版は署名なしでビルドされます）
 
-SSL.com のコード署名証明書とクラウド署名（eSigner）を使います。Tauri が署名するファイルごとに [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) を呼び出します（1回のリリースで eSigner の署名を7回使います。アプリ本体、インストーラー、NSIS のプラグインの DLL に署名するためです。署名の回数を抑えるため、Windows は NSIS のインストーラーだけを作ります）。方針は [CODE_SIGNING.md](../CODE_SIGNING.md) を参照してください。
+SSL.com のコード署名証明書とクラウド署名（eSigner）を使います。Tauri が署名するファイルごとに [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) を呼び出します（1回のリリースで eSigner の署名を8回使います。アプリ本体、インストーラー、アンインストーラー、NSIS のプラグインの DLL に署名するためです。署名の回数を抑えるため、Windows は NSIS のインストーラーだけを作ります）。方針は [CODE_SIGNING.md](../CODE_SIGNING.md) を参照してください。
 
 | Secret | 値 |
 |---|---|

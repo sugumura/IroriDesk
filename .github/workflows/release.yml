@@ -19,7 +19,7 @@ jobs:
           - platform: macos-latest
             args: --target universal-apple-darwin
           # Windows は SSL.com の個人向けコード署名証明書（eSigner）で署名する。Secrets が無ければ署名なし
-          # インストーラーは NSIS だけにする（MSI も作ると eSigner の署名が1回のビルドで11回になるため。NSIS だけなら7回）
+          # インストーラーは NSIS だけにする（MSI も作ると eSigner の署名が1回のビルドで11回になるため。NSIS だけなら8回）
           - platform: windows-latest
             args: --bundles nsis
           # Linux はまだ配布しない。再開するときは次の行のコメントを外す

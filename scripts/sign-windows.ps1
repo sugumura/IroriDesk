@@ -35,6 +35,13 @@ $jar = Get-ChildItem (Join-Path $env:CODESIGNTOOL_DIR 'jar') -Filter 'code_sign_
 $path = (Resolve-Path $File).Path
 Log "Signing $path"
 
+# CodeSignTool は拡張子でファイルの種類を決める。NSIS はアンインストーラーを .tmp のまま署名させるため、.exe の名前で写して署名し、書き戻す
+$target = $path
+if ([IO.Path]::GetExtension($path) -notin '.exe', '.dll', '.msi') {
+  $target = Join-Path ([IO.Path]::GetTempPath()) ("esigner-" + [IO.Path]::GetFileNameWithoutExtension($path) + '.exe')
+  Copy-Item -LiteralPath $path -Destination $target -Force
+}
+
 # CodeSignTool は conf/code_sign_tool.properties を作業ディレクトリから読む
 Push-Location $env:CODESIGNTOOL_DIR
 try {
@@ -43,7 +50,7 @@ try {
     "-password=$env:ES_PASSWORD" `
     "-credential_id=$env:ES_CREDENTIAL_ID" `
     "-totp_secret=$($env:ES_TOTP_SECRET -replace '\s', '')" `
-    "-input_file_path=$path" `
+    "-input_file_path=$target" `
     '-override=true' 2>&1
   $code = $LASTEXITCODE
 } finally {
@@ -52,8 +59,12 @@ try {
 $output | ForEach-Object { Log "$_" }
 
 # CodeSignTool は失敗しても終了コードが 0 のことがあるため、署名そのものを確認する
-$signature = Get-AuthenticodeSignature -FilePath $path
+$signature = Get-AuthenticodeSignature -FilePath $target
 if ($code -ne 0 -or $signature.Status -ne 'Valid') {
   throw "Signing failed for $path (exit code $code, signature status $($signature.Status))"
+}
+if ($target -ne $path) {
+  Copy-Item -LiteralPath $target -Destination $path -Force
+  Remove-Item -LiteralPath $target
 }
 Log "Signed by $($signature.SignerCertificate.Subject)"

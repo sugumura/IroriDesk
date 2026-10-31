@@ -94,7 +94,7 @@ Export the `.p12` from Keychain Access (right-click the certificate under **My C
 
 **Windows signing** (optional; without these, the Windows build is not signed)
 
-Signing uses an SSL.com code signing certificate with eSigner cloud signing. Tauri calls [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) for every file it signs (7 eSigner signings per release, for the app, the installer and the NSIS plugin DLLs; to keep this low, the Windows build makes only the NSIS installer). See [CODE_SIGNING.md](../CODE_SIGNING.md) for the policy.
+Signing uses an SSL.com code signing certificate with eSigner cloud signing. Tauri calls [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) for every file it signs (8 eSigner signings per release, for the app, the installer, the uninstaller and the NSIS plugin DLLs; to keep this low, the Windows build makes only the NSIS installer). See [CODE_SIGNING.md](../CODE_SIGNING.md) for the policy.
 
 | Secret | Value |
 |---|---|
