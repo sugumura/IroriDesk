@@ -96,6 +96,8 @@ Export the `.p12` from Keychain Access (right-click the certificate under **My C
 
 Signing uses an SSL.com code signing certificate with eSigner cloud signing. Tauri calls [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) for every file it signs (8 eSigner signings per release, for the app, the installer, the uninstaller and the NSIS plugin DLLs; to keep this low, the Windows build makes only the NSIS installer). See [CODE_SIGNING.md](../CODE_SIGNING.md) for the policy.
 
+Register these as secrets of the `release` environment (not repository secrets), for example `gh secret set ES_USERNAME --env release`. The environment only allows `v*` tags, so other branches and manual runs cannot read them.
+
 | Secret | Value |
 |---|---|
 | `ES_USERNAME` | SSL.com account username |

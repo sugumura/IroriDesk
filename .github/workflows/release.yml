@@ -26,6 +26,8 @@ jobs:
           # - platform: ubuntu-22.04
           #   args: ""
     runs-on: ${{ matrix.platform }}
+    # Windows の署名の Secrets（ES_*）は Environment「release」に置く。v* のタグで動いたときだけ使える
+    environment: release
     env:
       # Windows の署名の Secrets が登録されているか（`if` では secrets を直接参照できないため）
       HAS_WINDOWS_SIGNING: ${{ secrets.ES_USERNAME != '' }}

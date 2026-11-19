@@ -96,6 +96,8 @@ Settings → Secrets and variables → Actions に登録します。
 
 SSL.com のコード署名証明書とクラウド署名（eSigner）を使います。Tauri が署名するファイルごとに [`scripts/sign-windows.ps1`](../scripts/sign-windows.ps1) を呼び出します（1回のリリースで eSigner の署名を8回使います。アプリ本体、インストーラー、アンインストーラー、NSIS のプラグインの DLL に署名するためです。署名の回数を抑えるため、Windows は NSIS のインストーラーだけを作ります）。方針は [CODE_SIGNING.md](../CODE_SIGNING.md) を参照してください。
 
+この4つは、リポジトリのシークレットではなく、Environment「release」のシークレットとして登録します（例：`gh secret set ES_USERNAME --env release`）。この Environment は `v*` のタグでしか使えないため、ほかのブランチや手での実行からは読めません。
+
 | Secret | 値 |
 |---|---|
 | `ES_USERNAME` | SSL.com のユーザー名 |
