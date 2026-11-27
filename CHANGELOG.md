@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-27
+
 ### Security
 
 - Updated dependencies with known vulnerabilities, including `zip` in the Windows updater (via `tauri-plugin-updater` 2.14.1) and `rustls`.
@@ -123,7 +125,8 @@ First public release.
 - Connections to production projects (ADC or a gcloud account per connection) and the Firebase Emulator. Read-only: no API that writes data is ever called.
 - Signed and notarized macOS build (Apple Silicon / Intel).
 
-[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/sugumura/IroriDesk/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/sugumura/IroriDesk/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/sugumura/IroriDesk/compare/v0.7.2...v1.0.0
 [0.7.2]: https://github.com/sugumura/IroriDesk/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/sugumura/IroriDesk/compare/v0.7.0...v0.7.1
