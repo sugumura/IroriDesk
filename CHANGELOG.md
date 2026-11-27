@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- Updated dependencies with known vulnerabilities, including `zip` in the Windows updater (via `tauri-plugin-updater` 2.14.1) and `rustls`.
+
 ## [1.0.0] - 2026-10-29
 
 ### Changed
